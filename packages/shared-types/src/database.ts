@@ -25,7 +25,7 @@ export interface Slot {
   campaign_id: string;
   day_of_week: number; // 0-6 (Sunday-Saturday)
   start_time: string; // HH:MM:SS
-  end_time: string;
+  end_time: string; // HH:MM:SS
   checkin_window_minutes: number;
   checkout_window_minutes: number;
   is_active: boolean;
@@ -82,6 +82,7 @@ export interface PinCode {
   linked_nric: string | null;
   is_used: boolean;
   created_at: string;
+  updated_at: string;
 }
 
 export interface Attendance {

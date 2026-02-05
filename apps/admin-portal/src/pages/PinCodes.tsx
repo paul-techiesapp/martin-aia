@@ -26,6 +26,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from '@agent-system/shared-ui';
 import { Plus, Trash2, Printer, QrCode, Check, X } from 'lucide-react';
 import { useCampaigns } from '../hooks/useCampaigns';
@@ -42,6 +50,7 @@ export function PinCodes() {
   const [generateCount, setGenerateCount] = useState(10);
   const [isGenerateOpen, setIsGenerateOpen] = useState(false);
   const [qrMode, setQrMode] = useState<'checkin' | 'checkout' | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const { data: campaigns } = useCampaigns();
   const { data: slots } = useSlots(selectedCampaignId);
@@ -60,10 +69,14 @@ export function PinCodes() {
   };
 
   const handleDeleteUnused = () => {
-    if (!selectedSlotId) return;
-    if (confirm('Delete all unused PIN codes for this slot?')) {
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDeleteUnused = () => {
+    if (selectedSlotId) {
       deletePins.mutate({ slotId: selectedSlotId, onlyUnused: true });
     }
+    setShowDeleteDialog(false);
   };
 
   const handlePrint = () => {
@@ -286,6 +299,23 @@ export function PinCodes() {
           </CardContent>
         </Card>
       )}
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Unused PIN Codes</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete all unused PIN codes for this slot? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteUnused} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

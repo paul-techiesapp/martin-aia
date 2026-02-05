@@ -80,6 +80,7 @@ export { Toast, toastVariants } from './components/ui/toast';
 export { Toaster } from './components/ui/toaster';
 export { StatCard, StatCardGrid } from './components/ui/stat-card';
 export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from './components/ui/tooltip';
+export { Separator } from './components/ui/separator';
 export {
   DropdownMenu,
   DropdownMenuTrigger,

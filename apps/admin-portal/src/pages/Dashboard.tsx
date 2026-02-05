@@ -1,12 +1,56 @@
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@agent-system/shared-ui';
 import { Calendar, Users, UserCheck, DollarSign } from 'lucide-react';
 import { useCampaigns } from '../hooks/useCampaigns';
 import { CampaignStatus } from '@agent-system/shared-types';
+import { supabase } from '../lib/supabase';
 
 export function Dashboard() {
-  const { data: campaigns, isLoading } = useCampaigns();
+  const { data: campaigns, isLoading: campaignsLoading } = useCampaigns();
 
   const activeCampaigns = campaigns?.filter(c => c.status === CampaignStatus.ACTIVE).length ?? 0;
+
+  // Fetch agent count
+  const { data: agentCount, isLoading: agentsLoading } = useQuery({
+    queryKey: ['agent-count'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('agents')
+        .select('*', { count: 'exact', head: true });
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
+  // Fetch today's attendance
+  const { data: todayAttendance, isLoading: attendanceLoading } = useQuery({
+    queryKey: ['today-attendance'],
+    queryFn: async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const { count, error } = await supabase
+        .from('attendance')
+        .select('*', { count: 'exact', head: true })
+        .gte('checkin_time', `${today}T00:00:00`)
+        .lte('checkin_time', `${today}T23:59:59`);
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
+  // Fetch pending rewards count
+  const { data: pendingRewardsCount, isLoading: rewardsLoading } = useQuery({
+    queryKey: ['pending-rewards-count'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('rewards')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
+  const isLoading = campaignsLoading || agentsLoading || attendanceLoading || rewardsLoading;
 
   const stats = [
     {
@@ -17,19 +61,19 @@ export function Dashboard() {
     },
     {
       name: 'Total Agents',
-      value: '-',
+      value: agentCount ?? 0,
       icon: Users,
       description: 'Registered agents',
     },
     {
       name: 'Attendance Today',
-      value: '-',
+      value: todayAttendance ?? 0,
       icon: UserCheck,
       description: 'Check-ins',
     },
     {
       name: 'Pending Rewards',
-      value: '-',
+      value: pendingRewardsCount ?? 0,
       icon: DollarSign,
       description: 'To be processed',
     },

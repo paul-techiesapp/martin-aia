@@ -98,6 +98,19 @@ import { Button, Card, Input, Form, Table, Dialog, Select, cn, supabase } from '
 ### Enums (in PostgreSQL and TypeScript)
 `invitation_type`, `campaign_status`, `invitation_status`, `capacity_type`, `role_type`, `agent_status`, `reward_status`
 
+### Test Users (Production)
+| Email | Password | Role | Access |
+|-------|----------|------|--------|
+| `admin@test.com` | `@Abc1234` | admin | Full system access via Admin Portal |
+| `agent@test.com` | `@Abc1234` | agent | Agent Portal with own data only |
+
+**Agent Test Data:**
+- Name: Test Agent
+- Code: AGT001
+- Tier: Standard Agent ($50 reward, 10 invites/slot)
+- Phone: +6591234567
+- NRIC: S1234567A
+
 ## Deployment
 
 ### GitHub Repository

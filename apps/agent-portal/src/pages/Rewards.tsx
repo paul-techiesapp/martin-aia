@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import {
   Card,
   CardContent,
@@ -15,18 +16,47 @@ import { DollarSign, TrendingUp, Clock, CheckCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useMyInvitations } from '../hooks/useInvitations';
 import { InvitationStatus } from '@agent-system/shared-types';
+import { supabase } from '../lib/supabase';
 
 export function Rewards() {
   const { agent } = useAuth();
-  const { data: invitations, isLoading } = useMyInvitations(agent?.id);
+  const { data: invitations, isLoading: invitationsLoading } = useMyInvitations(agent?.id);
 
-  // Calculate rewards from completed invitations
+  // Fetch actual rewards from database
+  const { data: rewardsData, isLoading: rewardsLoading } = useQuery({
+    queryKey: ['agent-rewards', agent?.id],
+    queryFn: async () => {
+      if (!agent?.id) return { total: 0, pending: 0, confirmed: 0, paid: 0 };
+
+      const { data: rewards } = await supabase
+        .from('rewards')
+        .select('amount, status')
+        .eq('agent_id', agent.id);
+
+      if (!rewards || rewards.length === 0) {
+        return { total: 0, pending: 0, confirmed: 0, paid: 0 };
+      }
+
+      return {
+        total: rewards.reduce((sum, r) => sum + (r.amount || 0), 0),
+        pending: rewards.filter(r => r.status === 'pending').reduce((sum, r) => sum + (r.amount || 0), 0),
+        confirmed: rewards.filter(r => r.status === 'confirmed').reduce((sum, r) => sum + (r.amount || 0), 0),
+        paid: rewards.filter(r => r.status === 'paid').reduce((sum, r) => sum + (r.amount || 0), 0),
+      };
+    },
+    enabled: !!agent?.id,
+  });
+
+  // Calculate from completed invitations as fallback
   const completedInvitations = invitations?.filter(i => i.status === InvitationStatus.COMPLETED) ?? [];
   const rewardAmount = agent?.tier?.reward_amount ?? 0;
 
-  const totalEarned = completedInvitations.length * rewardAmount;
-  const pendingRewards = completedInvitations.filter(() => true).length * rewardAmount; // Simplified - would check reward status
-  const confirmedRewards = 0; // Would come from actual rewards table
+  // Use database rewards if available, otherwise calculate from invitations
+  const totalEarned = rewardsData?.total || (completedInvitations.length * rewardAmount);
+  const pendingRewards = rewardsData?.pending || (completedInvitations.length * rewardAmount);
+  const confirmedRewards = rewardsData?.confirmed || 0;
+
+  const isLoading = invitationsLoading || rewardsLoading;
 
   return (
     <div className="space-y-6">
@@ -42,7 +72,9 @@ export function Rewards() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalEarned.toFixed(2)}</div>
+            <div className="text-2xl font-bold">
+              {isLoading ? '...' : `$${totalEarned.toFixed(2)}`}
+            </div>
             <p className="text-xs text-muted-foreground">
               {completedInvitations.length} completed attendances
             </p>
@@ -54,7 +86,9 @@ export function Rewards() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">${pendingRewards.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-yellow-600">
+              {isLoading ? '...' : `$${pendingRewards.toFixed(2)}`}
+            </div>
             <p className="text-xs text-muted-foreground">Awaiting confirmation</p>
           </CardContent>
         </Card>
@@ -64,7 +98,9 @@ export function Rewards() {
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">${confirmedRewards.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-green-600">
+              {isLoading ? '...' : `$${confirmedRewards.toFixed(2)}`}
+            </div>
             <p className="text-xs text-muted-foreground">Ready for payout</p>
           </CardContent>
         </Card>

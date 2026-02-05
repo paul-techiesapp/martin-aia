@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Card,
   CardContent,
@@ -33,46 +34,192 @@ import {
 } from 'recharts';
 import { Download, TrendingUp, Users, Calendar, DollarSign } from 'lucide-react';
 import { useCampaigns } from '../hooks/useCampaigns';
+import { supabase } from '../lib/supabase';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
-
-// Mock data for demonstration
-const invitationData = [
-  { name: 'Week 1', sent: 120, registered: 95, attended: 80 },
-  { name: 'Week 2', sent: 150, registered: 120, attended: 100 },
-  { name: 'Week 3', sent: 180, registered: 145, attended: 125 },
-  { name: 'Week 4', sent: 200, registered: 170, attended: 150 },
-];
-
-const attendanceData = [
-  { name: 'Full Attendance', value: 75 },
-  { name: 'Partial', value: 15 },
-  { name: 'No Show', value: 10 },
-];
-
-const topAgents = [
-  { name: 'John Doe', invitations: 45, attendance: 38, rate: '84%' },
-  { name: 'Jane Smith', invitations: 42, attendance: 35, rate: '83%' },
-  { name: 'Bob Johnson', invitations: 38, attendance: 30, rate: '79%' },
-  { name: 'Alice Brown', invitations: 35, attendance: 28, rate: '80%' },
-  { name: 'Charlie Wilson', invitations: 32, attendance: 25, rate: '78%' },
-];
-
-const rewardSummary = [
-  { tier: 'Gold Agent', count: 25, total: 2500 },
-  { tier: 'Silver Agent', count: 40, total: 3200 },
-  { tier: 'Gold Partner', count: 15, total: 2250 },
-  { tier: 'Silver Partner', count: 30, total: 1800 },
-];
 
 export function Reports() {
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>('all');
   const [dateRange, setDateRange] = useState<string>('month');
   const { data: campaigns } = useCampaigns();
 
+  // Fetch real stats
+  const { data: reportStats } = useQuery({
+    queryKey: ['report-stats'],
+    queryFn: async () => {
+      // Get campaign stats
+      const { count: totalCampaigns } = await supabase
+        .from('campaigns')
+        .select('*', { count: 'exact', head: true });
+
+      const { count: activeCampaigns } = await supabase
+        .from('campaigns')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'active');
+
+      // Get agent stats
+      const { count: totalAgents } = await supabase
+        .from('agents')
+        .select('*', { count: 'exact', head: true });
+
+      // Get invitation stats
+      const { count: totalInvitations } = await supabase
+        .from('invitations')
+        .select('*', { count: 'exact', head: true });
+
+      const { count: registeredInvitations } = await supabase
+        .from('invitations')
+        .select('*', { count: 'exact', head: true })
+        .in('status', ['registered', 'attended', 'completed']);
+
+      // Get attendance stats
+      const { count: totalAttendance } = await supabase
+        .from('attendance')
+        .select('*', { count: 'exact', head: true });
+
+      const { count: fullAttendance } = await supabase
+        .from('attendance')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_full_attendance', true);
+
+      // Get rewards stats
+      const { data: rewards } = await supabase
+        .from('rewards')
+        .select('amount, status');
+
+      const totalRewardsAmount = rewards?.reduce((sum, r) => sum + (r.amount || 0), 0) || 0;
+      const pendingRewardsAmount = rewards?.filter(r => r.status === 'pending')
+        .reduce((sum, r) => sum + (r.amount || 0), 0) || 0;
+
+      return {
+        totalCampaigns: totalCampaigns || 0,
+        activeCampaigns: activeCampaigns || 0,
+        totalAgents: totalAgents || 0,
+        totalInvitations: totalInvitations || 0,
+        registeredInvitations: registeredInvitations || 0,
+        conversionRate: totalInvitations ? Math.round((registeredInvitations || 0) / totalInvitations * 100) : 0,
+        totalAttendance: totalAttendance || 0,
+        fullAttendance: fullAttendance || 0,
+        attendanceRate: totalAttendance ? Math.round((fullAttendance || 0) / (totalAttendance || 1) * 100) : 0,
+        totalRewardsAmount,
+        pendingRewardsAmount,
+      };
+    },
+  });
+
+  // Fetch monthly data for chart
+  const { data: monthlyData } = useQuery({
+    queryKey: ['monthly-invitations'],
+    queryFn: async () => {
+      const months = [];
+      const now = new Date();
+
+      for (let i = 3; i >= 0; i--) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const startOfMonth = date.toISOString().split('T')[0];
+        const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString().split('T')[0];
+
+        const { count: sent } = await supabase
+          .from('invitations')
+          .select('*', { count: 'exact', head: true })
+          .gte('created_at', startOfMonth)
+          .lte('created_at', endOfMonth);
+
+        const { count: registered } = await supabase
+          .from('invitations')
+          .select('*', { count: 'exact', head: true })
+          .gte('created_at', startOfMonth)
+          .lte('created_at', endOfMonth)
+          .in('status', ['registered', 'attended', 'completed']);
+
+        const { count: attended } = await supabase
+          .from('invitations')
+          .select('*', { count: 'exact', head: true })
+          .gte('created_at', startOfMonth)
+          .lte('created_at', endOfMonth)
+          .in('status', ['attended', 'completed']);
+
+        months.push({
+          name: `Week ${4 - i}`,
+          sent: sent || 0,
+          registered: registered || 0,
+          attended: attended || 0,
+        });
+      }
+
+      return months;
+    },
+  });
+
+  // Fetch top agents
+  const { data: topAgents } = useQuery({
+    queryKey: ['top-agents'],
+    queryFn: async () => {
+      const { data: agents } = await supabase
+        .from('agents')
+        .select('id, full_name')
+        .limit(5);
+
+      if (!agents) return [];
+
+      const agentStats = await Promise.all(agents.map(async (agent) => {
+        const { count: invitations } = await supabase
+          .from('invitations')
+          .select('*', { count: 'exact', head: true })
+          .eq('agent_id', agent.id);
+
+        const { count: attendance } = await supabase
+          .from('invitations')
+          .select('*', { count: 'exact', head: true })
+          .eq('agent_id', agent.id)
+          .in('status', ['attended', 'completed']);
+
+        const rate = invitations ? Math.round((attendance || 0) / invitations * 100) : 0;
+
+        return {
+          name: agent.full_name,
+          invitations: invitations || 0,
+          attendance: attendance || 0,
+          rate: `${rate}%`,
+        };
+      }));
+
+      return agentStats.sort((a, b) => b.invitations - a.invitations);
+    },
+  });
+
+  // Attendance breakdown for pie chart
+  const attendanceData = [
+    { name: 'Full Attendance', value: reportStats?.fullAttendance || 0 },
+    { name: 'Partial', value: (reportStats?.totalAttendance || 0) - (reportStats?.fullAttendance || 0) },
+    { name: 'No Show', value: Math.max(0, (reportStats?.registeredInvitations || 0) - (reportStats?.totalAttendance || 0)) },
+  ].filter(item => item.value > 0);
+
   const handleExport = (type: string) => {
-    // TODO: Implement CSV export
-    alert(`Exporting ${type} report as CSV...`);
+    if (!reportStats) return;
+
+    const csvContent = [
+      ['Metric', 'Value'],
+      ['Total Campaigns', reportStats.totalCampaigns],
+      ['Active Campaigns', reportStats.activeCampaigns],
+      ['Total Agents', reportStats.totalAgents],
+      ['Total Invitations', reportStats.totalInvitations],
+      ['Registered Invitations', reportStats.registeredInvitations],
+      ['Conversion Rate', `${reportStats.conversionRate}%`],
+      ['Total Attendance', reportStats.totalAttendance],
+      ['Full Attendance', reportStats.fullAttendance],
+      ['Attendance Rate', `${reportStats.attendanceRate}%`],
+      ['Total Rewards', `$${reportStats.totalRewardsAmount}`],
+      ['Pending Rewards', `$${reportStats.pendingRewardsAmount}`],
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${type}-report-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -125,9 +272,9 @@ export function Reports() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">650</div>
+            <div className="text-2xl font-bold">{reportStats?.totalInvitations || 0}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+12%</span> from last period
+              {reportStats?.activeCampaigns || 0} active campaigns
             </p>
           </CardContent>
         </Card>
@@ -137,9 +284,9 @@ export function Reports() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">82%</div>
+            <div className="text-2xl font-bold">{reportStats?.conversionRate || 0}%</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+5%</span> from last period
+              {reportStats?.registeredInvitations || 0} registered
             </p>
           </CardContent>
         </Card>
@@ -149,9 +296,9 @@ export function Reports() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">455</div>
+            <div className="text-2xl font-bold">{reportStats?.fullAttendance || 0}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+8%</span> from last period
+              {reportStats?.attendanceRate || 0}% completion rate
             </p>
           </CardContent>
         </Card>
@@ -161,8 +308,8 @@ export function Reports() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$9,750</div>
-            <p className="text-xs text-muted-foreground">110 agents</p>
+            <div className="text-2xl font-bold">${reportStats?.pendingRewardsAmount || 0}</div>
+            <p className="text-xs text-muted-foreground">{reportStats?.totalAgents || 0} agents</p>
           </CardContent>
         </Card>
       </div>
@@ -184,7 +331,7 @@ export function Reports() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={invitationData}>
+              <BarChart data={monthlyData || []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis />
@@ -210,16 +357,16 @@ export function Reports() {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={attendanceData}
+                  data={attendanceData.length > 0 ? attendanceData : [{ name: 'No Data', value: 1 }]}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }) => attendanceData.length > 0 ? `${name} ${(percent * 100).toFixed(0)}%` : ''}
                   outerRadius={100}
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {attendanceData.map((_, index) => (
+                  {(attendanceData.length > 0 ? attendanceData : [{ name: 'No Data', value: 1 }]).map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -256,14 +403,22 @@ export function Reports() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {topAgents.map((agent) => (
-                  <TableRow key={agent.name}>
-                    <TableCell className="font-medium">{agent.name}</TableCell>
-                    <TableCell className="text-right">{agent.invitations}</TableCell>
-                    <TableCell className="text-right">{agent.attendance}</TableCell>
-                    <TableCell className="text-right text-green-600">{agent.rate}</TableCell>
+                {(topAgents || []).length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                      No agent data available
+                    </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  topAgents?.map((agent) => (
+                    <TableRow key={agent.name}>
+                      <TableCell className="font-medium">{agent.name}</TableCell>
+                      <TableCell className="text-right">{agent.invitations}</TableCell>
+                      <TableCell className="text-right">{agent.attendance}</TableCell>
+                      <TableCell className="text-right text-green-600">{agent.rate}</TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -273,10 +428,10 @@ export function Reports() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Reward Summary</CardTitle>
-                <CardDescription>By tier</CardDescription>
+                <CardTitle>System Summary</CardTitle>
+                <CardDescription>Overall statistics</CardDescription>
               </div>
-              <Button variant="outline" size="sm" onClick={() => handleExport('rewards')}>
+              <Button variant="outline" size="sm" onClick={() => handleExport('summary')}>
                 <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>
@@ -286,19 +441,27 @@ export function Reports() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Tier</TableHead>
-                  <TableHead className="text-right">Count</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead>Metric</TableHead>
+                  <TableHead className="text-right">Value</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rewardSummary.map((row) => (
-                  <TableRow key={row.tier}>
-                    <TableCell className="font-medium">{row.tier}</TableCell>
-                    <TableCell className="text-right">{row.count}</TableCell>
-                    <TableCell className="text-right">${row.total.toLocaleString()}</TableCell>
-                  </TableRow>
-                ))}
+                <TableRow>
+                  <TableCell className="font-medium">Total Campaigns</TableCell>
+                  <TableCell className="text-right">{reportStats?.totalCampaigns || 0}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Active Campaigns</TableCell>
+                  <TableCell className="text-right">{reportStats?.activeCampaigns || 0}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Total Agents</TableCell>
+                  <TableCell className="text-right">{reportStats?.totalAgents || 0}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Total Rewards</TableCell>
+                  <TableCell className="text-right">${reportStats?.totalRewardsAmount || 0}</TableCell>
+                </TableRow>
               </TableBody>
             </Table>
           </CardContent>

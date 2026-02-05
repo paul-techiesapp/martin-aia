@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import {
   Button,
@@ -15,6 +16,14 @@ import {
   Badge,
   getStatusVariant,
   TableSkeleton,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from '@agent-system/shared-ui';
 import { Plus, Edit, Trash2, Eye, Play, Pause } from 'lucide-react';
 import { useCampaigns, useDeleteCampaign, useUpdateCampaignStatus } from '../../hooks/useCampaigns';
@@ -24,10 +33,16 @@ export function CampaignList() {
   const { data: campaigns, isLoading, error } = useCampaigns();
   const deleteCampaign = useDeleteCampaign();
   const updateStatus = useUpdateCampaignStatus();
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this campaign?')) {
-      deleteCampaign.mutate(id);
+    setDeleteId(id);
+  };
+
+  const confirmDelete = () => {
+    if (deleteId) {
+      deleteCampaign.mutate(deleteId);
+      setDeleteId(null);
     }
   };
 
@@ -148,6 +163,22 @@ export function CampaignList() {
             </Table>
           )}
         </CardContent>
+        <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Campaign</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this campaign? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </Card>
     </div>
   );

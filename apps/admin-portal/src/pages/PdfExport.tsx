@@ -145,7 +145,8 @@ export function PdfExport() {
 
     setIsGeneratingInvitations(true);
     try {
-      const baseUrl = window.location.origin;
+      // Use public-pages URL for registration links (not the admin portal URL)
+      const publicPagesUrl = import.meta.env.VITE_PUBLIC_PAGES_URL || window.location.origin;
       const invitationData = invitations.map((inv) => ({
         inviteeName: inv.invitee_name || 'Guest',
         campaignName: inv.slot.campaign.name,
@@ -154,7 +155,7 @@ export function PdfExport() {
         startTime: formatTime(inv.slot.start_time),
         endTime: formatTime(inv.slot.end_time),
         uniqueToken: inv.unique_token,
-        registrationUrl: `${baseUrl}/public/register/${inv.unique_token}`,
+        registrationUrl: `${publicPagesUrl}/public/register/${inv.unique_token}`,
       }));
 
       const doc = generateBulkInvitationCards(invitationData);

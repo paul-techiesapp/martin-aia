@@ -31,8 +31,9 @@ export function Invitations() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const handleCopy = async (token: string, id: string) => {
-    const baseUrl = window.location.origin;
-    const link = `${baseUrl}/public/register/${token}`;
+    // Use public-pages URL for registration links (not the agent portal URL)
+    const publicPagesUrl = import.meta.env.VITE_PUBLIC_PAGES_URL || window.location.origin;
+    const link = `${publicPagesUrl}/public/register/${token}`;
     await navigator.clipboard.writeText(link);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);

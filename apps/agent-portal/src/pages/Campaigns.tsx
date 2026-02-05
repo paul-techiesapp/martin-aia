@@ -64,8 +64,9 @@ export function Campaigns() {
       count: invitationCount,
     });
 
-    const baseUrl = window.location.origin;
-    const links = result.map(inv => `${baseUrl}/public/register/${inv.unique_token}`);
+    // Use public-pages URL for registration links (not the agent portal URL)
+    const publicPagesUrl = import.meta.env.VITE_PUBLIC_PAGES_URL || window.location.origin;
+    const links = result.map(inv => `${publicPagesUrl}/public/register/${inv.unique_token}`);
     setGeneratedLinks(links);
   };
 

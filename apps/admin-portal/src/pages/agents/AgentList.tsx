@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import {
   Button,
@@ -15,6 +16,14 @@ import {
   Badge,
   getStatusVariant,
   TableSkeleton,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from '@agent-system/shared-ui';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { useAgents, useDeleteAgent } from '../../hooks/useAgents';
@@ -22,10 +31,16 @@ import { useAgents, useDeleteAgent } from '../../hooks/useAgents';
 export function AgentList() {
   const { data: agents, isLoading, error } = useAgents();
   const deleteAgent = useDeleteAgent();
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this agent?')) {
-      deleteAgent.mutate(id);
+    setDeleteId(id);
+  };
+
+  const confirmDelete = () => {
+    if (deleteId) {
+      deleteAgent.mutate(deleteId);
+      setDeleteId(null);
     }
   };
 
@@ -117,6 +132,23 @@ export function AgentList() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Agent</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this agent? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

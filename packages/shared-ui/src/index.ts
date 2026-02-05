@@ -81,6 +81,8 @@ export { Toaster } from './components/ui/toaster';
 export { StatCard, StatCardGrid } from './components/ui/stat-card';
 export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from './components/ui/tooltip';
 export { Separator } from './components/ui/separator';
+export { ScrollArea, ScrollBar } from './components/ui/scroll-area';
+export { Tabs, TabsList, TabsTrigger, TabsContent } from './components/ui/tabs';
 export {
   DropdownMenu,
   DropdownMenuTrigger,

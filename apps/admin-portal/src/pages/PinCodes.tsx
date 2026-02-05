@@ -34,6 +34,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  TableSkeleton,
 } from '@agent-system/shared-ui';
 import { Plus, Trash2, Printer, QrCode, Check, X } from 'lucide-react';
 import { useCampaigns } from '../hooks/useCampaigns';
@@ -88,14 +89,14 @@ export function PinCodes() {
   const checkoutUrl = `${baseUrl}/public/checkout?slot=${selectedSlotId}`;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold">PIN Codes</h1>
-        <p className="text-muted-foreground">Generate and manage attendance PIN codes</p>
+        <h1 className="text-3xl font-bold text-slate-900">PIN Codes</h1>
+        <p className="text-slate-500">Generate and manage attendance PIN codes</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+        <Card className="glass-card">
           <CardHeader>
             <CardTitle className="text-lg">Select Slot</CardTitle>
           </CardHeader>
@@ -141,7 +142,7 @@ export function PinCodes() {
         </Card>
 
         {selectedSlotId && (
-          <Card>
+          <Card className="glass-card">
             <CardHeader>
               <CardTitle className="text-lg">QR Codes for Venue</CardTitle>
               <CardDescription>Display for attendees to scan</CardDescription>
@@ -206,7 +207,7 @@ export function PinCodes() {
       </div>
 
       {selectedSlotId && (
-        <Card>
+        <Card className="glass-card">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -263,7 +264,7 @@ export function PinCodes() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <p className="text-muted-foreground">Loading PIN codes...</p>
+              <TableSkeleton rows={5} columns={3} />
             ) : pinCodes?.length === 0 ? (
               <p className="text-muted-foreground">No PIN codes generated yet.</p>
             ) : (
@@ -277,7 +278,7 @@ export function PinCodes() {
                 </TableHeader>
                 <TableBody>
                   {pinCodes?.map((pin) => (
-                    <TableRow key={pin.id}>
+                    <TableRow key={pin.id} className="hover:bg-slate-50/50 transition-colors">
                       <TableCell className="font-mono text-lg">{pin.code}</TableCell>
                       <TableCell>
                         {pin.is_used ? (

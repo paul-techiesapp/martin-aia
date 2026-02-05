@@ -83,6 +83,7 @@ export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from './comp
 export { Separator } from './components/ui/separator';
 export { ScrollArea, ScrollBar } from './components/ui/scroll-area';
 export { Tabs, TabsList, TabsTrigger, TabsContent } from './components/ui/tabs';
+export { Progress } from './components/ui/progress';
 export {
   DropdownMenu,
   DropdownMenuTrigger,

@@ -84,6 +84,11 @@ export { Separator } from './components/ui/separator';
 export { ScrollArea, ScrollBar } from './components/ui/scroll-area';
 export { Tabs, TabsList, TabsTrigger, TabsContent } from './components/ui/tabs';
 export { Progress } from './components/ui/progress';
+export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor } from './components/ui/popover';
+export { Calendar } from './components/ui/calendar';
+export type { CalendarProps } from './components/ui/calendar';
+export { DatePicker } from './components/ui/date-picker';
+export type { DatePickerProps } from './components/ui/date-picker';
 export {
   DropdownMenu,
   DropdownMenuTrigger,

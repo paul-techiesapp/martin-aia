@@ -22,8 +22,10 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  DatePicker,
 } from '@agent-system/shared-ui';
 import { ArrowLeft } from 'lucide-react';
+import { parseISO, format } from 'date-fns';
 import { useCampaign, useCreateCampaign, useUpdateCampaign } from '../../hooks/useCampaigns';
 import { InvitationType, CampaignStatus } from '@agent-system/shared-types';
 import { useEffect } from 'react';
@@ -156,11 +158,15 @@ export function CampaignForm() {
                   control={form.control}
                   name="start_date"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-col">
                       <FormLabel>Start Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
+                      <DatePicker
+                        date={field.value ? parseISO(field.value) : undefined}
+                        onDateChange={(date) =>
+                          field.onChange(date ? format(date, 'yyyy-MM-dd') : '')
+                        }
+                        placeholder="Select start date"
+                      />
                       <FormMessage />
                     </FormItem>
                   )}
@@ -170,11 +176,15 @@ export function CampaignForm() {
                   control={form.control}
                   name="end_date"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-col">
                       <FormLabel>End Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
+                      <DatePicker
+                        date={field.value ? parseISO(field.value) : undefined}
+                        onDateChange={(date) =>
+                          field.onChange(date ? format(date, 'yyyy-MM-dd') : '')
+                        }
+                        placeholder="Select end date"
+                      />
                       <FormMessage />
                     </FormItem>
                   )}

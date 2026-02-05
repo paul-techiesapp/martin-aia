@@ -11,6 +11,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  Badge,
+  StatCard,
+  StatCardGrid,
+  TableSkeleton,
 } from '@agent-system/shared-ui';
 import { DollarSign, TrendingUp, Clock, CheckCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
@@ -59,81 +63,65 @@ export function Rewards() {
   const isLoading = invitationsLoading || rewardsLoading;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold">Rewards</h1>
-        <p className="text-muted-foreground">Track your earnings from successful attendance</p>
+        <h1 className="text-3xl font-bold text-slate-900">Rewards</h1>
+        <p className="text-slate-500 mt-1">Track your earnings from successful attendance</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Earned</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {isLoading ? '...' : `$${totalEarned.toFixed(2)}`}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {completedInvitations.length} completed attendances
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
-              {isLoading ? '...' : `$${pendingRewards.toFixed(2)}`}
-            </div>
-            <p className="text-xs text-muted-foreground">Awaiting confirmation</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Confirmed</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {isLoading ? '...' : `$${confirmedRewards.toFixed(2)}`}
-            </div>
-            <p className="text-xs text-muted-foreground">Ready for payout</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${rewardAmount.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Per attendance ({agent?.tier?.name})</p>
-          </CardContent>
-        </Card>
-      </div>
+      <StatCardGrid columns={4}>
+        <StatCard
+          title="Total Earned"
+          value={`$${totalEarned.toFixed(2)}`}
+          icon={DollarSign}
+          iconColor="emerald"
+          description={`${completedInvitations.length} completed attendances`}
+          loading={isLoading}
+        />
+        <StatCard
+          title="Pending"
+          value={`$${pendingRewards.toFixed(2)}`}
+          icon={Clock}
+          iconColor="amber"
+          description="Awaiting confirmation"
+          loading={isLoading}
+        />
+        <StatCard
+          title="Confirmed"
+          value={`$${confirmedRewards.toFixed(2)}`}
+          icon={CheckCircle}
+          iconColor="sky"
+          description="Ready for payout"
+          loading={isLoading}
+        />
+        <StatCard
+          title="Rate"
+          value={`$${rewardAmount.toFixed(2)}`}
+          icon={TrendingUp}
+          iconColor="violet"
+          description={`Per attendance (${agent?.tier?.name || 'N/A'})`}
+          loading={isLoading}
+        />
+      </StatCardGrid>
 
-      <Card>
+      <Card className="glass-card">
         <CardHeader>
-          <CardTitle>Reward History</CardTitle>
+          <CardTitle className="text-lg">Reward History</CardTitle>
           <CardDescription>
             Your completed attendances and earned rewards
           </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p className="text-muted-foreground">Loading...</p>
+            <TableSkeleton rows={5} columns={5} />
           ) : completedInvitations.length === 0 ? (
-            <p className="text-muted-foreground">
+            <p className="text-slate-500">
               No completed attendances yet. Rewards are earned when your invitees complete full attendance (check-in and check-out).
             </p>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="hover:bg-transparent">
                   <TableHead>Campaign</TableHead>
                   <TableHead>Invitee</TableHead>
                   <TableHead>Capacity</TableHead>
@@ -143,21 +131,19 @@ export function Rewards() {
               </TableHeader>
               <TableBody>
                 {completedInvitations.map((invitation) => (
-                  <TableRow key={invitation.id}>
+                  <TableRow key={invitation.id} className="hover:bg-slate-50/50 transition-colors">
                     <TableCell className="font-medium">
                       {invitation.slot?.campaign?.name ?? '-'}
                     </TableCell>
-                    <TableCell>{invitation.invitee_name}</TableCell>
-                    <TableCell className="capitalize">
+                    <TableCell className="text-slate-600">{invitation.invitee_name}</TableCell>
+                    <TableCell className="capitalize text-slate-600">
                       {invitation.capacity_type.replace('_', ' ')}
                     </TableCell>
-                    <TableCell className="text-right font-medium">
+                    <TableCell className="text-right font-semibold text-emerald-600">
                       ${rewardAmount.toFixed(2)}
                     </TableCell>
                     <TableCell>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                        Pending
-                      </span>
+                      <Badge variant="pending">Pending</Badge>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -167,30 +153,30 @@ export function Rewards() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="glass-card">
         <CardHeader>
-          <CardTitle>How Rewards Work</CardTitle>
+          <CardTitle className="text-lg">How Rewards Work</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 text-sm text-muted-foreground">
-          <div className="flex items-start gap-3">
-            <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold">1</div>
+        <CardContent className="space-y-4">
+          <div className="flex items-start gap-4">
+            <div className="h-8 w-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 text-sm font-bold flex-shrink-0">1</div>
             <div>
-              <p className="font-medium text-foreground">Invite New Members</p>
-              <p>Generate invitation links and share them with potential attendees.</p>
+              <p className="font-medium text-slate-900">Invite New Members</p>
+              <p className="text-sm text-slate-500">Generate invitation links and share them with potential attendees.</p>
             </div>
           </div>
-          <div className="flex items-start gap-3">
-            <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold">2</div>
+          <div className="flex items-start gap-4">
+            <div className="h-8 w-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 text-sm font-bold flex-shrink-0">2</div>
             <div>
-              <p className="font-medium text-foreground">They Register & Attend</p>
-              <p>Invitees register via your link and attend the event with full check-in and check-out.</p>
+              <p className="font-medium text-slate-900">They Register & Attend</p>
+              <p className="text-sm text-slate-500">Invitees register via your link and attend the event with full check-in and check-out.</p>
             </div>
           </div>
-          <div className="flex items-start gap-3">
-            <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold">3</div>
+          <div className="flex items-start gap-4">
+            <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-sm font-bold flex-shrink-0">3</div>
             <div>
-              <p className="font-medium text-foreground">Earn Rewards</p>
-              <p>For each successful full attendance, you earn ${rewardAmount.toFixed(2)} based on your tier.</p>
+              <p className="font-medium text-slate-900">Earn Rewards</p>
+              <p className="text-sm text-slate-500">For each successful full attendance, you earn ${rewardAmount.toFixed(2)} based on your tier.</p>
             </div>
           </div>
         </CardContent>

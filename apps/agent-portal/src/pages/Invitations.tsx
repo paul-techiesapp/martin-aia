@@ -11,22 +11,19 @@ import {
   TableHeader,
   TableRow,
   Button,
+  Badge,
+  getStatusVariant,
+  StatCard,
+  StatCardGrid,
+  TableSkeleton,
 } from '@agent-system/shared-ui';
-import { Copy, Check, ExternalLink } from 'lucide-react';
+import { Copy, Check, ExternalLink, Send, UserCheck, CheckCircle } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useMyInvitations } from '../hooks/useInvitations';
 import { InvitationStatus } from '@agent-system/shared-types';
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-const statusColors: Record<InvitationStatus, string> = {
-  [InvitationStatus.PENDING]: 'bg-yellow-100 text-yellow-800',
-  [InvitationStatus.REGISTERED]: 'bg-blue-100 text-blue-800',
-  [InvitationStatus.ATTENDED]: 'bg-green-100 text-green-800',
-  [InvitationStatus.COMPLETED]: 'bg-green-100 text-green-800',
-  [InvitationStatus.EXPIRED]: 'bg-gray-100 text-gray-800',
-};
 
 export function Invitations() {
   const { agent } = useAuth();
@@ -46,58 +43,55 @@ export function Invitations() {
   const completedCount = invitations?.filter(i => i.status === InvitationStatus.COMPLETED).length ?? 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold">My Invitations</h1>
-        <p className="text-muted-foreground">Track your invitation links and registrations</p>
+        <h1 className="text-3xl font-bold text-slate-900">My Invitations</h1>
+        <p className="text-slate-500 mt-1">Track your invitation links and registrations</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Pending</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{pendingCount}</div>
-            <p className="text-xs text-muted-foreground">Awaiting registration</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Registered</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{registeredCount}</div>
-            <p className="text-xs text-muted-foreground">Ready for event</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{completedCount}</div>
-            <p className="text-xs text-muted-foreground">Full attendance</p>
-          </CardContent>
-        </Card>
-      </div>
+      <StatCardGrid columns={3}>
+        <StatCard
+          title="Pending"
+          value={pendingCount}
+          icon={Send}
+          iconColor="amber"
+          description="Awaiting registration"
+          loading={isLoading}
+        />
+        <StatCard
+          title="Registered"
+          value={registeredCount}
+          icon={UserCheck}
+          iconColor="sky"
+          description="Ready for event"
+          loading={isLoading}
+        />
+        <StatCard
+          title="Completed"
+          value={completedCount}
+          icon={CheckCircle}
+          iconColor="emerald"
+          description="Full attendance"
+          loading={isLoading}
+        />
+      </StatCardGrid>
 
-      <Card>
+      <Card className="glass-card">
         <CardHeader>
-          <CardTitle>All Invitations</CardTitle>
+          <CardTitle className="text-lg">All Invitations</CardTitle>
           <CardDescription>
             {invitations?.length ?? 0} total invitations
           </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p className="text-muted-foreground">Loading invitations...</p>
+            <TableSkeleton rows={5} columns={6} />
           ) : invitations?.length === 0 ? (
-            <p className="text-muted-foreground">No invitations yet. Browse campaigns to create invitation links.</p>
+            <p className="text-slate-500">No invitations yet. Browse campaigns to create invitation links.</p>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="hover:bg-transparent">
                   <TableHead>Campaign</TableHead>
                   <TableHead>Slot</TableHead>
                   <TableHead>Capacity</TableHead>
@@ -108,45 +102,46 @@ export function Invitations() {
               </TableHeader>
               <TableBody>
                 {invitations?.map((invitation) => (
-                  <TableRow key={invitation.id}>
+                  <TableRow key={invitation.id} className="hover:bg-slate-50/50 transition-colors">
                     <TableCell className="font-medium">
                       {invitation.slot?.campaign?.name ?? '-'}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-slate-600">
                       {invitation.slot
                         ? `${DAYS_OF_WEEK[invitation.slot.day_of_week]} ${invitation.slot.start_time.slice(0, 5)}`
                         : '-'}
                     </TableCell>
-                    <TableCell className="capitalize">
+                    <TableCell className="capitalize text-slate-600">
                       {invitation.capacity_type.replace('_', ' ')}
                     </TableCell>
                     <TableCell>
                       {invitation.invitee_name || (
-                        <span className="text-muted-foreground">Not registered</span>
+                        <span className="text-slate-400">Not registered</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[invitation.status]}`}>
+                      <Badge variant={getStatusVariant(invitation.status)}>
                         {invitation.status}
-                      </span>
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1">
                         {invitation.status === InvitationStatus.PENDING && (
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="h-8 w-8 p-0"
                             onClick={() => handleCopy(invitation.unique_token, invitation.id)}
                           >
                             {copiedId === invitation.id ? (
-                              <Check className="h-4 w-4 text-green-600" />
+                              <Check className="h-4 w-4 text-emerald-600" />
                             ) : (
                               <Copy className="h-4 w-4" />
                             )}
                           </Button>
                         )}
                         {invitation.invitee_name && (
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                             <ExternalLink className="h-4 w-4" />
                           </Button>
                         )}

@@ -1,6 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@agent-system/shared-ui';
-import { Calendar, Users, UserCheck, DollarSign } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  StatCard,
+  StatCardGrid,
+} from '@agent-system/shared-ui';
+import { Calendar, Users, UserCheck, DollarSign, ArrowRight } from 'lucide-react';
 import { useCampaigns } from '../hooks/useCampaigns';
 import { CampaignStatus } from '@agent-system/shared-types';
 import { supabase } from '../lib/supabase';
@@ -52,81 +61,90 @@ export function Dashboard() {
 
   const isLoading = campaignsLoading || agentsLoading || attendanceLoading || rewardsLoading;
 
-  const stats = [
-    {
-      name: 'Active Campaigns',
-      value: activeCampaigns,
-      icon: Calendar,
-      description: 'Currently running',
-    },
-    {
-      name: 'Total Agents',
-      value: agentCount ?? 0,
-      icon: Users,
-      description: 'Registered agents',
-    },
-    {
-      name: 'Attendance Today',
-      value: todayAttendance ?? 0,
-      icon: UserCheck,
-      description: 'Check-ins',
-    },
-    {
-      name: 'Pending Rewards',
-      value: pendingRewardsCount ?? 0,
-      icon: DollarSign,
-      description: 'To be processed',
-    },
-  ];
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome to the Agent Management System</p>
+        <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
+        <p className="text-slate-500 mt-1">Welcome to the Agent Management System</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.name}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.name}</CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{isLoading ? '...' : stat.value}</div>
-              <p className="text-xs text-muted-foreground">{stat.description}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <StatCardGrid columns={4}>
+        <StatCard
+          title="Active Campaigns"
+          value={activeCampaigns}
+          subtitle="Currently running"
+          icon={Calendar}
+          iconColor="text-sky-600"
+          iconBgColor="bg-sky-100"
+          loading={isLoading}
+        />
+        <StatCard
+          title="Total Agents"
+          value={agentCount ?? 0}
+          subtitle="Registered agents"
+          icon={Users}
+          iconColor="text-emerald-600"
+          iconBgColor="bg-emerald-100"
+          loading={isLoading}
+        />
+        <StatCard
+          title="Attendance Today"
+          value={todayAttendance ?? 0}
+          subtitle="Check-ins"
+          icon={UserCheck}
+          iconColor="text-violet-600"
+          iconBgColor="bg-violet-100"
+          loading={isLoading}
+        />
+        <StatCard
+          title="Pending Rewards"
+          value={pendingRewardsCount ?? 0}
+          subtitle="To be processed"
+          icon={DollarSign}
+          iconColor="text-amber-600"
+          iconBgColor="bg-amber-100"
+          loading={isLoading}
+        />
+      </StatCardGrid>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+        <Card className="glass-card">
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
+            <CardTitle className="text-lg">Recent Activity</CardTitle>
             <CardDescription>Latest check-ins and registrations</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground text-sm">No recent activity</p>
+            <p className="text-slate-500 text-sm">No recent activity</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="glass-card">
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+            <CardTitle className="text-lg">Quick Actions</CardTitle>
             <CardDescription>Common tasks</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <a href="/campaigns/new" className="block text-sm text-primary hover:underline">
-              Create New Campaign
-            </a>
-            <a href="/agents/new" className="block text-sm text-primary hover:underline">
-              Add New Agent
-            </a>
-            <a href="/pin-codes" className="block text-sm text-primary hover:underline">
-              Generate PIN Codes
-            </a>
+            <Link
+              to="/campaigns/new"
+              className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-100 transition-colors group"
+            >
+              <span className="text-sm font-medium text-slate-700">Create New Campaign</span>
+              <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
+            </Link>
+            <Link
+              to="/agents/new"
+              className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-100 transition-colors group"
+            >
+              <span className="text-sm font-medium text-slate-700">Add New Agent</span>
+              <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
+            </Link>
+            <Link
+              to="/pin-codes"
+              className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-100 transition-colors group"
+            >
+              <span className="text-sm font-medium text-slate-700">Generate PIN Codes</span>
+              <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
+            </Link>
           </CardContent>
         </Card>
       </div>

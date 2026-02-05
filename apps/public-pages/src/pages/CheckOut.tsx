@@ -133,15 +133,18 @@ export function CheckOut() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-8 text-center space-y-4">
-            <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
-              <CheckCircle className="h-8 w-8 text-green-600" />
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-sky-900 flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-40" />
+        <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
+          <CardContent className="p-10 text-center space-y-6">
+            <div className="h-20 w-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
+              <CheckCircle className="h-10 w-10 text-emerald-600" />
             </div>
-            <h2 className="text-2xl font-bold text-green-600">Check-Out Successful!</h2>
-            <p className="text-lg font-medium">{attendeeName}</p>
-            <p className="text-muted-foreground">
+            <div>
+              <h2 className="text-2xl font-bold text-emerald-600">Check-Out Successful!</h2>
+              <p className="text-xl font-semibold text-slate-900 mt-2">{attendeeName}</p>
+            </div>
+            <p className="text-slate-500">
               Thank you for attending! Your full attendance has been recorded.
             </p>
           </CardContent>
@@ -151,20 +154,21 @@ export function CheckOut() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center mx-auto mb-4">
-            <LogOut className="h-6 w-6 text-primary-foreground" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-sky-900 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-40" />
+      <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
+        <CardHeader className="text-center pt-8">
+          <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-violet-500 to-violet-700 flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <LogOut className="h-7 w-7 text-white" />
           </div>
-          <CardTitle className="text-2xl">Event Check-Out</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-2xl font-bold text-slate-900">Event Check-Out</CardTitle>
+          <CardDescription className="text-slate-500">
             Enter your PIN code and NRIC to check out
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-6 pb-8">
           {error && (
-            <div className="p-3 mb-4 text-sm text-destructive bg-destructive/10 rounded-md">
+            <div className="p-3 mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
               {error}
             </div>
           )}
@@ -176,12 +180,12 @@ export function CheckOut() {
                 name="pin_code"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>PIN Code</FormLabel>
+                    <FormLabel className="text-slate-700">PIN Code</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="123456"
                         maxLength={6}
-                        className="text-center text-2xl tracking-widest font-mono"
+                        className="text-center text-2xl tracking-widest font-mono h-14 bg-slate-50 border-slate-200"
                         {...field}
                       />
                     </FormControl>
@@ -195,16 +199,20 @@ export function CheckOut() {
                 name="nric"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>NRIC Number</FormLabel>
+                    <FormLabel className="text-slate-700">NRIC Number</FormLabel>
                     <FormControl>
-                      <Input placeholder="S1234567A" {...field} />
+                      <Input placeholder="S1234567A" className="h-11" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
+              <Button
+                type="submit"
+                className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white font-medium mt-2"
+                disabled={isSubmitting}
+              >
                 {isSubmitting ? 'Checking out...' : 'Check Out'}
               </Button>
             </form>

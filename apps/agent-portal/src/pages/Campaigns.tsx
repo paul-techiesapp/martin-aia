@@ -19,6 +19,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Skeleton,
 } from '@agent-system/shared-ui';
 import { Calendar, MapPin, Send, Copy, Check } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
@@ -81,18 +82,31 @@ export function Campaigns() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold">Active Campaigns</h1>
-        <p className="text-muted-foreground">Browse campaigns and request invitation links</p>
+        <h1 className="text-3xl font-bold text-slate-900">Active Campaigns</h1>
+        <p className="text-slate-500 mt-1">Browse campaigns and request invitation links</p>
       </div>
 
       {isLoading ? (
-        <p className="text-muted-foreground">Loading campaigns...</p>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="glass-card">
+              <CardHeader>
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-4 w-1/2 mt-2" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3 mt-2" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       ) : campaigns?.length === 0 ? (
-        <Card>
+        <Card className="glass-card">
           <CardContent className="p-6">
-            <p className="text-muted-foreground text-center">No active campaigns available</p>
+            <p className="text-slate-500 text-center">No active campaigns available</p>
           </CardContent>
         </Card>
       ) : (
@@ -100,24 +114,30 @@ export function Campaigns() {
           {campaigns?.map((campaign) => (
             <Card
               key={campaign.id}
-              className={`cursor-pointer transition-all ${selectedCampaignId === campaign.id ? 'ring-2 ring-primary' : 'hover:border-primary'}`}
+              className={`glass-card cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-xl ${
+                selectedCampaignId === campaign.id
+                  ? 'ring-2 ring-sky-500 shadow-lg shadow-sky-500/10'
+                  : 'hover:border-sky-200'
+              }`}
               onClick={() => setSelectedCampaignId(campaign.id)}
             >
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                <CardTitle className="flex items-center gap-2 text-slate-900">
+                  <div className="h-8 w-8 rounded-lg bg-sky-100 flex items-center justify-center">
+                    <Calendar className="h-4 w-4 text-sky-600" />
+                  </div>
                   {campaign.name}
                 </CardTitle>
-                <CardDescription className="flex items-center gap-1">
+                <CardDescription className="flex items-center gap-1 text-slate-500">
                   <MapPin className="h-4 w-4" />
                   {campaign.venue}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-slate-600">
                   {new Date(campaign.start_date).toLocaleDateString()} - {new Date(campaign.end_date).toLocaleDateString()}
                 </div>
-                <div className="mt-2 text-sm capitalize">
+                <div className="mt-2 text-sm capitalize text-slate-500">
                   Type: {campaign.invitation_type.replace('_', ' ')}
                 </div>
               </CardContent>
@@ -127,26 +147,26 @@ export function Campaigns() {
       )}
 
       {selectedCampaignId && slots && (
-        <Card>
+        <Card className="glass-card">
           <CardHeader>
-            <CardTitle>Available Slots</CardTitle>
+            <CardTitle className="text-lg">Available Slots</CardTitle>
             <CardDescription>Select a slot to request invitation links</CardDescription>
           </CardHeader>
           <CardContent>
             {slots.length === 0 ? (
-              <p className="text-muted-foreground">No slots available for this campaign</p>
+              <p className="text-slate-500">No slots available for this campaign</p>
             ) : (
               <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
                 {slots.map((slot) => (
                   <Button
                     key={slot.id}
                     variant="outline"
-                    className="justify-start h-auto py-3"
+                    className="justify-start h-auto py-3 hover:bg-sky-50 hover:border-sky-200 hover:text-sky-700 transition-colors"
                     onClick={() => handleSelectSlot(slot)}
                   >
                     <div className="text-left">
                       <div className="font-medium">{DAYS_OF_WEEK[slot.day_of_week]}</div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-slate-500">
                         {slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}
                       </div>
                     </div>
@@ -170,25 +190,25 @@ export function Campaigns() {
           {generatedLinks.length === 0 ? (
             <>
               <div className="space-y-4">
-                <div className="p-3 bg-muted rounded-md text-sm">
-                  <div className="flex justify-between">
-                    <span>Your tier limit:</span>
-                    <span className="font-medium">{maxInvitations} per slot</span>
+                <div className="p-4 bg-slate-50 rounded-lg text-sm border border-slate-100">
+                  <div className="flex justify-between py-1">
+                    <span className="text-slate-500">Your tier limit:</span>
+                    <span className="font-medium text-slate-900">{maxInvitations} per slot</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Already used:</span>
-                    <span className="font-medium">{currentCount ?? 0}</span>
+                  <div className="flex justify-between py-1">
+                    <span className="text-slate-500">Already used:</span>
+                    <span className="font-medium text-slate-900">{currentCount ?? 0}</span>
                   </div>
-                  <div className="flex justify-between text-primary">
+                  <div className="flex justify-between py-1 text-sky-600">
                     <span>Remaining:</span>
-                    <span className="font-medium">{remainingInvitations}</span>
+                    <span className="font-semibold">{remainingInvitations}</span>
                   </div>
                 </div>
 
                 <div>
                   <Label>Capacity Type</Label>
                   <Select value={capacityType} onValueChange={(v) => setCapacityType(v as CapacityType)}>
-                    <SelectTrigger>
+                    <SelectTrigger className="mt-1.5">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -206,6 +226,7 @@ export function Campaigns() {
                     max={remainingInvitations}
                     value={invitationCount}
                     onChange={(e) => setInvitationCount(Math.min(remainingInvitations, parseInt(e.target.value) || 1))}
+                    className="mt-1.5"
                   />
                 </div>
               </div>
@@ -217,6 +238,7 @@ export function Campaigns() {
                 <Button
                   onClick={handleCreateInvitations}
                   disabled={createInvitations.isPending || remainingInvitations === 0}
+                  className="bg-slate-900 hover:bg-slate-800"
                 >
                   <Send className="h-4 w-4 mr-2" />
                   {createInvitations.isPending ? 'Generating...' : 'Generate Links'}
@@ -227,15 +249,16 @@ export function Campaigns() {
             <>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {generatedLinks.map((link, index) => (
-                  <div key={index} className="flex items-center gap-2 p-2 bg-muted rounded-md">
-                    <span className="flex-1 text-sm truncate">{link}</span>
+                  <div key={index} className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                    <span className="flex-1 text-sm truncate text-slate-600">{link}</span>
                     <Button
                       variant="ghost"
                       size="sm"
+                      className="h-8 w-8 p-0"
                       onClick={() => handleCopy(link, index)}
                     >
                       {copiedIndex === index ? (
-                        <Check className="h-4 w-4 text-green-600" />
+                        <Check className="h-4 w-4 text-emerald-600" />
                       ) : (
                         <Copy className="h-4 w-4" />
                       )}
@@ -248,7 +271,7 @@ export function Campaigns() {
                 <Button variant="outline" onClick={handleCopyAll}>
                   {copiedIndex === -1 ? (
                     <>
-                      <Check className="h-4 w-4 mr-2 text-green-600" />
+                      <Check className="h-4 w-4 mr-2 text-emerald-600" />
                       Copied!
                     </>
                   ) : (
@@ -258,7 +281,9 @@ export function Campaigns() {
                     </>
                   )}
                 </Button>
-                <Button onClick={() => setIsDialogOpen(false)}>Done</Button>
+                <Button onClick={() => setIsDialogOpen(false)} className="bg-slate-900 hover:bg-slate-800">
+                  Done
+                </Button>
               </DialogFooter>
             </>
           )}

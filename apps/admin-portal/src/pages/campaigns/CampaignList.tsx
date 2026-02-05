@@ -12,17 +12,13 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  Badge,
+  getStatusVariant,
+  TableSkeleton,
 } from '@agent-system/shared-ui';
 import { Plus, Edit, Trash2, Eye, Play, Pause } from 'lucide-react';
 import { useCampaigns, useDeleteCampaign, useUpdateCampaignStatus } from '../../hooks/useCampaigns';
 import { CampaignStatus } from '@agent-system/shared-types';
-
-const statusColors: Record<CampaignStatus, string> = {
-  [CampaignStatus.DRAFT]: 'bg-gray-100 text-gray-800',
-  [CampaignStatus.ACTIVE]: 'bg-green-100 text-green-800',
-  [CampaignStatus.PAUSED]: 'bg-yellow-100 text-yellow-800',
-  [CampaignStatus.COMPLETED]: 'bg-blue-100 text-blue-800',
-};
 
 export function CampaignList() {
   const { data: campaigns, isLoading, error } = useCampaigns();
@@ -44,45 +40,45 @@ export function CampaignList() {
 
   if (error) {
     return (
-      <Card>
+      <Card className="glass-card">
         <CardContent className="p-6">
-          <p className="text-destructive">Error loading campaigns: {error.message}</p>
+          <p className="text-red-600">Error loading campaigns: {error.message}</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Campaigns</h1>
-          <p className="text-muted-foreground">Manage recruitment campaigns and event slots</p>
+          <h1 className="text-3xl font-bold text-slate-900">Campaigns</h1>
+          <p className="text-slate-500 mt-1">Manage recruitment campaigns and event slots</p>
         </div>
         <Link to="/campaigns/new">
-          <Button>
+          <Button className="bg-slate-900 hover:bg-slate-800">
             <Plus className="h-4 w-4 mr-2" />
             New Campaign
           </Button>
         </Link>
       </div>
 
-      <Card>
+      <Card className="glass-card">
         <CardHeader>
-          <CardTitle>All Campaigns</CardTitle>
+          <CardTitle className="text-lg">All Campaigns</CardTitle>
           <CardDescription>
             {campaigns?.length ?? 0} total campaigns
           </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p className="text-muted-foreground">Loading campaigns...</p>
+            <TableSkeleton rows={5} columns={6} />
           ) : campaigns?.length === 0 ? (
-            <p className="text-muted-foreground">No campaigns yet. Create your first campaign to get started.</p>
+            <p className="text-slate-500">No campaigns yet. Create your first campaign to get started.</p>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="hover:bg-transparent">
                   <TableHead>Name</TableHead>
                   <TableHead>Venue</TableHead>
                   <TableHead>Type</TableHead>
@@ -93,25 +89,25 @@ export function CampaignList() {
               </TableHeader>
               <TableBody>
                 {campaigns?.map((campaign) => (
-                  <TableRow key={campaign.id}>
+                  <TableRow key={campaign.id} className="hover:bg-slate-50/50 transition-colors">
                     <TableCell className="font-medium">{campaign.name}</TableCell>
-                    <TableCell>{campaign.venue}</TableCell>
-                    <TableCell className="capitalize">
+                    <TableCell className="text-slate-600">{campaign.venue}</TableCell>
+                    <TableCell className="capitalize text-slate-600">
                       {campaign.invitation_type.replace('_', ' ')}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-slate-600">
                       {new Date(campaign.start_date).toLocaleDateString()} -
                       {new Date(campaign.end_date).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[campaign.status]}`}>
+                      <Badge variant={getStatusVariant(campaign.status)}>
                         {campaign.status}
-                      </span>
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1">
                         <Link to="/campaigns/$campaignId" params={{ campaignId: campaign.id }}>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                             <Eye className="h-4 w-4" />
                           </Button>
                         </Link>
@@ -119,6 +115,7 @@ export function CampaignList() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="h-8 w-8 p-0"
                             onClick={() => handleToggleStatus(campaign.id, campaign.status)}
                             disabled={updateStatus.isPending}
                           >
@@ -130,17 +127,18 @@ export function CampaignList() {
                           </Button>
                         )}
                         <Link to="/campaigns/$campaignId/edit" params={{ campaignId: campaign.id }}>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                             <Edit className="h-4 w-4" />
                           </Button>
                         </Link>
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="h-8 w-8 p-0"
                           onClick={() => handleDelete(campaign.id)}
                           disabled={deleteCampaign.isPending}
                         >
-                          <Trash2 className="h-4 w-4 text-destructive" />
+                          <Trash2 className="h-4 w-4 text-red-500" />
                         </Button>
                       </div>
                     </TableCell>

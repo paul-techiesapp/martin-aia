@@ -26,6 +26,18 @@ export {
   DialogDescription,
 } from './components/ui/dialog';
 export {
+  Sheet,
+  SheetPortal,
+  SheetOverlay,
+  SheetTrigger,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetFooter,
+  SheetTitle,
+  SheetDescription,
+} from './components/ui/sheet';
+export {
   Select,
   SelectGroup,
   SelectValue,
@@ -47,6 +59,28 @@ export {
   FormMessage,
   FormField,
 } from './components/ui/form';
+
+// New UI Components
+export { Badge, badgeVariants, getStatusVariant } from './components/ui/badge';
+export { Skeleton, SkeletonGroup, StatCardSkeleton, TableSkeleton } from './components/ui/skeleton';
+export { Toast, toastVariants } from './components/ui/toast';
+export { Toaster } from './components/ui/toaster';
+export { StatCard, StatCardGrid } from './components/ui/stat-card';
+export {
+  AppSidebar,
+  SidebarProvider,
+  SidebarTrigger,
+  SidebarLayout,
+  useSidebar,
+} from './components/ui/app-sidebar';
+export type { SidebarItem, AppSidebarProps, SidebarLayoutProps } from './components/ui/app-sidebar';
+export type { StatCardProps, StatCardGridProps } from './components/ui/stat-card';
+
+// Design System
+export * from './lib/design-tokens';
+
+// Hooks
+export { useToast, toast } from './hooks/use-toast';
 
 // Supabase
 export { supabase } from './lib/supabase';

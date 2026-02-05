@@ -19,6 +19,9 @@ import {
   TableHeader,
   TableRow,
   Button,
+  StatCard,
+  StatCardGrid,
+  chartColors,
 } from '@agent-system/shared-ui';
 import {
   BarChart,
@@ -31,12 +34,11 @@ import {
   PieChart,
   Pie,
   Cell,
+  Legend,
 } from 'recharts';
 import { Download, TrendingUp, Users, Calendar, DollarSign } from 'lucide-react';
 import { useCampaigns } from '../hooks/useCampaigns';
 import { supabase } from '../lib/supabase';
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 export function Reports() {
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>('all');
@@ -44,7 +46,7 @@ export function Reports() {
   const { data: campaigns } = useCampaigns();
 
   // Fetch real stats
-  const { data: reportStats } = useQuery({
+  const { data: reportStats, isLoading: statsLoading } = useQuery({
     queryKey: ['report-stats'],
     queryFn: async () => {
       // Get campaign stats
@@ -223,19 +225,19 @@ export function Reports() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Reports & Analytics</h1>
-          <p className="text-muted-foreground">Campaign performance and agent metrics</p>
+          <h1 className="text-3xl font-bold text-slate-900">Reports & Analytics</h1>
+          <p className="text-slate-500 mt-1">Campaign performance and agent metrics</p>
         </div>
       </div>
 
-      <div className="flex gap-4">
-        <div className="w-48">
-          <Label>Campaign</Label>
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="w-full sm:w-48">
+          <Label className="text-slate-600">Campaign</Label>
           <Select value={selectedCampaignId} onValueChange={setSelectedCampaignId}>
-            <SelectTrigger>
+            <SelectTrigger className="mt-1">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -248,10 +250,10 @@ export function Reports() {
             </SelectContent>
           </Select>
         </div>
-        <div className="w-48">
-          <Label>Date Range</Label>
+        <div className="w-full sm:w-48">
+          <Label className="text-slate-600">Date Range</Label>
           <Select value={dateRange} onValueChange={setDateRange}>
-            <SelectTrigger>
+            <SelectTrigger className="mt-1">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -265,62 +267,52 @@ export function Reports() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Invitations</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{reportStats?.totalInvitations || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              {reportStats?.activeCampaigns || 0} active campaigns
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Registration Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{reportStats?.conversionRate || 0}%</div>
-            <p className="text-xs text-muted-foreground">
-              {reportStats?.registeredInvitations || 0} registered
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Full Attendance</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{reportStats?.fullAttendance || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              {reportStats?.attendanceRate || 0}% completion rate
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Rewards Pending</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${reportStats?.pendingRewardsAmount || 0}</div>
-            <p className="text-xs text-muted-foreground">{reportStats?.totalAgents || 0} agents</p>
-          </CardContent>
-        </Card>
-      </div>
+      <StatCardGrid columns={4}>
+        <StatCard
+          title="Total Invitations"
+          value={reportStats?.totalInvitations || 0}
+          subtitle={`${reportStats?.activeCampaigns || 0} active campaigns`}
+          icon={Calendar}
+          iconColor="text-sky-600"
+          iconBgColor="bg-sky-100"
+          loading={statsLoading}
+        />
+        <StatCard
+          title="Registration Rate"
+          value={`${reportStats?.conversionRate || 0}%`}
+          subtitle={`${reportStats?.registeredInvitations || 0} registered`}
+          icon={TrendingUp}
+          iconColor="text-emerald-600"
+          iconBgColor="bg-emerald-100"
+          loading={statsLoading}
+        />
+        <StatCard
+          title="Full Attendance"
+          value={reportStats?.fullAttendance || 0}
+          subtitle={`${reportStats?.attendanceRate || 0}% completion rate`}
+          icon={Users}
+          iconColor="text-violet-600"
+          iconBgColor="bg-violet-100"
+          loading={statsLoading}
+        />
+        <StatCard
+          title="Rewards Pending"
+          value={`$${reportStats?.pendingRewardsAmount || 0}`}
+          subtitle={`${reportStats?.totalAgents || 0} agents`}
+          icon={DollarSign}
+          iconColor="text-amber-600"
+          iconBgColor="bg-amber-100"
+          loading={statsLoading}
+        />
+      </StatCardGrid>
 
       {/* Charts */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+        <Card className="glass-card">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Invitation Funnel</CardTitle>
+                <CardTitle className="text-lg">Invitation Funnel</CardTitle>
                 <CardDescription>Weekly conversion rates</CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={() => handleExport('invitations')}>
@@ -332,23 +324,30 @@ export function Reports() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={monthlyData || []}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="sent" fill="#8884d8" name="Sent" />
-                <Bar dataKey="registered" fill="#82ca9d" name="Registered" />
-                <Bar dataKey="attended" fill="#ffc658" name="Attended" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 12 }} />
+                <YAxis tick={{ fill: '#64748b', fontSize: 12 }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#fff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                  }}
+                />
+                <Bar dataKey="sent" fill={chartColors[0]} name="Sent" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="registered" fill={chartColors[2]} name="Registered" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="attended" fill={chartColors[3]} name="Attended" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="glass-card">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Attendance Breakdown</CardTitle>
+                <CardTitle className="text-lg">Attendance Breakdown</CardTitle>
                 <CardDescription>Completion status</CardDescription>
               </div>
             </div>
@@ -361,16 +360,24 @@ export function Reports() {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => attendanceData.length > 0 ? `${name} ${(percent * 100).toFixed(0)}%` : ''}
+                  label={({ percent }) => attendanceData.length > 0 ? `${(percent * 100).toFixed(0)}%` : ''}
                   outerRadius={100}
                   fill="#8884d8"
                   dataKey="value"
                 >
                   {(attendanceData.length > 0 ? attendanceData : [{ name: 'No Data', value: 1 }]).map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#fff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                  }}
+                />
+                <Legend />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -379,11 +386,11 @@ export function Reports() {
 
       {/* Tables */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+        <Card className="glass-card">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Top Performing Agents</CardTitle>
+                <CardTitle className="text-lg">Top Performing Agents</CardTitle>
                 <CardDescription>By attendance rate</CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={() => handleExport('agents')}>
@@ -395,7 +402,7 @@ export function Reports() {
           <CardContent>
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="hover:bg-transparent">
                   <TableHead>Agent</TableHead>
                   <TableHead className="text-right">Invitations</TableHead>
                   <TableHead className="text-right">Attendance</TableHead>
@@ -405,17 +412,17 @@ export function Reports() {
               <TableBody>
                 {(topAgents || []).length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                    <TableCell colSpan={4} className="text-center text-slate-500">
                       No agent data available
                     </TableCell>
                   </TableRow>
                 ) : (
                   topAgents?.map((agent) => (
-                    <TableRow key={agent.name}>
+                    <TableRow key={agent.name} className="hover:bg-slate-50/50 transition-colors">
                       <TableCell className="font-medium">{agent.name}</TableCell>
-                      <TableCell className="text-right">{agent.invitations}</TableCell>
-                      <TableCell className="text-right">{agent.attendance}</TableCell>
-                      <TableCell className="text-right text-green-600">{agent.rate}</TableCell>
+                      <TableCell className="text-right text-slate-600">{agent.invitations}</TableCell>
+                      <TableCell className="text-right text-slate-600">{agent.attendance}</TableCell>
+                      <TableCell className="text-right font-medium text-emerald-600">{agent.rate}</TableCell>
                     </TableRow>
                   ))
                 )}
@@ -424,11 +431,11 @@ export function Reports() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="glass-card">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>System Summary</CardTitle>
+                <CardTitle className="text-lg">System Summary</CardTitle>
                 <CardDescription>Overall statistics</CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={() => handleExport('summary')}>
@@ -440,27 +447,27 @@ export function Reports() {
           <CardContent>
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="hover:bg-transparent">
                   <TableHead>Metric</TableHead>
                   <TableHead className="text-right">Value</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                <TableRow>
+                <TableRow className="hover:bg-slate-50/50 transition-colors">
                   <TableCell className="font-medium">Total Campaigns</TableCell>
-                  <TableCell className="text-right">{reportStats?.totalCampaigns || 0}</TableCell>
+                  <TableCell className="text-right text-slate-600">{reportStats?.totalCampaigns || 0}</TableCell>
                 </TableRow>
-                <TableRow>
+                <TableRow className="hover:bg-slate-50/50 transition-colors">
                   <TableCell className="font-medium">Active Campaigns</TableCell>
-                  <TableCell className="text-right">{reportStats?.activeCampaigns || 0}</TableCell>
+                  <TableCell className="text-right text-slate-600">{reportStats?.activeCampaigns || 0}</TableCell>
                 </TableRow>
-                <TableRow>
+                <TableRow className="hover:bg-slate-50/50 transition-colors">
                   <TableCell className="font-medium">Total Agents</TableCell>
-                  <TableCell className="text-right">{reportStats?.totalAgents || 0}</TableCell>
+                  <TableCell className="text-right text-slate-600">{reportStats?.totalAgents || 0}</TableCell>
                 </TableRow>
-                <TableRow>
+                <TableRow className="hover:bg-slate-50/50 transition-colors">
                   <TableCell className="font-medium">Total Rewards</TableCell>
-                  <TableCell className="text-right">${reportStats?.totalRewardsAmount || 0}</TableCell>
+                  <TableCell className="text-right text-slate-600">${reportStats?.totalRewardsAmount || 0}</TableCell>
                 </TableRow>
               </TableBody>
             </Table>

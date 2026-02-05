@@ -26,21 +26,17 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Badge,
+  getStatusVariant,
+  Skeleton,
 } from '@agent-system/shared-ui';
-import { ArrowLeft, Plus, Edit, Trash2, Power, PowerOff } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Power, PowerOff } from 'lucide-react';
 import { useCampaign, useUpdateCampaignStatus } from '../../hooks/useCampaigns';
 import { useSlots, useCreateSlot, useDeleteSlot, useToggleSlotActive } from '../../hooks/useSlots';
 import { CampaignStatus } from '@agent-system/shared-types';
 import { useState } from 'react';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-const statusColors: Record<CampaignStatus, string> = {
-  [CampaignStatus.DRAFT]: 'bg-gray-100 text-gray-800',
-  [CampaignStatus.ACTIVE]: 'bg-green-100 text-green-800',
-  [CampaignStatus.PAUSED]: 'bg-yellow-100 text-yellow-800',
-  [CampaignStatus.COMPLETED]: 'bg-blue-100 text-blue-800',
-};
 
 export function CampaignDetail() {
   const navigate = useNavigate();
@@ -94,15 +90,37 @@ export function CampaignDetail() {
   };
 
   if (isLoadingCampaign) {
-    return <p>Loading...</p>;
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-9 w-20" />
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-5 w-40" />
+          </div>
+        </div>
+        <div className="grid gap-6 md:grid-cols-3">
+          <Skeleton className="h-24 rounded-xl" />
+          <Skeleton className="h-24 rounded-xl" />
+          <Skeleton className="h-24 rounded-xl" />
+        </div>
+        <Skeleton className="h-64 rounded-xl" />
+      </div>
+    );
   }
 
   if (!campaign) {
-    return <p>Campaign not found</p>;
+    return (
+      <Card className="glass-card">
+        <CardContent className="p-6">
+          <p className="text-slate-500">Campaign not found</p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={() => navigate({ to: '/campaigns' })}>
@@ -110,13 +128,13 @@ export function CampaignDetail() {
             Back
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">{campaign.name}</h1>
-            <p className="text-muted-foreground">{campaign.venue}</p>
+            <h1 className="text-3xl font-bold text-slate-900">{campaign.name}</h1>
+            <p className="text-slate-500">{campaign.venue}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {campaign.status === CampaignStatus.DRAFT && (
-            <Button onClick={() => handleToggleStatus(CampaignStatus.ACTIVE)}>
+            <Button onClick={() => handleToggleStatus(CampaignStatus.ACTIVE)} className="bg-emerald-600 hover:bg-emerald-700">
               <Power className="h-4 w-4 mr-2" />
               Activate
             </Button>
@@ -128,71 +146,70 @@ export function CampaignDetail() {
             </Button>
           )}
           {campaign.status === CampaignStatus.PAUSED && (
-            <Button onClick={() => handleToggleStatus(CampaignStatus.ACTIVE)}>
+            <Button onClick={() => handleToggleStatus(CampaignStatus.ACTIVE)} className="bg-emerald-600 hover:bg-emerald-700">
               <Power className="h-4 w-4 mr-2" />
               Resume
             </Button>
           )}
           <Link to="/campaigns/$campaignId/edit" params={{ campaignId: campaignId ?? '' }}>
             <Button variant="outline">
-              <Edit className="h-4 w-4 mr-2" />
               Edit
             </Button>
           </Link>
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card>
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="glass-card">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardTitle className="text-sm font-medium text-slate-500">
               Status
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[campaign.status]}`}>
+            <Badge variant={getStatusVariant(campaign.status)} size="lg">
               {campaign.status}
-            </span>
+            </Badge>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="glass-card">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardTitle className="text-sm font-medium text-slate-500">
               Dates
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="font-medium">
+            <p className="font-semibold text-slate-900">
               {new Date(campaign.start_date).toLocaleDateString()} - {new Date(campaign.end_date).toLocaleDateString()}
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="glass-card">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardTitle className="text-sm font-medium text-slate-500">
               Type
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="font-medium capitalize">
+            <p className="font-semibold capitalize text-slate-900">
               {campaign.invitation_type.replace('_', ' ')}
             </p>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
+      <Card className="glass-card">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Event Slots</CardTitle>
+              <CardTitle className="text-lg">Event Slots</CardTitle>
               <CardDescription>
                 Configure the available time slots for this campaign
               </CardDescription>
             </div>
             <Dialog open={isAddSlotOpen} onOpenChange={setIsAddSlotOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button className="bg-slate-900 hover:bg-slate-800">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Slot
                 </Button>
@@ -264,7 +281,7 @@ export function CampaignDetail() {
                   <Button variant="outline" onClick={() => setIsAddSlotOpen(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={handleAddSlot} disabled={createSlot.isPending}>
+                  <Button onClick={handleAddSlot} disabled={createSlot.isPending} className="bg-slate-900 hover:bg-slate-800">
                     {createSlot.isPending ? 'Creating...' : 'Create Slot'}
                   </Button>
                 </DialogFooter>
@@ -274,13 +291,17 @@ export function CampaignDetail() {
         </CardHeader>
         <CardContent>
           {isLoadingSlots ? (
-            <p className="text-muted-foreground">Loading slots...</p>
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
           ) : slots?.length === 0 ? (
-            <p className="text-muted-foreground">No slots configured yet. Add a slot to get started.</p>
+            <p className="text-slate-500">No slots configured yet. Add a slot to get started.</p>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="hover:bg-transparent">
                   <TableHead>Day</TableHead>
                   <TableHead>Time</TableHead>
                   <TableHead>Check-in Window</TableHead>
@@ -291,27 +312,26 @@ export function CampaignDetail() {
               </TableHeader>
               <TableBody>
                 {slots?.map((slot) => (
-                  <TableRow key={slot.id}>
+                  <TableRow key={slot.id} className="hover:bg-slate-50/50 transition-colors">
                     <TableCell className="font-medium">
                       {DAYS_OF_WEEK[slot.day_of_week]}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-slate-600">
                       {slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}
                     </TableCell>
-                    <TableCell>{slot.checkin_window_minutes} mins</TableCell>
-                    <TableCell>{slot.checkout_window_minutes} mins</TableCell>
+                    <TableCell className="text-slate-600">{slot.checkin_window_minutes} mins</TableCell>
+                    <TableCell className="text-slate-600">{slot.checkout_window_minutes} mins</TableCell>
                     <TableCell>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        slot.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
+                      <Badge variant={slot.is_active ? 'active' : 'inactive'}>
                         {slot.is_active ? 'Active' : 'Inactive'}
-                      </span>
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1">
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="h-8 w-8 p-0"
                           onClick={() => toggleSlotActive.mutate({ id: slot.id, is_active: !slot.is_active })}
                         >
                           {slot.is_active ? (
@@ -323,9 +343,10 @@ export function CampaignDetail() {
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="h-8 w-8 p-0"
                           onClick={() => handleDeleteSlot(slot.id)}
                         >
-                          <Trash2 className="h-4 w-4 text-destructive" />
+                          <Trash2 className="h-4 w-4 text-red-500" />
                         </Button>
                       </div>
                     </TableCell>

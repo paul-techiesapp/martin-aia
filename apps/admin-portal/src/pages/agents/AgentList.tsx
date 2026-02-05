@@ -12,15 +12,12 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  Badge,
+  getStatusVariant,
+  TableSkeleton,
 } from '@agent-system/shared-ui';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { useAgents, useDeleteAgent } from '../../hooks/useAgents';
-import { AgentStatus } from '@agent-system/shared-types';
-
-const statusColors: Record<AgentStatus, string> = {
-  [AgentStatus.ACTIVE]: 'bg-green-100 text-green-800',
-  [AgentStatus.INACTIVE]: 'bg-gray-100 text-gray-800',
-};
 
 export function AgentList() {
   const { data: agents, isLoading, error } = useAgents();
@@ -34,45 +31,45 @@ export function AgentList() {
 
   if (error) {
     return (
-      <Card>
+      <Card className="glass-card">
         <CardContent className="p-6">
-          <p className="text-destructive">Error loading agents: {error.message}</p>
+          <p className="text-red-600">Error loading agents: {error.message}</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Agents</h1>
-          <p className="text-muted-foreground">Manage agent accounts and tier assignments</p>
+          <h1 className="text-3xl font-bold text-slate-900">Agents</h1>
+          <p className="text-slate-500 mt-1">Manage agent accounts and tier assignments</p>
         </div>
         <Link to="/agents/new">
-          <Button>
+          <Button className="bg-slate-900 hover:bg-slate-800">
             <Plus className="h-4 w-4 mr-2" />
             New Agent
           </Button>
         </Link>
       </div>
 
-      <Card>
+      <Card className="glass-card">
         <CardHeader>
-          <CardTitle>All Agents</CardTitle>
+          <CardTitle className="text-lg">All Agents</CardTitle>
           <CardDescription>
             {agents?.length ?? 0} registered agents
           </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p className="text-muted-foreground">Loading agents...</p>
+            <TableSkeleton rows={5} columns={7} />
           ) : agents?.length === 0 ? (
-            <p className="text-muted-foreground">No agents registered yet.</p>
+            <p className="text-slate-500">No agents registered yet.</p>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="hover:bg-transparent">
                   <TableHead>Name</TableHead>
                   <TableHead>Agent Code</TableHead>
                   <TableHead>Email</TableHead>
@@ -84,31 +81,32 @@ export function AgentList() {
               </TableHeader>
               <TableBody>
                 {agents?.map((agent) => (
-                  <TableRow key={agent.id}>
+                  <TableRow key={agent.id} className="hover:bg-slate-50/50 transition-colors">
                     <TableCell className="font-medium">{agent.name}</TableCell>
-                    <TableCell>{agent.agent_code}</TableCell>
-                    <TableCell>{agent.email}</TableCell>
-                    <TableCell>{agent.phone}</TableCell>
-                    <TableCell>{agent.unit_name}</TableCell>
+                    <TableCell className="text-slate-600">{agent.agent_code}</TableCell>
+                    <TableCell className="text-slate-600">{agent.email}</TableCell>
+                    <TableCell className="text-slate-600">{agent.phone}</TableCell>
+                    <TableCell className="text-slate-600">{agent.unit_name}</TableCell>
                     <TableCell>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[agent.status]}`}>
+                      <Badge variant={getStatusVariant(agent.status)}>
                         {agent.status}
-                      </span>
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1">
                         <Link to="/agents/$agentId/edit" params={{ agentId: agent.id }}>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                             <Edit className="h-4 w-4" />
                           </Button>
                         </Link>
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="h-8 w-8 p-0"
                           onClick={() => handleDelete(agent.id)}
                           disabled={deleteAgent.isPending}
                         >
-                          <Trash2 className="h-4 w-4 text-destructive" />
+                          <Trash2 className="h-4 w-4 text-red-500" />
                         </Button>
                       </div>
                     </TableCell>

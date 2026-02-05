@@ -26,8 +26,6 @@ enabled = false
 port = 54322
 # Port used by db diff command to initialize the shadow database.
 shadow_port = 54320
-# Maximum amount of time to wait for health check when starting the local database.
-health_timeout = "2m"
 # The database major version to use. This has to be the same as your remote database's. Run `SHOW
 # server_version;` on the remote database to check.
 major_version = 15
@@ -91,21 +89,6 @@ port = 54324
 enabled = true
 # The maximum file size allowed (e.g. "5MB", "500KB").
 file_size_limit = "50MiB"
-
-# Allow connections via S3 compatible clients
-[storage.s3_protocol]
-enabled = true
-
-[storage.analytics]
-enabled = false
-max_namespaces = 5
-max_tables = 10
-max_catalogs = 2
-
-[storage.vector]
-enabled = false
-max_buckets = 10
-max_indexes = 5
 
 [auth]
 enabled = true
@@ -205,7 +188,6 @@ secret = "env(SUPABASE_AUTH_EXTERNAL_APPLE_SECRET)"
 redirect_uri = ""
 url = ""
 skip_nonce_check = false
-email_optional = false
 
 [auth.web3.solana]
 enabled = false
@@ -221,11 +203,6 @@ enabled = false
 
 [auth.third_party.clerk]
 enabled = false
-
-[auth.oauth_server]
-enabled = false
-authorization_url_path = "/oauth/consent"
-allow_dynamic_registration = false
 
 [edge_runtime]
 enabled = true

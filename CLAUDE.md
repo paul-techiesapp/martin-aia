@@ -1,0 +1,129 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+Agent Onboarding System - A monorepo for managing agent recruitment events, tracking invitations, and recording attendance with reward calculations. Three user types: Admin (full system control), Agent (invite new members), and New Member (registers and attends events).
+
+## Commands
+
+### Development
+```bash
+pnpm dev:admin    # Admin portal at http://localhost:3000
+pnpm dev:agent    # Agent portal at http://localhost:3001
+pnpm dev:public   # Public pages at http://localhost:3002
+```
+
+### Build & Quality
+```bash
+pnpm build        # Build all apps
+pnpm lint         # ESLint across all packages
+pnpm -r typecheck # TypeScript validation
+```
+
+### Supabase (Local Development)
+```bash
+npx supabase start           # Start local Supabase stack
+npx supabase stop            # Stop local Supabase
+npx supabase db reset        # Reset database and run migrations
+npx supabase migration new   # Create new migration
+```
+
+**Local Supabase Ports:**
+- API: 54321
+- Database: 54322
+- Studio: 54323
+- Email testing (Inbucket): 54324
+
+## Architecture
+
+### Monorepo Structure (pnpm workspaces)
+```
+apps/
+├── admin-portal/     # Campaign, agent, tier management, reports
+├── agent-portal/     # Agent-facing: view campaigns, manage invitations
+└── public-pages/     # No auth: registration, check-in/out via QR
+
+packages/
+├── shared-types/     # TypeScript types & enums for database entities
+└── shared-ui/        # shadcn/ui components, Supabase client, utilities
+
+supabase/
+├── migrations/       # PostgreSQL schema migrations
+├── config.toml       # Local Supabase configuration
+└── seed.sql          # Seed data
+```
+
+### Tech Stack
+- **Frontend:** React 18, Vite 5, TypeScript, TanStack Router, TanStack Query
+- **Styling:** Tailwind CSS, shadcn/ui (Radix primitives)
+- **Forms:** react-hook-form + zod validation
+- **Backend:** Supabase (PostgreSQL 15, Auth, RLS)
+- **PDF/Charts:** jspdf, html2canvas, recharts, qrcode.react
+
+### Data Flow
+Campaigns → Slots (time windows) → Invitations (unique tokens) → Attendance (PIN-based check-in/out) → Rewards
+
+### Key Domain Concepts
+- **Tiers:** Agent tiers with reward amounts and invitation limits per slot
+- **Capacity Types:** `agent` or `business_partner` (affects rewards)
+- **PIN Codes:** Generated per slot, distributed at events, one-time use
+- **Invitation Tokens:** UUID v4 one-time links shared via WhatsApp/SMS
+
+## Shared Packages
+
+### @agent-system/shared-types
+Import types and enums:
+```typescript
+import { Campaign, Agent, InvitationStatus, CampaignStatus } from '@agent-system/shared-types';
+```
+
+### @agent-system/shared-ui
+Import components and utilities:
+```typescript
+import { Button, Card, Input, Form, Table, Dialog, Select, cn, supabase } from '@agent-system/shared-ui';
+```
+
+## Database
+
+### Core Tables
+`campaigns`, `slots`, `tiers`, `agents`, `invitations`, `pin_codes`, `attendance`, `rewards`
+
+### RLS Policies
+- Admins: Full access via `is_admin()` function (checks `raw_user_meta_data->>'role' = 'admin'`)
+- Agents: See only own data via `get_agent_id()` function
+- Public (anon): Can read/update PIN codes and insert/update attendance for check-in flow
+
+### Enums (in PostgreSQL and TypeScript)
+`invitation_type`, `campaign_status`, `invitation_status`, `capacity_type`, `role_type`, `agent_status`, `reward_status`
+
+## Environment Variables
+
+Each app needs `.env` (copy from `.env.example`):
+```
+VITE_SUPABASE_URL=http://localhost:54321
+VITE_SUPABASE_ANON_KEY=<your-anon-key>
+```
+
+Get the anon key from `npx supabase status` after starting local Supabase.
+
+## Patterns
+
+### React Query Hooks
+Custom hooks in `src/hooks/` wrap Supabase queries with React Query:
+```typescript
+// Example: useCampaigns(), useAgents(), useSlots(), useTiers()
+const { data, isLoading } = useCampaigns();
+const mutation = useCreateCampaign();
+```
+
+### Form Handling
+```typescript
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Form, FormField } from '@agent-system/shared-ui';
+```
+
+### Path Aliases
+All apps use `@/*` → `./src/*` for imports.

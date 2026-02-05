@@ -26,6 +26,14 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from '@agent-system/shared-ui';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { useTiers, useCreateTier, useUpdateTier, useDeleteTier } from '../../hooks/useTiers';
@@ -39,6 +47,7 @@ export function TierList() {
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTier, setEditingTier] = useState<Tier | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     role_type: RoleType.AGENT,
@@ -81,8 +90,13 @@ export function TierList() {
   };
 
   const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this tier?')) {
-      deleteTier.mutate(id);
+    setDeleteId(id);
+  };
+
+  const confirmDelete = () => {
+    if (deleteId) {
+      deleteTier.mutate(deleteId);
+      setDeleteId(null);
     }
   };
 
@@ -222,6 +236,23 @@ export function TierList() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Tier</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this tier? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -34,6 +34,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  TableSkeleton,
 } from '@agent-system/shared-ui';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { useTiers, useCreateTier, useUpdateTier, useDeleteTier } from '../../hooks/useTiers';
@@ -102,7 +103,7 @@ export function TierList() {
 
   if (error) {
     return (
-      <Card>
+      <Card className="glass-card">
         <CardContent className="p-6">
           <p className="text-destructive">Error loading tiers: {error.message}</p>
         </CardContent>
@@ -111,11 +112,11 @@ export function TierList() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Tiers</h1>
-          <p className="text-muted-foreground">Configure reward tiers and invitation limits</p>
+          <h1 className="text-3xl font-bold text-slate-900">Tiers</h1>
+          <p className="text-slate-500">Configure reward tiers and invitation limits</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -184,7 +185,7 @@ export function TierList() {
         </Dialog>
       </div>
 
-      <Card>
+      <Card className="glass-card">
         <CardHeader>
           <CardTitle>All Tiers</CardTitle>
           <CardDescription>
@@ -193,9 +194,9 @@ export function TierList() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p className="text-muted-foreground">Loading tiers...</p>
+            <TableSkeleton rows={5} columns={5} />
           ) : tiers?.length === 0 ? (
-            <p className="text-muted-foreground">No tiers configured yet.</p>
+            <p className="text-slate-500">No tiers configured yet.</p>
           ) : (
             <Table>
               <TableHeader>
@@ -209,7 +210,7 @@ export function TierList() {
               </TableHeader>
               <TableBody>
                 {tiers?.map((tier) => (
-                  <TableRow key={tier.id}>
+                  <TableRow key={tier.id} className="hover:bg-slate-50/50 transition-colors">
                     <TableCell className="font-medium">{tier.name}</TableCell>
                     <TableCell className="capitalize">{tier.role_type.replace('_', ' ')}</TableCell>
                     <TableCell>${tier.reward_amount.toFixed(2)}</TableCell>

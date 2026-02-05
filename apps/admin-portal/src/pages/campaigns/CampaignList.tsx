@@ -24,6 +24,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from '@agent-system/shared-ui';
 import { Plus, Edit, Trash2, Eye, Play, Pause } from 'lucide-react';
 import { useCampaigns, useDeleteCampaign, useUpdateCampaignStatus } from '../../hooks/useCampaigns';
@@ -91,76 +95,106 @@ export function CampaignList() {
           ) : campaigns?.length === 0 ? (
             <p className="text-slate-500">No campaigns yet. Create your first campaign to get started.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead>Name</TableHead>
-                  <TableHead>Venue</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Dates</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {campaigns?.map((campaign) => (
-                  <TableRow key={campaign.id} className="hover:bg-slate-50/50 transition-colors">
-                    <TableCell className="font-medium">{campaign.name}</TableCell>
-                    <TableCell className="text-slate-600">{campaign.venue}</TableCell>
-                    <TableCell className="capitalize text-slate-600">
-                      {campaign.invitation_type.replace('_', ' ')}
-                    </TableCell>
-                    <TableCell className="text-slate-600">
-                      {new Date(campaign.start_date).toLocaleDateString()} -
-                      {new Date(campaign.end_date).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusVariant(campaign.status)}>
-                        {campaign.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Link to="/campaigns/$campaignId" params={{ campaignId: campaign.id }}>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                        {(campaign.status === CampaignStatus.ACTIVE || campaign.status === CampaignStatus.PAUSED) && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            onClick={() => handleToggleStatus(campaign.id, campaign.status)}
-                            disabled={updateStatus.isPending}
-                          >
-                            {campaign.status === CampaignStatus.ACTIVE ? (
-                              <Pause className="h-4 w-4" />
-                            ) : (
-                              <Play className="h-4 w-4" />
-                            )}
-                          </Button>
-                        )}
-                        <Link to="/campaigns/$campaignId/edit" params={{ campaignId: campaign.id }}>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={() => handleDelete(campaign.id)}
-                          disabled={deleteCampaign.isPending}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </div>
-                    </TableCell>
+            <TooltipProvider>
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead>Name</TableHead>
+                    <TableHead>Venue</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Dates</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {campaigns?.map((campaign) => (
+                    <TableRow key={campaign.id} className="hover:bg-slate-50/50 transition-colors">
+                      <TableCell className="font-medium">{campaign.name}</TableCell>
+                      <TableCell className="text-slate-600">{campaign.venue}</TableCell>
+                      <TableCell className="capitalize text-slate-600">
+                        {campaign.invitation_type.replace('_', ' ')}
+                      </TableCell>
+                      <TableCell className="text-slate-600">
+                        {new Date(campaign.start_date).toLocaleDateString()} -
+                        {new Date(campaign.end_date).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getStatusVariant(campaign.status)}>
+                          {campaign.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Link to="/campaigns/$campaignId" params={{ campaignId: campaign.id }}>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </Link>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>View campaign</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          {(campaign.status === CampaignStatus.ACTIVE || campaign.status === CampaignStatus.PAUSED) && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => handleToggleStatus(campaign.id, campaign.status)}
+                                  disabled={updateStatus.isPending}
+                                >
+                                  {campaign.status === CampaignStatus.ACTIVE ? (
+                                    <Pause className="h-4 w-4" />
+                                  ) : (
+                                    <Play className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{campaign.status === CampaignStatus.ACTIVE ? 'Pause campaign' : 'Resume campaign'}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Link to="/campaigns/$campaignId/edit" params={{ campaignId: campaign.id }}>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </Link>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Edit campaign</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={() => handleDelete(campaign.id)}
+                                disabled={deleteCampaign.isPending}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Delete campaign</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TooltipProvider>
           )}
         </CardContent>
         <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>

@@ -16,6 +16,10 @@ import {
   StatCard,
   StatCardGrid,
   TableSkeleton,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from '@agent-system/shared-ui';
 import { Copy, Check, ExternalLink, Send, UserCheck, CheckCircle } from 'lucide-react';
 import { useState } from 'react';
@@ -90,68 +94,84 @@ export function Invitations() {
           ) : invitations?.length === 0 ? (
             <p className="text-slate-500">No invitations yet. Browse campaigns to create invitation links.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead>Campaign</TableHead>
-                  <TableHead>Slot</TableHead>
-                  <TableHead>Capacity</TableHead>
-                  <TableHead>Invitee</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {invitations?.map((invitation) => (
-                  <TableRow key={invitation.id} className="hover:bg-slate-50/50 transition-colors">
-                    <TableCell className="font-medium">
-                      {invitation.slot?.campaign?.name ?? '-'}
-                    </TableCell>
-                    <TableCell className="text-slate-600">
-                      {invitation.slot
-                        ? `${DAYS_OF_WEEK[invitation.slot.day_of_week]} ${invitation.slot.start_time.slice(0, 5)}`
-                        : '-'}
-                    </TableCell>
-                    <TableCell className="capitalize text-slate-600">
-                      {invitation.capacity_type.replace('_', ' ')}
-                    </TableCell>
-                    <TableCell>
-                      {invitation.invitee_name || (
-                        <span className="text-slate-400">Not registered</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusVariant(invitation.status)}>
-                        {invitation.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {invitation.status === InvitationStatus.PENDING && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            onClick={() => handleCopy(invitation.unique_token, invitation.id)}
-                          >
-                            {copiedId === invitation.id ? (
-                              <Check className="h-4 w-4 text-emerald-600" />
-                            ) : (
-                              <Copy className="h-4 w-4" />
-                            )}
-                          </Button>
-                        )}
-                        {invitation.invitee_name && (
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
+            <TooltipProvider>
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead>Campaign</TableHead>
+                    <TableHead>Slot</TableHead>
+                    <TableHead>Capacity</TableHead>
+                    <TableHead>Invitee</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {invitations?.map((invitation) => (
+                    <TableRow key={invitation.id} className="hover:bg-slate-50/50 transition-colors">
+                      <TableCell className="font-medium">
+                        {invitation.slot?.campaign?.name ?? '-'}
+                      </TableCell>
+                      <TableCell className="text-slate-600">
+                        {invitation.slot
+                          ? `${DAYS_OF_WEEK[invitation.slot.day_of_week]} ${invitation.slot.start_time.slice(0, 5)}`
+                          : '-'}
+                      </TableCell>
+                      <TableCell className="capitalize text-slate-600">
+                        {invitation.capacity_type.replace('_', ' ')}
+                      </TableCell>
+                      <TableCell>
+                        {invitation.invitee_name || (
+                          <span className="text-slate-400">Not registered</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getStatusVariant(invitation.status)}>
+                          {invitation.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {invitation.status === InvitationStatus.PENDING && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => handleCopy(invitation.unique_token, invitation.id)}
+                                >
+                                  {copiedId === invitation.id ? (
+                                    <Check className="h-4 w-4 text-emerald-600" />
+                                  ) : (
+                                    <Copy className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {copiedId === invitation.id ? 'Link copied!' : 'Copy invitation link'}
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                          {invitation.invitee_name && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                  <ExternalLink className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                View invitee details
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TooltipProvider>
           )}
         </CardContent>
       </Card>

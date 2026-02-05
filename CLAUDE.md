@@ -98,8 +98,38 @@ import { Button, Card, Input, Form, Table, Dialog, Select, cn, supabase } from '
 ### Enums (in PostgreSQL and TypeScript)
 `invitation_type`, `campaign_status`, `invitation_status`, `capacity_type`, `role_type`, `agent_status`, `reward_status`
 
+## Deployment
+
+### GitHub Repository
+- **Repo:** https://github.com/paul-techiesapp/martin-aia
+- **Branch:** `main`
+- **Visibility:** Private
+
+### Production URLs (Render Static Sites)
+| App | URL | Dashboard |
+|-----|-----|-----------|
+| Admin Portal | https://martin-admin-portal.onrender.com | [Dashboard](https://dashboard.render.com/static/srv-d629p163jp1c73bm4ecg) |
+| Agent Portal | https://martin-agent-portal.onrender.com | [Dashboard](https://dashboard.render.com/static/srv-d629p2hr0fns73f9p7i0) |
+| Public Pages | https://martin-public-pages.onrender.com | [Dashboard](https://dashboard.render.com/static/srv-d629p3qli9vc73c5192g) |
+
+**Auto-deploy:** Enabled - pushes to `main` branch trigger automatic deployments.
+
+### Production Supabase
+- **Project ID:** `wictbtiulqmzzneyoelv`
+- **URL:** https://wictbtiulqmzzneyoelv.supabase.co
+- **Dashboard:** https://supabase.com/dashboard/project/wictbtiulqmzzneyoelv
+
+### Build Commands (Render)
+Each app uses pnpm workspace filtering:
+```bash
+pnpm install && pnpm --filter admin-portal build   # Admin
+pnpm install && pnpm --filter agent-portal build   # Agent
+pnpm install && pnpm --filter public-pages build   # Public
+```
+
 ## Environment Variables
 
+### Local Development
 Each app needs `.env` (copy from `.env.example`):
 ```
 VITE_SUPABASE_URL=http://localhost:54321
@@ -107,6 +137,13 @@ VITE_SUPABASE_ANON_KEY=<your-anon-key>
 ```
 
 Get the anon key from `npx supabase status` after starting local Supabase.
+
+### Production (Render)
+Environment variables configured in Render dashboard:
+```
+VITE_SUPABASE_URL=https://wictbtiulqmzzneyoelv.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpY3RidGl1bHFtenpuZXlvZWx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyODg1NTAsImV4cCI6MjA4NTg2NDU1MH0.mfdr9iVrszcwBlq_BYeLmSUjwwqgUbB-Z_xyH9imZ9w
+```
 
 ## Patterns
 

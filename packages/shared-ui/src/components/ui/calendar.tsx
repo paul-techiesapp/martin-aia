@@ -1,64 +1,157 @@
-import * as React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { DayPicker } from "react-day-picker";
-import { cn } from "../../lib/utils";
-import { buttonVariants } from "./button";
+"use client";
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>;
+import * as React from "react";
+import {
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from "lucide-react";
+import {
+  DayPicker,
+  getDefaultClassNames,
+  type DayButton,
+} from "react-day-picker";
+import { cn } from "../../lib/utils";
+import { Button, buttonVariants } from "./button";
+
+export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
+  buttonVariant?: React.ComponentProps<typeof Button>["variant"];
+};
+
+function CalendarDayButton({
+  className,
+  day,
+  modifiers,
+  ...props
+}: React.ComponentProps<typeof DayButton>) {
+  const defaultClassNames = getDefaultClassNames();
+  const ref = React.useRef<HTMLButtonElement>(null);
+
+  React.useEffect(() => {
+    if (modifiers.focused) ref.current?.focus();
+  }, [modifiers.focused]);
+
+  return (
+    <button
+      ref={ref}
+      data-day={day.date.toLocaleDateString()}
+      data-selected-single={
+        modifiers.selected &&
+        !modifiers.range_start &&
+        !modifiers.range_end &&
+        !modifiers.range_middle
+      }
+      data-range-start={modifiers.range_start}
+      data-range-end={modifiers.range_end}
+      data-range-middle={modifiers.range_middle}
+      className={cn(
+        "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "disabled:pointer-events-none disabled:opacity-50",
+        "hover:bg-accent hover:text-accent-foreground",
+        "h-9 w-9 p-0 font-normal",
+        "data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground",
+        "data-[range-middle=true]:bg-accent data-[range-middle=true]:text-accent-foreground",
+        "data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground",
+        "data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground",
+        "data-[range-end=true]:rounded-r-md data-[range-middle=true]:rounded-none data-[range-start=true]:rounded-l-md",
+        defaultClassNames.day,
+        className
+      )}
+      {...props}
+    />
+  );
+}
 
 function Calendar({
   className,
   classNames,
   showOutsideDays = true,
+  buttonVariant = "ghost",
   ...props
 }: CalendarProps) {
+  const defaultClassNames = getDefaultClassNames();
+
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      className={cn("p-3", className)}
+      className={cn("bg-background p-3", className)}
       classNames={{
-        months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-        month: "space-y-4",
-        caption: "flex justify-center pt-1 relative items-center",
-        caption_label: "text-sm font-medium",
-        nav: "space-x-1 flex items-center",
+        root: cn("w-fit", defaultClassNames.root),
+        months: cn(
+          "flex gap-4 flex-col md:flex-row relative",
+          defaultClassNames.months
+        ),
+        month: cn("flex flex-col w-full gap-4", defaultClassNames.month),
+        nav: cn(
+          "flex items-center gap-1 w-full absolute top-0 inset-x-0 justify-between",
+          defaultClassNames.nav
+        ),
         button_previous: cn(
-          buttonVariants({ variant: "outline" }),
-          "absolute left-1 h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
+          buttonVariants({ variant: buttonVariant }),
+          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 aria-disabled:opacity-50",
+          defaultClassNames.button_previous
         ),
         button_next: cn(
-          buttonVariants({ variant: "outline" }),
-          "absolute right-1 h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
+          buttonVariants({ variant: buttonVariant }),
+          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 aria-disabled:opacity-50",
+          defaultClassNames.button_next
         ),
-        table: "w-full border-collapse space-y-1",
-        head_row: "flex",
-        head_cell:
-          "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
-        row: "flex w-full mt-2",
-        cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+        month_caption: cn(
+          "flex items-center justify-center h-7 w-full px-8",
+          defaultClassNames.month_caption
+        ),
+        caption_label: cn(
+          "text-sm font-medium select-none",
+          defaultClassNames.caption_label
+        ),
+        weekdays: cn("flex", defaultClassNames.weekdays),
+        weekday: cn(
+          "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem] select-none flex items-center justify-center",
+          defaultClassNames.weekday
+        ),
+        week: cn("flex w-full mt-2", defaultClassNames.week),
         day: cn(
-          buttonVariants({ variant: "ghost" }),
-          "h-9 w-9 p-0 font-normal aria-selected:opacity-100"
+          "relative p-0 text-center flex items-center justify-center",
+          "[&:first-child[data-selected=true]_button]:rounded-l-md",
+          "[&:last-child[data-selected=true]_button]:rounded-r-md",
+          defaultClassNames.day
         ),
-        range_end: "day-range-end",
-        selected:
-          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-        today: "bg-accent text-accent-foreground",
-        outside:
-          "day-outside text-muted-foreground aria-selected:bg-accent/50 aria-selected:text-muted-foreground",
-        disabled: "text-muted-foreground opacity-50",
-        range_middle:
-          "aria-selected:bg-accent aria-selected:text-accent-foreground",
-        hidden: "invisible",
+        range_start: cn("rounded-l-md bg-accent", defaultClassNames.range_start),
+        range_middle: cn("rounded-none", defaultClassNames.range_middle),
+        range_end: cn("rounded-r-md bg-accent", defaultClassNames.range_end),
+        today: cn(
+          "bg-accent text-accent-foreground rounded-md",
+          defaultClassNames.today
+        ),
+        outside: cn(
+          "text-muted-foreground aria-selected:text-muted-foreground opacity-50",
+          defaultClassNames.outside
+        ),
+        disabled: cn(
+          "text-muted-foreground opacity-50",
+          defaultClassNames.disabled
+        ),
+        hidden: cn("invisible", defaultClassNames.hidden),
         ...classNames,
       }}
       components={{
-        Chevron: ({ orientation }) =>
-          orientation === "left" ? (
-            <ChevronLeft className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          ),
+        DayButton: CalendarDayButton,
+        Chevron: ({ className, orientation, ...props }) => {
+          if (orientation === "left") {
+            return (
+              <ChevronLeftIcon className={cn("h-4 w-4", className)} {...props} />
+            );
+          }
+          if (orientation === "right") {
+            return (
+              <ChevronRightIcon className={cn("h-4 w-4", className)} {...props} />
+            );
+          }
+          return (
+            <ChevronDownIcon className={cn("h-4 w-4", className)} {...props} />
+          );
+        },
       }}
       {...props}
     />

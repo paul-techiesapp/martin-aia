@@ -29,12 +29,15 @@ import {
   Badge,
   getStatusVariant,
   Skeleton,
+  useToast,
 } from '@agent-system/shared-ui';
-import { ArrowLeft, Plus, Trash2, Power, PowerOff } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Power, PowerOff, Mail } from 'lucide-react';
 import { useCampaign, useUpdateCampaignStatus } from '../../hooks/useCampaigns';
+import { useEmailReminders } from '../../hooks/useEmailReminders';
 import { useSlots, useCreateSlot, useDeleteSlot, useToggleSlotActive } from '../../hooks/useSlots';
 import { CampaignStatus } from '@agent-system/shared-types';
 import { useState } from 'react';
+import { supabase } from '../../lib/supabase';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -47,6 +50,10 @@ export function CampaignDetail() {
   const createSlot = useCreateSlot();
   const deleteSlot = useDeleteSlot();
   const toggleSlotActive = useToggleSlotActive();
+
+  const sendReminders = useEmailReminders();
+  const [reminderSlot, setReminderSlot] = useState<{ id: string; label: string; count: number } | null>(null);
+  const { toast } = useToast();
 
   const [isAddSlotOpen, setIsAddSlotOpen] = useState(false);
   const [newSlot, setNewSlot] = useState({
@@ -87,6 +94,36 @@ export function CampaignDetail() {
   const handleToggleStatus = (newStatus: CampaignStatus) => {
     if (!campaignId) return;
     updateStatus.mutate({ id: campaignId, status: newStatus });
+  };
+
+  const handleOpenReminderDialog = async (slot: { id: string; day_of_week: number; start_time: string }) => {
+    const { count } = await supabase
+      .from('invitations')
+      .select('id', { count: 'exact', head: true })
+      .eq('slot_id', slot.id)
+      .eq('status', 'registered')
+      .not('invitee_email', 'is', null);
+
+    setReminderSlot({
+      id: slot.id,
+      label: `${DAYS_OF_WEEK[slot.day_of_week]} ${slot.start_time.slice(0, 5)}`,
+      count: count ?? 0,
+    });
+  };
+
+  const handleSendReminders = async () => {
+    if (!reminderSlot) return;
+    try {
+      const result = await sendReminders.mutateAsync(reminderSlot.id);
+      if (result.sent > 0) {
+        toast({ title: `${result.sent} reminder${result.sent > 1 ? 's' : ''} sent` });
+      } else {
+        toast({ title: result.message || 'No emails sent', variant: 'error' });
+      }
+    } catch (err: any) {
+      toast({ title: 'Failed to send reminders', description: err.message, variant: 'error' });
+    }
+    setReminderSlot(null);
   };
 
   if (isLoadingCampaign) {
@@ -332,6 +369,15 @@ export function CampaignDetail() {
                           variant="ghost"
                           size="sm"
                           className="h-8 w-8 p-0"
+                          onClick={() => handleOpenReminderDialog(slot)}
+                          title="Send email reminders"
+                        >
+                          <Mail className="h-4 w-4 text-indigo-500" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
                           onClick={() => toggleSlotActive.mutate({ id: slot.id, is_active: !slot.is_active })}
                         >
                           {slot.is_active ? (
@@ -357,6 +403,41 @@ export function CampaignDetail() {
           )}
         </CardContent>
       </Card>
+
+      {/* Send Reminders confirmation dialog */}
+      <Dialog open={!!reminderSlot} onOpenChange={(open) => { if (!open) setReminderSlot(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Send Event Reminders?</DialogTitle>
+            <DialogDescription>
+              {reminderSlot && reminderSlot.count > 0 ? (
+                <>
+                  This will send a reminder email to <strong>{reminderSlot.count} registered invitee{reminderSlot.count > 1 ? 's' : ''}</strong> for the <strong>{reminderSlot.label}</strong> slot.
+                </>
+              ) : (
+                'No registered invitees with email addresses for this slot.'
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReminderSlot(null)}>
+              Cancel
+            </Button>
+            {reminderSlot && reminderSlot.count > 0 && (
+              <Button
+                onClick={handleSendReminders}
+                disabled={sendReminders.isPending}
+                className="bg-indigo-600 hover:bg-indigo-700"
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                {sendReminders.isPending
+                  ? 'Sending...'
+                  : `Send ${reminderSlot.count} Email${reminderSlot.count > 1 ? 's' : ''}`}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,33 +1,23 @@
 export type SlotPhase = "waiting" | "checkin" | "in-progress" | "checkout" | "ended";
 
 interface SlotConfig {
-  day_of_week: number;
-  start_time: string; // "HH:MM:SS"
-  end_time: string;   // "HH:MM:SS"
+  start_at: string; // ISO 8601 datetime
+  end_at: string;   // ISO 8601 datetime
   checkin_window_minutes: number;
   checkout_window_minutes: number;
 }
 
 export function getCurrentSlotPhase(slot: SlotConfig): SlotPhase {
   const now = new Date();
-  const currentDay = now.getDay();
+  const start = new Date(slot.start_at);
+  const end = new Date(slot.end_at);
 
-  if (currentDay !== slot.day_of_week) {
-    return "waiting";
-  }
+  const checkinOpen = new Date(start.getTime() - slot.checkin_window_minutes * 60000);
+  const checkoutClose = new Date(end.getTime() + slot.checkout_window_minutes * 60000);
 
-  const [startH, startM] = slot.start_time.split(":").map(Number);
-  const [endH, endM] = slot.end_time.split(":").map(Number);
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  const startMinutes = startH * 60 + startM;
-  const endMinutes = endH * 60 + endM;
-
-  const checkinStart = startMinutes - slot.checkin_window_minutes;
-  const checkoutEnd = endMinutes + slot.checkout_window_minutes;
-
-  if (nowMinutes < checkinStart) return "waiting";
-  if (nowMinutes < startMinutes) return "checkin";
-  if (nowMinutes < endMinutes) return "in-progress";
-  if (nowMinutes < checkoutEnd) return "checkout";
+  if (now < checkinOpen) return "waiting";
+  if (now < start) return "checkin";
+  if (now < end) return "in-progress";
+  if (now < checkoutClose) return "checkout";
   return "ended";
 }

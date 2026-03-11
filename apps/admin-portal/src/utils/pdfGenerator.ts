@@ -19,8 +19,6 @@ interface PinSheetData {
   checkoutUrl: string;
 }
 
-const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
 export function generateInvitationCard(data: InvitationCardData): jsPDF {
   const doc = new jsPDF({
     orientation: 'landscape',
@@ -289,8 +287,9 @@ export function generatePinSheet(data: PinSheetData): jsPDF {
   return doc;
 }
 
-export function formatDayOfWeek(dayNumber: number): string {
-  return DAYS_OF_WEEK[dayNumber] || 'Unknown';
+export function formatSlotDate(isoDatetime: string): string {
+  const date = new Date(isoDatetime);
+  return date.toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 export function formatTime(timeString: string): string {

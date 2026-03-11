@@ -43,8 +43,7 @@ import { usePinCodes, useGeneratePinCodes, useDeletePinCodes } from '../hooks/us
 import { QRCodeSVG } from 'qrcode.react';
 import { CampaignStatus } from '@agent-system/shared-types';
 import { supabase } from '../lib/supabase';
-
-const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+import { format, parseISO } from 'date-fns';
 
 export function PinCodes() {
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>('');
@@ -156,7 +155,7 @@ export function PinCodes() {
                 <SelectContent>
                   {slots?.filter(s => s.is_active).map((slot) => (
                     <SelectItem key={slot.id} value={slot.id}>
-                      {DAYS_OF_WEEK[slot.day_of_week]} {slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}
+                      {format(parseISO(slot.start_at), 'd MMM yyyy, HH:mm')} - {format(parseISO(slot.end_at), 'HH:mm')}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -190,7 +189,7 @@ export function PinCodes() {
                     <QRCodeSVG value={checkinUrl} size={256} />
                     <p className="text-sm text-muted-foreground text-center">
                       {selectedCampaign?.name}<br />
-                      {DAYS_OF_WEEK[selectedSlot?.day_of_week ?? 0]} {selectedSlot?.start_time.slice(0, 5)}
+                      {selectedSlot ? format(parseISO(selectedSlot.start_at), 'd MMM yyyy, HH:mm') : ''}
                     </p>
                   </div>
                   <DialogFooter>
@@ -217,7 +216,7 @@ export function PinCodes() {
                     <QRCodeSVG value={checkoutUrl} size={256} />
                     <p className="text-sm text-muted-foreground text-center">
                       {selectedCampaign?.name}<br />
-                      {DAYS_OF_WEEK[selectedSlot?.day_of_week ?? 0]} ends {selectedSlot?.end_time.slice(0, 5)}
+                      {selectedSlot ? `ends ${format(parseISO(selectedSlot.end_at), 'HH:mm')}` : ''}
                     </p>
                   </div>
                   <DialogFooter>

@@ -18,11 +18,9 @@ import { supabase } from '../lib/supabase';
 import {
   generateBulkInvitationCards,
   generatePinSheet,
-  formatDayOfWeek,
   formatTime,
 } from '../utils/pdfGenerator';
-
-const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+import { format, parseISO } from 'date-fns';
 
 interface Campaign {
   id: string;
@@ -33,9 +31,8 @@ interface Campaign {
 interface Slot {
   id: string;
   campaign_id: string;
-  day_of_week: number;
-  start_time: string;
-  end_time: string;
+  start_at: string;
+  end_at: string;
 }
 
 interface Invitation {
@@ -43,9 +40,8 @@ interface Invitation {
   invitee_name: string | null;
   unique_token: string;
   slot: {
-    day_of_week: number;
-    start_time: string;
-    end_time: string;
+    start_at: string;
+    end_at: string;
     campaign: {
       name: string;
       venue: string;
@@ -85,10 +81,9 @@ export function PdfExport() {
       if (!selectedCampaign) return [];
       const { data, error } = await supabase
         .from('slots')
-        .select('id, campaign_id, day_of_week, start_time, end_time')
+        .select('id, campaign_id, start_at, end_at')
         .eq('campaign_id', selectedCampaign)
-        .order('day_of_week')
-        .order('start_time');
+        .order('start_at');
       if (error) throw error;
       return data as Slot[];
     },
@@ -107,9 +102,8 @@ export function PdfExport() {
           invitee_name,
           unique_token,
           slot:slots(
-            day_of_week,
-            start_time,
-            end_time,
+            start_at,
+            end_at,
             campaign:campaigns(name, venue)
           )
         `)
@@ -151,9 +145,9 @@ export function PdfExport() {
         inviteeName: inv.invitee_name || 'Guest',
         campaignName: inv.slot.campaign.name,
         venue: inv.slot.campaign.venue,
-        dayOfWeek: formatDayOfWeek(inv.slot.day_of_week),
-        startTime: formatTime(inv.slot.start_time),
-        endTime: formatTime(inv.slot.end_time),
+        dayOfWeek: format(parseISO(inv.slot.start_at), 'EEE'),
+        startTime: format(parseISO(inv.slot.start_at), 'HH:mm'),
+        endTime: format(parseISO(inv.slot.end_at), 'HH:mm'),
         uniqueToken: inv.unique_token,
         registrationUrl: `${publicPagesUrl}/public/register/${inv.unique_token}`,
       }));
@@ -173,7 +167,7 @@ export function PdfExport() {
     setIsGeneratingPins(true);
     try {
       const baseUrl = window.location.origin;
-      const slotInfo = `${DAYS_OF_WEEK[selectedSlotData.day_of_week]} ${formatTime(selectedSlotData.start_time)} - ${formatTime(selectedSlotData.end_time)}`;
+      const slotInfo = `${format(parseISO(selectedSlotData.start_at), 'EEE d MMM yyyy, HH:mm')} - ${format(parseISO(selectedSlotData.end_at), 'HH:mm')}`;
 
       const doc = generatePinSheet({
         campaignName: selectedCampaignData.name,
@@ -183,7 +177,7 @@ export function PdfExport() {
         checkoutUrl: `${baseUrl}/public/checkout?slot=${selectedSlot}`,
       });
 
-      doc.save(`pin-sheet-${selectedCampaignData.name}-${DAYS_OF_WEEK[selectedSlotData.day_of_week]}.pdf`);
+      doc.save(`pin-sheet-${selectedCampaignData.name}-${format(parseISO(selectedSlotData.start_at), 'yyyy-MM-dd')}.pdf`);
     } catch (error) {
       console.error('Error generating PIN sheet:', error);
     } finally {
@@ -245,7 +239,7 @@ export function PdfExport() {
                 <SelectContent>
                   {slots.map((slot) => (
                     <SelectItem key={slot.id} value={slot.id}>
-                      {DAYS_OF_WEEK[slot.day_of_week]} {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
+                      {format(parseISO(slot.start_at), 'EEE d MMM, HH:mm')} - {format(parseISO(slot.end_at), 'HH:mm')}
                     </SelectItem>
                   ))}
                 </SelectContent>

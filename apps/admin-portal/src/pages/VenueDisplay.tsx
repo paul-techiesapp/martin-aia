@@ -2,34 +2,31 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams } from '@tanstack/react-router';
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '../lib/supabase';
+import { format, parseISO } from 'date-fns';
 
 type SlotPhase = "waiting" | "checkin" | "in-progress" | "checkout" | "ended";
 
 interface SlotData {
   id: string;
-  day_of_week: number;
-  start_time: string;
-  end_time: string;
+  start_at: string;
+  end_at: string;
   checkin_window_minutes: number;
   checkout_window_minutes: number;
   campaign: { name: string; venue: string };
 }
 
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const REFRESH_INTERVAL = 60;
 
 function getPhase(slot: SlotData): SlotPhase {
   const now = new Date();
-  if (now.getDay() !== slot.day_of_week) return "waiting";
-  const [sH, sM] = slot.start_time.split(":").map(Number);
-  const [eH, eM] = slot.end_time.split(":").map(Number);
-  const mins = now.getHours() * 60 + now.getMinutes();
-  const start = sH * 60 + sM;
-  const end = eH * 60 + eM;
-  if (mins < start - slot.checkin_window_minutes) return "waiting";
-  if (mins < start) return "checkin";
-  if (mins < end) return "in-progress";
-  if (mins < end + slot.checkout_window_minutes) return "checkout";
+  const start = new Date(slot.start_at);
+  const end = new Date(slot.end_at);
+  const checkinOpen = new Date(start.getTime() - slot.checkin_window_minutes * 60000);
+  const checkoutClose = new Date(end.getTime() + slot.checkout_window_minutes * 60000);
+  if (now < checkinOpen) return "waiting";
+  if (now < start) return "checkin";
+  if (now < end) return "in-progress";
+  if (now < checkoutClose) return "checkout";
   return "ended";
 }
 
@@ -45,7 +42,7 @@ export function VenueDisplay() {
     if (!slotId) return;
     supabase
       .from('slots')
-      .select('id, day_of_week, start_time, end_time, checkin_window_minutes, checkout_window_minutes, campaign:campaigns(name, venue)')
+      .select('id, start_at, end_at, checkin_window_minutes, checkout_window_minutes, campaign:campaigns(name, venue)')
       .eq('id', slotId)
       .single()
       .then(({ data, error }) => {
@@ -85,7 +82,7 @@ export function VenueDisplay() {
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-8 text-center">
       <div className="text-xs uppercase tracking-[3px] font-semibold" style={{ color: isActive ? color : '#64748b' }}>{labels[phase]}</div>
       <h1 className="text-2xl font-bold text-white mt-3">{slot.campaign.name}</h1>
-      <p className="text-sm text-slate-500 mt-1">{slot.campaign.venue} &bull; {DAYS[slot.day_of_week]} {slot.start_time.slice(0, 5)} – {slot.end_time.slice(0, 5)}</p>
+      <p className="text-sm text-slate-500 mt-1">{slot.campaign.venue} &bull; {format(parseISO(slot.start_at), 'd MMM yyyy, HH:mm')} – {format(parseISO(slot.end_at), 'HH:mm')}</p>
       {isActive && qrUrl ? (
         <>
           <div className="mt-8 bg-white p-6 rounded-2xl"><QRCodeSVG value={qrUrl} size={280} /></div>

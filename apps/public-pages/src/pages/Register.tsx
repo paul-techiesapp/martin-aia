@@ -26,8 +26,7 @@ import { Calendar, MapPin, Clock, CheckCircle, UserPlus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { InvitationStatus } from '@agent-system/shared-types';
 import { TERMS_AND_CONDITIONS } from '../constants/terms';
-
-const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+import { format, parseISO } from 'date-fns';
 
 const registrationSchema = z.object({
   invitee_name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -46,9 +45,8 @@ interface InvitationDetails {
   id: string;
   status: string;
   slot: {
-    day_of_week: number;
-    start_time: string;
-    end_time: string;
+    start_at: string;
+    end_at: string;
     campaign: {
       name: string;
       venue: string;
@@ -94,9 +92,8 @@ export function Register() {
         id,
         status,
         slot:slots(
-          day_of_week,
-          start_time,
-          end_time,
+          start_at,
+          end_at,
           campaign:campaigns(
             name,
             venue,
@@ -234,8 +231,8 @@ export function Register() {
             <div className="bg-slate-50 p-4 rounded-xl text-left border border-slate-100">
               <p className="font-semibold text-slate-900">{invitation?.slot.campaign.name}</p>
               <p className="text-sm text-slate-500 mt-1">
-                {DAYS_OF_WEEK[invitation?.slot.day_of_week ?? 0]},{' '}
-                {invitation?.slot.start_time.slice(0, 5)} - {invitation?.slot.end_time.slice(0, 5)}
+                {invitation?.slot.start_at ? format(parseISO(invitation.slot.start_at), 'EEE d MMM yyyy, HH:mm') : ''} -{' '}
+                {invitation?.slot.end_at ? format(parseISO(invitation.slot.end_at), 'HH:mm') : ''}
               </p>
               <p className="text-sm text-slate-500">{invitation?.slot.campaign.venue}</p>
             </div>
@@ -270,8 +267,8 @@ export function Register() {
             <div className="flex items-center gap-2 text-sm text-slate-500 ml-10">
               <Clock className="h-4 w-4" />
               <span>
-                {DAYS_OF_WEEK[invitation?.slot.day_of_week ?? 0]},{' '}
-                {invitation?.slot.start_time.slice(0, 5)} - {invitation?.slot.end_time.slice(0, 5)}
+                {invitation?.slot.start_at ? format(parseISO(invitation.slot.start_at), 'EEE d MMM yyyy, HH:mm') : ''} -{' '}
+                {invitation?.slot.end_at ? format(parseISO(invitation.slot.end_at), 'HH:mm') : ''}
               </span>
             </div>
             <div className="flex items-center gap-2 text-sm text-slate-500 ml-10">

@@ -18,7 +18,6 @@ import { supabase } from '../lib/supabase';
 import {
   generateBulkInvitationCards,
   generatePinSheet,
-  formatTime,
 } from '../utils/pdfGenerator';
 import { format, parseISO } from 'date-fns';
 

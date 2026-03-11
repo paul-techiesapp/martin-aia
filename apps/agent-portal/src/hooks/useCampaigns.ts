@@ -28,8 +28,7 @@ export function useCampaignSlots(campaignId: string) {
         .select('*')
         .eq('campaign_id', campaignId)
         .eq('is_active', true)
-        .order('day_of_week', { ascending: true })
-        .order('start_time', { ascending: true });
+        .order('start_at', { ascending: true });
 
       if (error) throw error;
       return data as Slot[];

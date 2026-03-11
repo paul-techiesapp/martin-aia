@@ -10,8 +10,7 @@ export function useSlots(campaignId: string) {
         .from('slots')
         .select('*')
         .eq('campaign_id', campaignId)
-        .order('day_of_week', { ascending: true })
-        .order('start_time', { ascending: true });
+        .order('start_at', { ascending: true });
 
       if (error) throw error;
       return data as Slot[];

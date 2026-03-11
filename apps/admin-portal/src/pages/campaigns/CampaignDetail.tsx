@@ -30,16 +30,17 @@ import {
   getStatusVariant,
   Skeleton,
   useToast,
+  DatePicker,
+  Checkbox,
 } from '@agent-system/shared-ui';
-import { ArrowLeft, Plus, Trash2, Power, PowerOff, Mail } from 'lucide-react';
+import { format, parseISO, eachDayOfInterval, getDay } from 'date-fns';
+import { ArrowLeft, Plus, Trash2, Power, PowerOff, Mail, CalendarPlus } from 'lucide-react';
 import { useCampaign, useUpdateCampaignStatus } from '../../hooks/useCampaigns';
 import { useEmailReminders } from '../../hooks/useEmailReminders';
 import { useSlots, useCreateSlot, useDeleteSlot, useToggleSlotActive } from '../../hooks/useSlots';
 import { CampaignStatus } from '@agent-system/shared-types';
 import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
-
-const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export function CampaignDetail() {
   const navigate = useNavigate();
@@ -57,32 +58,72 @@ export function CampaignDetail() {
 
   const [isAddSlotOpen, setIsAddSlotOpen] = useState(false);
   const [newSlot, setNewSlot] = useState({
-    day_of_week: 1,
+    date: undefined as Date | undefined,
     start_time: '10:00',
     end_time: '13:00',
     checkin_window_minutes: 30,
     checkout_window_minutes: 30,
   });
 
+  const [isBulkMode, setIsBulkMode] = useState(false);
+  const [bulkDayOfWeek, setBulkDayOfWeek] = useState(1);
+  const [bulkStartTime, setBulkStartTime] = useState('10:00');
+  const [bulkEndTime, setBulkEndTime] = useState('13:00');
+  const [bulkCheckinWindow, setBulkCheckinWindow] = useState(30);
+  const [bulkCheckoutWindow, setBulkCheckoutWindow] = useState(30);
+  const [bulkPreview, setBulkPreview] = useState<Date[]>([]);
+  const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
+
+  const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
   const handleAddSlot = async () => {
-    if (!campaignId) return;
+    if (!campaignId || !newSlot.date) return;
+    const dateStr = format(newSlot.date, 'yyyy-MM-dd');
     await createSlot.mutateAsync({
       campaign_id: campaignId,
-      day_of_week: newSlot.day_of_week,
-      start_time: `${newSlot.start_time}:00`,
-      end_time: `${newSlot.end_time}:00`,
+      start_at: `${dateStr}T${newSlot.start_time}:00`,
+      end_at: `${dateStr}T${newSlot.end_time}:00`,
       checkin_window_minutes: newSlot.checkin_window_minutes,
       checkout_window_minutes: newSlot.checkout_window_minutes,
       is_active: true,
     });
     setIsAddSlotOpen(false);
     setNewSlot({
-      day_of_week: 1,
+      date: undefined,
       start_time: '10:00',
       end_time: '13:00',
       checkin_window_minutes: 30,
       checkout_window_minutes: 30,
     });
+  };
+
+  const handleGenerateBulkPreview = () => {
+    if (!campaign) return;
+    const start = parseISO(campaign.start_date);
+    const end = parseISO(campaign.end_date);
+    const allDays = eachDayOfInterval({ start, end });
+    const matching = allDays.filter((d) => getDay(d) === bulkDayOfWeek);
+    setBulkPreview(matching);
+    setBulkSelected(new Set(matching.map((d) => format(d, 'yyyy-MM-dd'))));
+  };
+
+  const handleBulkCreate = async () => {
+    if (!campaignId) return;
+    const selectedDates = Array.from(bulkSelected);
+    for (const dateStr of selectedDates) {
+      await createSlot.mutateAsync({
+        campaign_id: campaignId,
+        start_at: `${dateStr}T${bulkStartTime}:00`,
+        end_at: `${dateStr}T${bulkEndTime}:00`,
+        checkin_window_minutes: bulkCheckinWindow,
+        checkout_window_minutes: bulkCheckoutWindow,
+        is_active: true,
+      });
+    }
+    setIsAddSlotOpen(false);
+    setBulkPreview([]);
+    setBulkSelected(new Set());
+    setIsBulkMode(false);
   };
 
   const handleDeleteSlot = (slotId: string) => {
@@ -96,7 +137,7 @@ export function CampaignDetail() {
     updateStatus.mutate({ id: campaignId, status: newStatus });
   };
 
-  const handleOpenReminderDialog = async (slot: { id: string; day_of_week: number; start_time: string }) => {
+  const handleOpenReminderDialog = async (slot: { id: string; start_at: string }) => {
     const { count } = await supabase
       .from('invitations')
       .select('id', { count: 'exact', head: true })
@@ -106,7 +147,7 @@ export function CampaignDetail() {
 
     setReminderSlot({
       id: slot.id,
-      label: `${DAYS_OF_WEEK[slot.day_of_week]} ${slot.start_time.slice(0, 5)}`,
+      label: format(parseISO(slot.start_at), 'd MMM yyyy, HH:mm'),
       count: count ?? 0,
     });
   };
@@ -251,76 +292,180 @@ export function CampaignDetail() {
                   Add Slot
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-lg">
                 <DialogHeader>
                   <DialogTitle>Add New Slot</DialogTitle>
                   <DialogDescription>
                     Create a new time slot for this event
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label>Day of Week</Label>
-                    <Select
-                      value={newSlot.day_of_week.toString()}
-                      onValueChange={(v) => setNewSlot({ ...newSlot, day_of_week: parseInt(v) })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {DAYS_OF_WEEK.map((day, index) => (
-                          <SelectItem key={index} value={index.toString()}>
-                            {day}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Start Time</Label>
-                      <Input
-                        type="time"
-                        value={newSlot.start_time}
-                        onChange={(e) => setNewSlot({ ...newSlot, start_time: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label>End Time</Label>
-                      <Input
-                        type="time"
-                        value={newSlot.end_time}
-                        onChange={(e) => setNewSlot({ ...newSlot, end_time: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Check-in Window (mins)</Label>
-                      <Input
-                        type="number"
-                        value={newSlot.checkin_window_minutes}
-                        onChange={(e) => setNewSlot({ ...newSlot, checkin_window_minutes: parseInt(e.target.value) })}
-                      />
-                    </div>
-                    <div>
-                      <Label>Check-out Window (mins)</Label>
-                      <Input
-                        type="number"
-                        value={newSlot.checkout_window_minutes}
-                        onChange={(e) => setNewSlot({ ...newSlot, checkout_window_minutes: parseInt(e.target.value) })}
-                      />
-                    </div>
-                  </div>
+
+                {/* Mode toggle */}
+                <div className="flex gap-2 border-b pb-3">
+                  <Button
+                    variant={isBulkMode ? 'ghost' : 'default'}
+                    size="sm"
+                    onClick={() => { setIsBulkMode(false); setBulkPreview([]); }}
+                  >
+                    Single Slot
+                  </Button>
+                  <Button
+                    variant={isBulkMode ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setIsBulkMode(true)}
+                  >
+                    <CalendarPlus className="h-4 w-4 mr-1" />
+                    Bulk Generate
+                  </Button>
                 </div>
+
+                {!isBulkMode ? (
+                  /* Single slot mode */
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Date</Label>
+                      <DatePicker
+                        date={newSlot.date}
+                        onDateChange={(d) => setNewSlot({ ...newSlot, date: d })}
+                        placeholder="Select date"
+                        disabled={(date) => {
+                          if (!campaign) return true;
+                          const start = parseISO(campaign.start_date);
+                          const end = parseISO(campaign.end_date);
+                          return date < start || date > end;
+                        }}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Start Time</Label>
+                        <Input
+                          type="time"
+                          value={newSlot.start_time}
+                          onChange={(e) => setNewSlot({ ...newSlot, start_time: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label>End Time</Label>
+                        <Input
+                          type="time"
+                          value={newSlot.end_time}
+                          onChange={(e) => setNewSlot({ ...newSlot, end_time: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Check-in Window (mins)</Label>
+                        <Input
+                          type="number"
+                          value={newSlot.checkin_window_minutes}
+                          onChange={(e) => setNewSlot({ ...newSlot, checkin_window_minutes: parseInt(e.target.value) })}
+                        />
+                      </div>
+                      <div>
+                        <Label>Check-out Window (mins)</Label>
+                        <Input
+                          type="number"
+                          value={newSlot.checkout_window_minutes}
+                          onChange={(e) => setNewSlot({ ...newSlot, checkout_window_minutes: parseInt(e.target.value) })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* Bulk generation mode */
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Day of Week</Label>
+                      <Select
+                        value={bulkDayOfWeek.toString()}
+                        onValueChange={(v) => setBulkDayOfWeek(parseInt(v))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DAYS_OF_WEEK.map((day, index) => (
+                            <SelectItem key={index} value={index.toString()}>
+                              {day}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Start Time</Label>
+                        <Input type="time" value={bulkStartTime} onChange={(e) => setBulkStartTime(e.target.value)} />
+                      </div>
+                      <div>
+                        <Label>End Time</Label>
+                        <Input type="time" value={bulkEndTime} onChange={(e) => setBulkEndTime(e.target.value)} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Check-in Window (mins)</Label>
+                        <Input type="number" value={bulkCheckinWindow} onChange={(e) => setBulkCheckinWindow(parseInt(e.target.value))} />
+                      </div>
+                      <div>
+                        <Label>Check-out Window (mins)</Label>
+                        <Input type="number" value={bulkCheckoutWindow} onChange={(e) => setBulkCheckoutWindow(parseInt(e.target.value))} />
+                      </div>
+                    </div>
+
+                    {bulkPreview.length === 0 ? (
+                      <Button onClick={handleGenerateBulkPreview} className="w-full" variant="outline">
+                        Preview Dates
+                      </Button>
+                    ) : (
+                      <div className="space-y-2">
+                        <Label>Select dates to create ({bulkSelected.size} of {bulkPreview.length})</Label>
+                        <div className="max-h-48 overflow-y-auto border rounded-md p-2 space-y-1">
+                          {bulkPreview.map((date) => {
+                            const key = format(date, 'yyyy-MM-dd');
+                            return (
+                              <label key={key} className="flex items-center gap-2 py-1 px-2 hover:bg-slate-50 rounded text-sm">
+                                <Checkbox
+                                  checked={bulkSelected.has(key)}
+                                  onCheckedChange={(checked) => {
+                                    const next = new Set(bulkSelected);
+                                    if (checked) next.add(key); else next.delete(key);
+                                    setBulkSelected(next);
+                                  }}
+                                />
+                                {format(date, 'EEE, d MMM yyyy')}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsAddSlotOpen(false)}>
+                  <Button variant="outline" onClick={() => { setIsAddSlotOpen(false); setIsBulkMode(false); setBulkPreview([]); }}>
                     Cancel
                   </Button>
-                  <Button onClick={handleAddSlot} disabled={createSlot.isPending} className="bg-slate-900 hover:bg-slate-800">
-                    {createSlot.isPending ? 'Creating...' : 'Create Slot'}
-                  </Button>
+                  {!isBulkMode ? (
+                    <Button
+                      onClick={handleAddSlot}
+                      disabled={createSlot.isPending || !newSlot.date}
+                      className="bg-slate-900 hover:bg-slate-800"
+                    >
+                      {createSlot.isPending ? 'Creating...' : 'Create Slot'}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleBulkCreate}
+                      disabled={createSlot.isPending || bulkSelected.size === 0}
+                      className="bg-slate-900 hover:bg-slate-800"
+                    >
+                      {createSlot.isPending ? 'Creating...' : `Create ${bulkSelected.size} Slots`}
+                    </Button>
+                  )}
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -339,7 +484,7 @@ export function CampaignDetail() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead>Day</TableHead>
+                  <TableHead>Date</TableHead>
                   <TableHead>Time</TableHead>
                   <TableHead>Check-in Window</TableHead>
                   <TableHead>Check-out Window</TableHead>
@@ -351,10 +496,10 @@ export function CampaignDetail() {
                 {slots?.map((slot) => (
                   <TableRow key={slot.id} className="hover:bg-slate-50/50 transition-colors">
                     <TableCell className="font-medium">
-                      {DAYS_OF_WEEK[slot.day_of_week]}
+                      {format(parseISO(slot.start_at), 'd MMM yyyy')}
                     </TableCell>
                     <TableCell className="text-slate-600">
-                      {slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}
+                      {format(parseISO(slot.start_at), 'HH:mm')} - {format(parseISO(slot.end_at), 'HH:mm')}
                     </TableCell>
                     <TableCell className="text-slate-600">{slot.checkin_window_minutes} mins</TableCell>
                     <TableCell className="text-slate-600">{slot.checkout_window_minutes} mins</TableCell>

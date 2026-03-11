@@ -23,9 +23,8 @@ export interface Campaign {
 export interface Slot {
   id: string;
   campaign_id: string;
-  day_of_week: number; // 0-6 (Sunday-Saturday)
-  start_time: string; // HH:MM:SS
-  end_time: string; // HH:MM:SS
+  start_at: string; // ISO 8601 datetime (TIMESTAMPTZ)
+  end_at: string; // ISO 8601 datetime (TIMESTAMPTZ)
   checkin_window_minutes: number;
   checkout_window_minutes: number;
   is_active: boolean;

@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useSearch } from '@tanstack/react-router';
 import { QRCodeSVG } from 'qrcode.react';
+import { format, parseISO } from 'date-fns';
 import { supabase } from '../lib/supabase';
 import { getCurrentSlotPhase, type SlotPhase } from '../lib/slot-time';
 
 interface SlotData {
   id: string;
-  day_of_week: number;
-  start_time: string;
-  end_time: string;
+  start_at: string;
+  end_at: string;
   checkin_window_minutes: number;
   checkout_window_minutes: number;
   campaign: {
@@ -17,7 +17,6 @@ interface SlotData {
   };
 }
 
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const REFRESH_INTERVAL = 60;
 
 export function Display() {
@@ -64,7 +63,7 @@ export function Display() {
       // Fetch slot with campaign
       const { data: slotData, error: slotError } = await supabase
         .from('slots')
-        .select('id, day_of_week, start_time, end_time, checkin_window_minutes, checkout_window_minutes, campaign:campaigns(name, venue)')
+        .select('id, start_at, end_at, checkin_window_minutes, checkout_window_minutes, campaign:campaigns(name, venue)')
         .eq('id', slotId)
         .single();
 
@@ -188,7 +187,7 @@ export function Display() {
 
       <h1 className="text-2xl font-bold text-white mt-3">{slot?.campaign.name}</h1>
       <p className="text-sm text-slate-500 mt-1">
-        {slot?.campaign.venue} &bull; {DAYS[slot?.day_of_week ?? 0]} {slot?.start_time.slice(0, 5)} – {slot?.end_time.slice(0, 5)}
+        {slot?.campaign.venue} &bull; {slot ? format(parseISO(slot.start_at), 'd MMM yyyy, HH:mm') : ''} – {slot ? format(parseISO(slot.end_at), 'HH:mm') : ''}
       </p>
 
       {isActive && qrUrl ? (

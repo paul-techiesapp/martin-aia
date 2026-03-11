@@ -337,13 +337,14 @@ The migration must be carefully ordered due to FK dependencies:
 
 1. Create new enum `registration_status` with values `('registered', 'attended', 'completed', 'expired')`
 2. Create `agent_links` table with partial unique indexes
-3. Create `otp_codes` table
+3. Create `otp_codes` table with composite index on `(registration_id, code)`
 4. Modify `attendance`: drop `pin_code_id` column and its FK/NOT NULL constraint
-5. Modify `attendance`: rename `invitation_id` → `registration_id`, update FK, unique constraint, and index
-6. Rename `invitations` → `registrations`: drop `unique_token`, `claimed_by_partner_id` columns; add `agent_link_id` column; switch status column to new enum; replace global NRIC/phone unique indexes with per-slot unique indexes
+5. Rename `invitations` → `registrations` (must happen BEFORE attendance FK update): drop `unique_token`, `claimed_by_partner_id` columns; add `agent_link_id` column; switch status column to new enum; replace global NRIC/phone unique indexes with per-slot unique indexes
+6. Modify `attendance`: rename `invitation_id` → `registration_id`, update FK to reference `registrations` (now exists), rename unique constraint and index to `idx_attendance_registration`
 7. Drop `pin_codes` table (safe now — `attendance` no longer references it)
 8. Rename `campaigns.invitation_type` → `campaigns.registration_type`
 9. Drop old `invitation_status` enum
-10. Rewrite all RLS policies for `registrations` and `attendance`
-11. Rewrite `deactivate_partner_and_release` RPC function
-12. Create `register_attendee` RPC function
+10. Update `whatsapp_send_log`: add `phone` column, update index to support rate limiting by phone (checkout flow may identify by phone only; the lookup resolves the registration record to get both NRIC and phone before logging)
+11. Rewrite all RLS policies for `registrations` and `attendance`
+12. Rewrite `deactivate_partner_and_release` RPC function
+13. Create `register_attendee` RPC function

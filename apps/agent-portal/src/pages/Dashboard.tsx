@@ -9,23 +9,27 @@ import {
   StatCardGrid,
   Skeleton,
 } from '@agent-system/shared-ui';
-import { Calendar, Send, TrendingUp, Award, ArrowRight } from 'lucide-react';
+import { Calendar, Send, TrendingUp, Award, ArrowRight, Users, CheckSquare, UserCheck } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useMyInvitations } from '../hooks/useInvitations';
 import { useActiveCampaigns } from '../hooks/useCampaigns';
+import { useMyPartners } from '../hooks/usePartners';
+import { useAvailableInvitations, useMyClaimedInvitations } from '../hooks/usePartnerInvitations';
 import { InvitationStatus } from '@agent-system/shared-types';
 
-export function Dashboard() {
+function AgentDashboard() {
   const { agent } = useAuth();
   const { data: invitations, isLoading: invitationsLoading } = useMyInvitations(agent?.id);
   const { data: campaigns, isLoading: campaignsLoading } = useActiveCampaigns();
+  const { data: partners, isLoading: partnersLoading } = useMyPartners(agent?.id);
 
   const pendingInvitations = invitations?.filter(i => i.status === InvitationStatus.PENDING).length ?? 0;
   const registeredInvitations = invitations?.filter(i => i.status === InvitationStatus.REGISTERED).length ?? 0;
   const completedInvitations = invitations?.filter(i => i.status === InvitationStatus.COMPLETED).length ?? 0;
   const activeCampaigns = campaigns?.length ?? 0;
+  const activePartners = partners?.filter(p => p.status === 'active').length ?? 0;
 
-  const isLoading = invitationsLoading || campaignsLoading;
+  const isLoading = invitationsLoading || campaignsLoading || partnersLoading;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -54,11 +58,11 @@ export function Dashboard() {
           loading={isLoading}
         />
         <StatCard
-          title="Registered"
-          value={registeredInvitations}
-          icon={TrendingUp}
+          title="Active Partners"
+          value={activePartners}
+          icon={Users}
           iconColor="violet"
-          description="Ready for event"
+          description="Distributing invitations"
           loading={isLoading}
         />
         <StatCard
@@ -126,10 +130,10 @@ export function Dashboard() {
               <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-1 transition-all" />
             </Link>
             <Link
-              to="/rewards"
+              to="/partners"
               className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors group"
             >
-              <span className="text-sm font-medium text-slate-700">Check Reward Status</span>
+              <span className="text-sm font-medium text-slate-700">Manage Partners</span>
               <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-1 transition-all" />
             </Link>
           </CardContent>
@@ -137,4 +141,90 @@ export function Dashboard() {
       </div>
     </div>
   );
+}
+
+function PartnerDashboard() {
+  const { partner } = useAuth();
+  const { data: available, isLoading: availableLoading } = useAvailableInvitations(partner?.agent_id);
+  const { data: claimed, isLoading: claimedLoading } = useMyClaimedInvitations(partner?.id);
+
+  const pendingClaimed = claimed?.filter(i => i.status === InvitationStatus.PENDING).length ?? 0;
+  const registeredClaimed = claimed?.filter(i => i.status === InvitationStatus.REGISTERED).length ?? 0;
+  const completedClaimed = claimed?.filter(i => i.status === InvitationStatus.COMPLETED).length ?? 0;
+
+  const isLoading = availableLoading || claimedLoading;
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <div>
+        <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
+        <p className="text-slate-500 mt-1">
+          Welcome back, {partner?.name}! You're a partner under {partner?.agent?.name ?? 'your unit'}.
+        </p>
+      </div>
+
+      <StatCardGrid columns={4}>
+        <StatCard
+          title="Available"
+          value={available?.length ?? 0}
+          icon={Send}
+          iconColor="amber"
+          description="Invitations to claim"
+          loading={isLoading}
+        />
+        <StatCard
+          title="Pending"
+          value={pendingClaimed}
+          icon={CheckSquare}
+          iconColor="sky"
+          description="Awaiting registration"
+          loading={isLoading}
+        />
+        <StatCard
+          title="Registered"
+          value={registeredClaimed}
+          icon={UserCheck}
+          iconColor="violet"
+          description="Ready for event"
+          loading={isLoading}
+        />
+        <StatCard
+          title="Completed"
+          value={completedClaimed}
+          icon={Award}
+          iconColor="emerald"
+          description="Full attendance"
+          loading={isLoading}
+        />
+      </StatCardGrid>
+
+      <Card className="glass-card">
+        <CardHeader>
+          <CardTitle className="text-lg">Quick Actions</CardTitle>
+          <CardDescription>Common tasks</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Link
+            to="/available-invitations"
+            className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors group"
+          >
+            <span className="text-sm font-medium text-slate-700">Browse Available Invitations</span>
+            <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-1 transition-all" />
+          </Link>
+          <Link
+            to="/my-invitations"
+            className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors group"
+          >
+            <span className="text-sm font-medium text-slate-700">View My Claimed Invitations</span>
+            <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-1 transition-all" />
+          </Link>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+export function Dashboard() {
+  const { role } = useAuth();
+  return role === 'partner' ? <PartnerDashboard /> : <AgentDashboard />;
 }

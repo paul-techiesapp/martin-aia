@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Button,
   Table,
@@ -42,6 +42,7 @@ import { useSlots } from '../hooks/useSlots';
 import { usePinCodes, useGeneratePinCodes, useDeletePinCodes } from '../hooks/usePinCodes';
 import { QRCodeSVG } from 'qrcode.react';
 import { CampaignStatus } from '@agent-system/shared-types';
+import { supabase } from '../lib/supabase';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -52,6 +53,7 @@ export function PinCodes() {
   const [isGenerateOpen, setIsGenerateOpen] = useState(false);
   const [qrMode, setQrMode] = useState<'checkin' | 'checkout' | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [displayTokens, setDisplayTokens] = useState<Array<{ id: string; token: string; expires_at: string }>>([]);
 
   const { data: campaigns } = useCampaigns();
   const { data: slots } = useSlots(selectedCampaignId);
@@ -82,6 +84,28 @@ export function PinCodes() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  useEffect(() => {
+    if (!selectedSlotId) { setDisplayTokens([]); return; }
+    supabase
+      .from('display_tokens')
+      .select('id, token, expires_at')
+      .eq('slot_id', selectedSlotId)
+      .then(({ data }) => setDisplayTokens(data || []));
+  }, [selectedSlotId]);
+
+  const handleGenerateDisplayToken = async () => {
+    if (!selectedSlotId || !selectedCampaign) return;
+    const { data } = await supabase
+      .from('display_tokens')
+      .insert({
+        slot_id: selectedSlotId,
+        expires_at: selectedCampaign.end_date,
+      })
+      .select()
+      .single();
+    if (data) setDisplayTokens((prev) => [...prev, data]);
   };
 
   const baseUrl = window.location.origin;
@@ -205,6 +229,49 @@ export function PinCodes() {
           </Card>
         )}
       </div>
+
+      {selectedSlotId && (
+        <Card className="glass-card">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg">Venue Display Links</CardTitle>
+                <CardDescription>Share these links with venue devices for rotating QR codes</CardDescription>
+              </div>
+              <Button onClick={handleGenerateDisplayToken}>
+                <Plus className="h-4 w-4 mr-2" />
+                Generate Link
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {displayTokens.length === 0 ? (
+              <p className="text-muted-foreground">No display links generated yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {displayTokens.map((dt) => {
+                  const publicUrl = import.meta.env.VITE_PUBLIC_PAGES_URL || window.location.origin;
+                  const url = `${publicUrl}/public/display/${selectedSlotId}?token=${dt.token}`;
+                  return (
+                    <div key={dt.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                      <code className="text-xs text-slate-600 truncate max-w-[300px]">{url}</code>
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => navigator.clipboard.writeText(url)}>Copy</Button>
+                        <Button size="sm" variant="ghost" onClick={async () => {
+                          await supabase.from('display_tokens').delete().eq('id', dt.id);
+                          setDisplayTokens((prev) => prev.filter((t) => t.id !== dt.id));
+                        }}>
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {selectedSlotId && (
         <Card className="glass-card">

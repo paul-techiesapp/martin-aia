@@ -1,20 +1,33 @@
 import { useState } from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
 import { cn, Button, Sheet, SheetContent, SheetTrigger } from '@agent-system/shared-ui';
-import { Home, Calendar, Send, Award, LogOut, Menu, Users } from 'lucide-react';
+import { Home, Calendar, Send, Award, LogOut, Menu, Users, CheckSquare } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
-const navigation = [
+const agentNavigation = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'Events', href: '/campaigns', icon: Calendar },
   { name: 'My Invitations', href: '/invitations', icon: Send },
   { name: 'Rewards', href: '/rewards', icon: Award },
+  { name: 'Partners', href: '/partners', icon: Users },
+];
+
+const partnerNavigation = [
+  { name: 'Dashboard', href: '/', icon: Home },
+  { name: 'Available Invitations', href: '/available-invitations', icon: Send },
+  { name: 'My Claimed Invitations', href: '/my-invitations', icon: CheckSquare },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const { agent, signOut } = useAuth();
+  const { agent, partner, role, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const navigation = role === 'partner' ? partnerNavigation : agentNavigation;
+  const displayName = role === 'partner' ? partner?.name : agent?.name;
+  const subtitle = role === 'partner'
+    ? `Partner · ${partner?.agent?.name ?? 'Unknown Unit'}`
+    : agent?.tier?.name;
 
   const SidebarContent = () => (
     <>
@@ -22,7 +35,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="h-9 w-9 rounded-xl bg-sky-600 flex items-center justify-center shadow-lg">
           <Users className="h-5 w-5 text-white" />
         </div>
-        <span className="font-semibold text-lg text-white">Unit Portal</span>
+        <span className="font-semibold text-lg text-white">
+          {role === 'partner' ? 'Partner Portal' : 'Unit Portal'}
+        </span>
       </div>
       <nav className="p-4 space-y-1">
         {navigation.map((item) => {
@@ -51,24 +66,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Desktop Sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:w-64 lg:flex lg:flex-col bg-slate-900">
         <SidebarContent />
       </div>
 
-      {/* Mobile Sidebar */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-64 p-0 bg-slate-900 border-r-0">
           <SidebarContent />
         </SheetContent>
       </Sheet>
 
-      {/* Main content */}
       <div className="lg:pl-64">
         <header className="sticky top-0 z-40 h-16 bg-white/80 backdrop-blur-md border-b border-slate-200/60 shadow-sm">
           <div className="flex h-16 items-center justify-between px-4 lg:px-6">
             <div className="flex items-center gap-4">
-              {/* Mobile menu trigger */}
               <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="sm" className="lg:hidden h-9 w-9 p-0">
@@ -76,10 +87,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   </Button>
                 </SheetTrigger>
               </Sheet>
-              {agent && (
+              {displayName && (
                 <p className="text-sm text-slate-500">
-                  Welcome, <span className="font-medium text-slate-900">{agent.name}</span>
-                  {' '}• <span className="text-sky-600 font-medium">{agent.tier?.name}</span>
+                  Welcome, <span className="font-medium text-slate-900">{displayName}</span>
+                  {subtitle && (
+                    <>{' '}· <span className="text-sky-600 font-medium">{subtitle}</span></>
+                  )}
                 </p>
               )}
             </div>

@@ -36,7 +36,11 @@ agent_links
 ├── created_at      TIMESTAMPTZ
 └── updated_at      TIMESTAMPTZ
 
-UNIQUE(agent_id, slot_id, partner_id)  — one link per agent/partner per slot
+-- PostgreSQL NULL != NULL in UNIQUE, so use partial unique indexes:
+CREATE UNIQUE INDEX agent_links_unique_agent_slot
+  ON agent_links(agent_id, slot_id) WHERE partner_id IS NULL;
+CREATE UNIQUE INDEX agent_links_unique_partner_slot
+  ON agent_links(agent_id, slot_id, partner_id) WHERE partner_id IS NOT NULL;
 ```
 
 - `partner_id` is NULL → link belongs to the agent directly
@@ -71,16 +75,70 @@ Changes from current `invitations`:
 - **Denormalized**: `agent_id`, `slot_id` from agent_link for query performance
 - **Uniqueness**: `invitee_nric` and `invitee_phone` unique per slot (not globally)
 
+### New table: `otp_codes`
+
+```sql
+otp_codes
+├── id              UUID (PK)
+├── registration_id UUID (FK → registrations) — which registrant
+├── slot_id         UUID (FK → slots) — which slot (for lookup)
+├── phone           TEXT — phone number OTP was sent to
+├── code            TEXT — 6-digit OTP
+├── expires_at      TIMESTAMPTZ — created_at + 5 minutes
+├── is_used         BOOLEAN (default false)
+├── created_at      TIMESTAMPTZ
+└── updated_at      TIMESTAMPTZ
+```
+
+Used for WhatsApp OTP verification at check-out. TTL enforced by checking `expires_at` at verification time. Stale records can be cleaned up periodically. Rate limiting uses existing `whatsapp_send_log` table.
+
 ### Removed table: `pin_codes`
 
 Entirely dropped. WhatsApp OTP replaces PIN-based verification.
 
+### Modified table: `attendance`
+
+```sql
+attendance
+├── id                UUID (PK)
+├── registration_id   UUID UNIQUE (FK → registrations) — was invitation_id
+├── checkin_time      TIMESTAMPTZ
+├── checkout_time     TIMESTAMPTZ (nullable)
+├── is_full_attendance BOOLEAN
+├── created_at        TIMESTAMPTZ
+└── updated_at        TIMESTAMPTZ
+```
+
+Changes from current:
+- **Renamed**: `invitation_id` → `registration_id` (FK now references `registrations`)
+- **Removed**: `pin_code_id` column (PIN codes no longer exist)
+- Existing unique constraint and index updated to use `registration_id`
+
+### Enum type changes
+
+- **`invitation_status`** → **`registration_status`**: Create new enum with values `('registered', 'attended', 'completed', 'expired')`. Remove `'pending'` (records only exist after registration). Migrate column, drop old enum.
+- **`invitation_type`** on `campaigns` table: Rename to `registration_type` for consistency. Values stay the same.
+- **`capacity_type`**: No changes.
+
 ### Unchanged tables
 
-- `campaigns`, `slots`, `agents`, `tiers`, `partners` — no changes
-- `attendance` — stays the same, FK references `registrations` instead of `invitations`
-- `rewards` — no changes
+- `campaigns` — rename `invitation_type` column to `registration_type` (enum values unchanged)
+- `slots`, `agents`, `tiers`, `partners` — no changes
+- `rewards` — no schema changes. Reward creation is triggered by application logic at check-out (step 9 in check-out flow) when `is_full_attendance` is set to true. The agent_id for the reward is taken from the registration record.
 - `display_tokens` — stays (used for rotating QR)
+
+### NRIC/Phone uniqueness
+
+Current uniqueness is **global** (partial unique index across all invitations). New uniqueness is **per slot**:
+
+```sql
+CREATE UNIQUE INDEX registrations_unique_nric_per_slot
+  ON registrations(slot_id, invitee_nric) WHERE invitee_nric IS NOT NULL;
+CREATE UNIQUE INDEX registrations_unique_phone_per_slot
+  ON registrations(slot_id, invitee_phone) WHERE invitee_phone IS NOT NULL;
+```
+
+This allows the same person to register for different slots.
 
 ## Link Generation & Sharing Flow
 
@@ -116,6 +174,8 @@ Same base path as current, but `link_code` maps to an `agent_link` instead of a 
 - The limit is shared across the agent AND all their partners for a given slot
 - At registration time: `COUNT registrations WHERE agent_id = X AND slot_id = Y` must be < limit
 - **Enforced server-side** via database function (not just client-side)
+- Capacity check always uses the **agent's** tier, even when registering through a partner's link (partners don't have their own tier)
+- If an agent's tier changes mid-campaign, the **current** tier limit applies at registration time (no historical snapshotting)
 
 ### Link Lifecycle
 
@@ -240,8 +300,8 @@ NRIC and phone uniqueness is checked **per slot**. Same person can register for 
 - **`send-email-reminders`**: Query `registrations` instead of `invitations`, join through `agent_links` → `slots` → `campaigns`
 - **`generate-qr-token`**: No changes (works with slot_id only)
 - **`verify-qr-token`**: Change lookup from `invitations` to `registrations`
-- **`send-whatsapp-pin` → `send-whatsapp-otp`**: Repurpose for time-limited OTP at check-out (generate 6-digit OTP, store with 5 min TTL, send via WhatsApp, verify on submit)
-- **`deactivate-partner`**: Deactivate partner's `agent_links` (`is_active = false`) instead of releasing claimed invitations. Existing registrations remain valid.
+- **`send-whatsapp-pin` → `send-whatsapp-otp`**: Repurpose for time-limited OTP at check-out. Flow: generate 6-digit OTP → insert into `otp_codes` table (expires_at = NOW() + 5 min) → send via WhatsApp → log in `whatsapp_send_log` for rate limiting. New **`verify-otp`** edge function: look up `otp_codes` by registration_id + code, check `expires_at > NOW()` and `is_used = false`, mark as used.
+- **`deactivate-partner`**: Complete rewrite of `deactivate_partner_and_release` RPC. Instead of releasing claimed invitations, set `agent_links.is_active = false` for all partner's links. Existing registrations through those links remain valid.
 - **`create-partner`**: No changes needed
 
 ### New Database Function (RPC)
@@ -270,3 +330,20 @@ Database function (not edge function) for atomicity with `SELECT ... FOR UPDATE`
 - Agents: read own registrations (`agent_id = get_agent_id()`)
 - Partners: read registrations through their links (`agent_link_id` in own links)
 - Anon: insert via `register_attendee` RPC, update for attendance flow
+
+## Migration Order
+
+The migration must be carefully ordered due to FK dependencies:
+
+1. Create new enum `registration_status` with values `('registered', 'attended', 'completed', 'expired')`
+2. Create `agent_links` table with partial unique indexes
+3. Create `otp_codes` table
+4. Modify `attendance`: drop `pin_code_id` column and its FK/NOT NULL constraint
+5. Modify `attendance`: rename `invitation_id` → `registration_id`, update FK, unique constraint, and index
+6. Rename `invitations` → `registrations`: drop `unique_token`, `claimed_by_partner_id` columns; add `agent_link_id` column; switch status column to new enum; replace global NRIC/phone unique indexes with per-slot unique indexes
+7. Drop `pin_codes` table (safe now — `attendance` no longer references it)
+8. Rename `campaigns.invitation_type` → `campaigns.registration_type`
+9. Drop old `invitation_status` enum
+10. Rewrite all RLS policies for `registrations` and `attendance`
+11. Rewrite `deactivate_partner_and_release` RPC function
+12. Create `register_attendee` RPC function

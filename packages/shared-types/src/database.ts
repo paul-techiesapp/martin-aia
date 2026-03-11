@@ -70,6 +70,7 @@ export interface Invitation {
   invitee_email: string | null;
   invitee_occupation: string | null;
   registered_at: string | null;
+  claimed_by_partner_id: string | null;
   created_at: string;
   updated_at: string;
 }

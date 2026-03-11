@@ -85,8 +85,8 @@ export function Campaigns() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">Active Campaigns</h1>
-        <p className="text-slate-500 mt-1">Browse campaigns and request invitation links</p>
+        <h1 className="text-3xl font-bold text-slate-900">Active Events</h1>
+        <p className="text-slate-500 mt-1">Browse events and request invitation links</p>
       </div>
 
       {isLoading ? (
@@ -107,7 +107,7 @@ export function Campaigns() {
       ) : campaigns?.length === 0 ? (
         <Card className="glass-card">
           <CardContent className="p-6">
-            <p className="text-slate-500 text-center">No active campaigns available</p>
+            <p className="text-slate-500 text-center">No active events available</p>
           </CardContent>
         </Card>
       ) : (
@@ -155,7 +155,7 @@ export function Campaigns() {
           </CardHeader>
           <CardContent>
             {slots.length === 0 ? (
-              <p className="text-slate-500">No slots available for this campaign</p>
+              <p className="text-slate-500">No slots available for this event</p>
             ) : (
               <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
                 {slots.map((slot) => (
@@ -213,7 +213,7 @@ export function Campaigns() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={CapacityType.AGENT}>Agent</SelectItem>
+                      <SelectItem value={CapacityType.AGENT}>Unit</SelectItem>
                       <SelectItem value={CapacityType.BUSINESS_PARTNER}>Business Partner</SelectItem>
                     </SelectContent>
                   </Select>

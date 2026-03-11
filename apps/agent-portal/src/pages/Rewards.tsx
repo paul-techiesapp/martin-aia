@@ -122,7 +122,7 @@ export function Rewards() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead>Campaign</TableHead>
+                  <TableHead>Event</TableHead>
                   <TableHead>Invitee</TableHead>
                   <TableHead>Capacity</TableHead>
                   <TableHead className="text-right">Amount</TableHead>

@@ -38,7 +38,7 @@ export function Dashboard() {
 
       <StatCardGrid columns={4}>
         <StatCard
-          title="Active Campaigns"
+          title="Active Events"
           value={activeCampaigns}
           icon={Calendar}
           iconColor="sky"
@@ -115,7 +115,7 @@ export function Dashboard() {
               to="/campaigns"
               className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors group"
             >
-              <span className="text-sm font-medium text-slate-700">Browse Active Campaigns</span>
+              <span className="text-sm font-medium text-slate-700">Browse Active Events</span>
               <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-1 transition-all" />
             </Link>
             <Link

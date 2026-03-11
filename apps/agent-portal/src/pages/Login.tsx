@@ -42,7 +42,7 @@ export function Login() {
           <div className="mx-auto h-12 w-12 rounded-lg bg-primary flex items-center justify-center mb-4">
             <span className="text-primary-foreground font-bold text-xl">A</span>
           </div>
-          <CardTitle className="text-2xl">Agent Portal</CardTitle>
+          <CardTitle className="text-2xl">Unit Portal</CardTitle>
           <CardDescription>
             Sign in to manage your invitations and rewards
           </CardDescription>

@@ -6,7 +6,7 @@ import { useAuth } from '../hooks/useAuth';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: Home },
-  { name: 'Campaigns', href: '/campaigns', icon: Calendar },
+  { name: 'Events', href: '/campaigns', icon: Calendar },
   { name: 'My Invitations', href: '/invitations', icon: Send },
   { name: 'Rewards', href: '/rewards', icon: Award },
 ];
@@ -22,7 +22,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="h-9 w-9 rounded-xl bg-sky-600 flex items-center justify-center shadow-lg">
           <Users className="h-5 w-5 text-white" />
         </div>
-        <span className="font-semibold text-lg text-white">Agent Portal</span>
+        <span className="font-semibold text-lg text-white">Unit Portal</span>
       </div>
       <nav className="p-4 space-y-1">
         {navigation.map((item) => {

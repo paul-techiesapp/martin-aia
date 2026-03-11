@@ -98,7 +98,7 @@ export function Invitations() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead>Campaign</TableHead>
+                    <TableHead>Event</TableHead>
                     <TableHead>Slot</TableHead>
                     <TableHead>Capacity</TableHead>
                     <TableHead>Invitee</TableHead>

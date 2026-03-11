@@ -14,6 +14,4 @@ ALTER TABLE whatsapp_send_log ENABLE ROW LEVEL SECURITY;
 -- Edge Functions run with service_role key, so no RLS policy needed for them.
 -- Admin can read for monitoring.
 CREATE POLICY "admin_read_whatsapp_send_log" ON whatsapp_send_log
-  FOR SELECT USING (
-    (SELECT raw_user_meta_data->>'role' FROM auth.users WHERE id = auth.uid()) = 'admin'
-  );
+  FOR SELECT TO authenticated USING (is_admin());

@@ -92,7 +92,7 @@ export function Invitations() {
           {isLoading ? (
             <TableSkeleton rows={5} columns={6} />
           ) : invitations?.length === 0 ? (
-            <p className="text-slate-500">No invitations yet. Browse campaigns to create invitation links.</p>
+            <p className="text-slate-500">No invitations yet. Browse events to create invitation links.</p>
           ) : (
             <TooltipProvider>
               <Table>

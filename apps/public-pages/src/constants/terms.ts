@@ -6,7 +6,7 @@ export interface TermsSection {
 export const TERMS_AND_CONDITIONS: TermsSection[] = [
   {
     title: "1. Event Attendance",
-    body: "By registering for this event, you agree to attend at the scheduled date and time. If you are unable to attend, please inform your inviting agent as soon as possible.",
+    body: "By registering for this event, you agree to attend at the scheduled date and time. If you are unable to attend, please inform your inviting unit as soon as possible.",
   },
   {
     title: "2. Personal Data Collection",

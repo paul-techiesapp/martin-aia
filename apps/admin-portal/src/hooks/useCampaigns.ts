@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-import type { Campaign, CampaignStatus } from '@agent-system/shared-types';
+import { CampaignStatus } from '@agent-system/shared-types';
+import type { Campaign, Slot } from '@agent-system/shared-types';
 
 export function useCampaigns() {
   return useQuery({
@@ -112,6 +113,87 @@ export function useUpdateCampaignStatus() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
       queryClient.invalidateQueries({ queryKey: ['campaigns', data.id] });
+    },
+  });
+}
+
+export function useDuplicateCampaign() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      sourceId,
+      newName,
+      newStartDate,
+      newEndDate,
+    }: {
+      sourceId: string;
+      newName: string;
+      newStartDate: string;
+      newEndDate: string;
+    }) => {
+      // 1. Fetch source campaign
+      const { data: source, error: sourceError } = await supabase
+        .from('campaigns')
+        .select('*')
+        .eq('id', sourceId)
+        .single();
+
+      if (sourceError || !source) throw sourceError || new Error('Campaign not found');
+
+      // 2. Fetch source slots
+      const { data: sourceSlots, error: slotsError } = await supabase
+        .from('slots')
+        .select('*')
+        .eq('campaign_id', sourceId)
+        .order('start_at', { ascending: true });
+
+      if (slotsError) throw slotsError;
+
+      // 3. Calculate date offset (local midnight to avoid UTC parsing issues)
+      const offset =
+        new Date(newStartDate + 'T00:00:00').getTime() -
+        new Date(source.start_date + 'T00:00:00').getTime();
+
+      // 4. Insert new campaign
+      const { data: newCampaign, error: insertError } = await supabase
+        .from('campaigns')
+        .insert({
+          name: newName,
+          venue: source.venue,
+          invitation_type: source.invitation_type,
+          start_date: newStartDate,
+          end_date: newEndDate,
+          status: CampaignStatus.DRAFT,
+        })
+        .select()
+        .single();
+
+      if (insertError || !newCampaign) throw insertError || new Error('Failed to create campaign');
+
+      // 5. Shift and insert slots
+      if (sourceSlots && sourceSlots.length > 0) {
+        const newSlots = sourceSlots.map((slot: Slot) => ({
+          campaign_id: newCampaign.id,
+          start_at: new Date(new Date(slot.start_at).getTime() + offset).toISOString(),
+          end_at: new Date(new Date(slot.end_at).getTime() + offset).toISOString(),
+          checkin_window_minutes: slot.checkin_window_minutes,
+          checkout_window_minutes: slot.checkout_window_minutes,
+          is_active: slot.is_active,
+        }));
+
+        const { error: slotsInsertError } = await supabase
+          .from('slots')
+          .insert(newSlots);
+
+        if (slotsInsertError) throw slotsInsertError;
+      }
+
+      return { campaign: newCampaign as Campaign, slotCount: sourceSlots?.length ?? 0 };
+    },
+    onSuccess: ({ campaign }) => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['campaigns', campaign.id] });
     },
   });
 }

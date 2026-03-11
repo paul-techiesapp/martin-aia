@@ -29,10 +29,21 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Label,
+  DatePicker,
+  useToast,
 } from '@agent-system/shared-ui';
-import { Plus, Edit, Trash2, Eye, Play, Pause, MoreHorizontal } from 'lucide-react';
-import { useCampaigns, useDeleteCampaign, useUpdateCampaignStatus } from '../../hooks/useCampaigns';
+import { Plus, Edit, Trash2, Eye, Play, Pause, MoreHorizontal, Copy, Loader2 } from 'lucide-react';
+import { useCampaigns, useDeleteCampaign, useUpdateCampaignStatus, useDuplicateCampaign } from '../../hooks/useCampaigns';
 import { CampaignStatus } from '@agent-system/shared-types';
+import { format } from 'date-fns';
 
 export function CampaignList() {
   const navigate = useNavigate();
@@ -40,6 +51,45 @@ export function CampaignList() {
   const deleteCampaign = useDeleteCampaign();
   const updateStatus = useUpdateCampaignStatus();
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const duplicateCampaign = useDuplicateCampaign();
+  const { toast } = useToast();
+  const [duplicateSource, setDuplicateSource] = useState<{ id: string; name: string } | null>(null);
+  const [dupName, setDupName] = useState('');
+  const [dupStartDate, setDupStartDate] = useState<Date | undefined>(undefined);
+  const [dupEndDate, setDupEndDate] = useState<Date | undefined>(undefined);
+
+  const handleOpenDuplicate = (id: string, name: string) => {
+    setDuplicateSource({ id, name });
+    setDupName(`${name} (Copy)`);
+    setDupStartDate(undefined);
+    setDupEndDate(undefined);
+  };
+
+  const handleDuplicate = async () => {
+    if (!duplicateSource || !dupName.trim() || !dupStartDate || !dupEndDate) return;
+
+    try {
+      const result = await duplicateCampaign.mutateAsync({
+        sourceId: duplicateSource.id,
+        newName: dupName.trim(),
+        newStartDate: format(dupStartDate, 'yyyy-MM-dd'),
+        newEndDate: format(dupEndDate, 'yyyy-MM-dd'),
+      });
+
+      setDuplicateSource(null);
+      toast({
+        title: 'Event duplicated',
+        description: `Created "${result.campaign.name}" with ${result.slotCount} slot${result.slotCount !== 1 ? 's' : ''}`,
+      });
+      navigate({ to: '/campaigns/$campaignId', params: { campaignId: result.campaign.id } });
+    } catch (err) {
+      toast({
+        title: 'Duplication failed',
+        description: err instanceof Error ? err.message : 'An error occurred',
+        variant: 'error',
+      });
+    }
+  };
 
   const handleDelete = (id: string) => {
     setDeleteId(id);
@@ -146,6 +196,12 @@ export function CampaignList() {
                             <Edit className="mr-2 h-4 w-4" />
                             Edit Event
                           </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleOpenDuplicate(campaign.id, campaign.name)}
+                          >
+                            <Copy className="mr-2 h-4 w-4" />
+                            Duplicate Event
+                          </DropdownMenuItem>
                           {(campaign.status === CampaignStatus.ACTIVE || campaign.status === CampaignStatus.PAUSED) && (
                             <DropdownMenuItem
                               onClick={() => handleToggleStatus(campaign.id, campaign.status)}
@@ -198,6 +254,63 @@ export function CampaignList() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        <Dialog open={!!duplicateSource} onOpenChange={(open) => !open && setDuplicateSource(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Duplicate Event</DialogTitle>
+              <DialogDescription>
+                Create a copy of this event with new dates. All slots will be shifted to match the new date range.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Event Name</Label>
+                <Input
+                  value={dupName}
+                  onChange={(e) => setDupName(e.target.value)}
+                  placeholder="Enter event name"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Start Date</Label>
+                  <DatePicker date={dupStartDate} onDateChange={setDupStartDate} />
+                </div>
+                <div className="space-y-2">
+                  <Label>End Date</Label>
+                  <DatePicker date={dupEndDate} onDateChange={setDupEndDate} />
+                </div>
+              </div>
+              {dupStartDate && dupEndDate && dupEndDate <= dupStartDate && (
+                <p className="text-sm text-red-600">End date must be after start date</p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDuplicateSource(null)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDuplicate}
+                disabled={
+                  !dupName.trim() ||
+                  !dupStartDate ||
+                  !dupEndDate ||
+                  dupEndDate <= dupStartDate ||
+                  duplicateCampaign.isPending
+                }
+              >
+                {duplicateCampaign.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Duplicating...
+                  </>
+                ) : (
+                  'Duplicate'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </Card>
     </div>
   );

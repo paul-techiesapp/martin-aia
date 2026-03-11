@@ -7,6 +7,7 @@ import {
 import { Register } from './pages/Register';
 import { CheckIn } from './pages/CheckIn';
 import { CheckOut } from './pages/CheckOut';
+import { Display } from './pages/Display';
 
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
@@ -45,11 +46,18 @@ const indexRoute = createRoute({
   ),
 });
 
+const displayRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/public/display/$slotId',
+  component: Display,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   registerRoute,
   checkinRoute,
   checkoutRoute,
+  displayRoute,
 ]);
 
 export const router = createRouter({ routeTree });

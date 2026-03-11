@@ -15,7 +15,7 @@ Agents (Units) can recruit and manage Partners (sub-agents) who log into the Age
 3. Partners see all invitations created by their parent Agent (across all campaigns/slots)
 4. Partners "claim" unclaimed invitations and receive the shareable link
 5. System tracks which Partner claimed/shared each invitation (attribution)
-6. Agents can deactivate Partners — unregistered invitations release back to the pool, registered+ stay attributed
+6. Agents can deactivate Partners — `pending` invitations release back to the pool, `registered`+ stay attributed
 7. Partners have a simplified view: available invitations to claim, and their claimed invitations with status
 
 ## Database Schema
@@ -62,15 +62,17 @@ CREATE INDEX idx_invitations_partner ON invitations(claimed_by_partner_id);
 
 ```sql
 CREATE OR REPLACE FUNCTION get_partner_id()
-RETURNS UUID AS $$
-  SELECT id FROM partners WHERE user_id = auth.uid();
+RETURNS UUID STABLE AS $$
+  SELECT id FROM partners WHERE user_id = auth.uid() AND status = 'active';
 $$ LANGUAGE sql SECURITY DEFINER;
 
 CREATE OR REPLACE FUNCTION get_partner_agent_id()
-RETURNS UUID AS $$
-  SELECT agent_id FROM partners WHERE user_id = auth.uid();
+RETURNS UUID STABLE AS $$
+  SELECT agent_id FROM partners WHERE user_id = auth.uid() AND status = 'active';
 $$ LANGUAGE sql SECURITY DEFINER;
 ```
+
+**Design assumption:** `get_agent_id()` returns `NULL` for partner users (they have no row in `agents`). This means existing agent-scoped RLS policies (e.g., `agent_id = get_agent_id()`) naturally exclude partners. This is intentional — partners get access only through the partner-specific policies below.
 
 ### RLS policies for `partners` table
 
@@ -83,7 +85,9 @@ CREATE POLICY "Admin full access to partners"
 
 -- Agents: manage own partners
 CREATE POLICY "Agents manage own partners"
-  ON partners FOR ALL TO authenticated USING (agent_id = get_agent_id());
+  ON partners FOR ALL TO authenticated
+  USING (agent_id = get_agent_id())
+  WITH CHECK (agent_id = get_agent_id());
 
 -- Partners: read own record
 CREATE POLICY "Partners read own data"
@@ -98,14 +102,20 @@ CREATE POLICY "Partners read agent invitations"
   ON invitations FOR SELECT TO authenticated
   USING (agent_id = get_partner_agent_id());
 
--- Partners can claim unclaimed invitations (update claimed_by_partner_id)
+-- Partners can claim unclaimed invitations (update claimed_by_partner_id only)
 CREATE POLICY "Partners claim invitations"
   ON invitations FOR UPDATE TO authenticated
   USING (
     agent_id = get_partner_agent_id()
     AND claimed_by_partner_id IS NULL
+  )
+  WITH CHECK (
+    agent_id = get_partner_agent_id()
+    AND claimed_by_partner_id = get_partner_id()
   );
 ```
+
+**Note on PII exposure:** Partners can read all columns of their parent agent's invitations, including invitee PII (`invitee_nric`, `invitee_phone`, etc.). This is intentional — Partners are trusted members of the Agent's unit and need invitee details to coordinate distribution. If stricter PII controls are needed in the future, column-level views can be introduced.
 
 ## Auth & Role Detection
 
@@ -176,6 +186,11 @@ An Edge Function is required because:
 4. Insert into `partners` table with `agent_id` and the new `user_id`
 5. Return the created partner record
 
+**Error handling:**
+- If email already exists in `auth.users` → return 409 Conflict with clear message
+- If `partners` INSERT fails after auth user was created → delete the orphaned auth user via `admin.deleteUser()` before returning error
+- Validate email format and password strength before creating the auth user
+
 ### `deactivate-partner`
 
 **Called by:** Agent (from Agent Portal)
@@ -187,12 +202,15 @@ An Edge Function is required because:
 }
 ```
 
-**Flow:**
+**Flow (all DB writes in a single transaction):**
 1. Verify caller is the parent agent of this partner
-2. Update `partners.status = 'inactive'`
-3. Release unclaimed invitations: `UPDATE invitations SET claimed_by_partner_id = NULL WHERE claimed_by_partner_id = partner_id AND status = 'pending'`
-4. Ban the auth user: `supabase.auth.admin.updateUserById(user_id, { ban_duration: 'none' })` (permanent ban)
-5. Return success with count of released invitations
+2. Ban the auth user first: `supabase.auth.admin.updateUserById(user_id, { ban_duration: '876000h' })` (effectively permanent — prevents new requests)
+3. In a single transaction:
+   a. Update `partners.status = 'inactive'`
+   b. Release unclaimed invitations: `UPDATE invitations SET claimed_by_partner_id = NULL WHERE claimed_by_partner_id = partner_id AND status = 'pending'`
+4. Return success with count of released invitations
+
+**Ordering rationale:** The auth ban is applied first to invalidate any active sessions. Then the status update and invitation release happen atomically so no stale session can re-claim a just-released invitation between steps.
 
 ## Agent Portal UI Changes
 
@@ -227,6 +245,7 @@ An Edge Function is required because:
 - Grouped by Campaign → Slot
 - Each invitation row shows: Campaign name, Slot day/time, Capacity type, Status
 - "Claim" button → sets `claimed_by_partner_id`, then shows Copy Link button
+- **Concurrency handling:** If a claim UPDATE returns 0 rows (another partner claimed it first), show a toast: "This invitation was just claimed — please select another" and refresh the list
 - Stat cards: Total available, Claimed by me
 
 ### My Claimed Invitations Page (`/my-invitations` — Partner only)

@@ -53,7 +53,7 @@ export function AgentList() {
     return (
       <Card className="glass-card">
         <CardContent className="p-6">
-          <p className="text-red-600">Error loading agents: {error.message}</p>
+          <p className="text-red-600">Error loading units: {error.message}</p>
         </CardContent>
       </Card>
     );
@@ -63,29 +63,29 @@ export function AgentList() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Agents</h1>
-          <p className="text-slate-500 mt-1">Manage agent accounts and tier assignments</p>
+          <h1 className="text-3xl font-bold text-slate-900">Units</h1>
+          <p className="text-slate-500 mt-1">Manage unit accounts and tier assignments</p>
         </div>
         <Link to="/agents/new">
           <Button className="bg-slate-900 hover:bg-slate-800">
             <Plus className="h-4 w-4 mr-2" />
-            New Agent
+            New Unit
           </Button>
         </Link>
       </div>
 
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle className="text-lg">All Agents</CardTitle>
+          <CardTitle className="text-lg">All Units</CardTitle>
           <CardDescription>
-            {agents?.length ?? 0} registered agents
+            {agents?.length ?? 0} registered units
           </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <TableSkeleton rows={5} columns={7} />
           ) : agents?.length === 0 ? (
-            <p className="text-slate-500">No agents registered yet.</p>
+            <p className="text-slate-500">No units registered yet.</p>
           ) : (
             <Table>
               <TableHeader>
@@ -123,7 +123,7 @@ export function AgentList() {
                           <DropdownMenuItem asChild>
                             <Link to="/agents/$agentId/edit" params={{ agentId: agent.id }}>
                               <Edit className="mr-2 h-4 w-4" />
-                              Edit Agent
+                              Edit Unit
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
@@ -133,7 +133,7 @@ export function AgentList() {
                             disabled={deleteAgent.isPending}
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
-                            Delete Agent
+                            Delete Unit
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -149,9 +149,9 @@ export function AgentList() {
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Agent</AlertDialogTitle>
+            <AlertDialogTitle>Delete Unit</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this agent? This action cannot be undone.
+              Are you sure you want to delete this unit? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

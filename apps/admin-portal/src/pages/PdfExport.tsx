@@ -205,13 +205,13 @@ export function PdfExport() {
         <CardHeader>
           <CardTitle>Select Event</CardTitle>
           <CardDescription>
-            Choose a campaign and slot to generate PDFs
+            Choose an event and slot to generate PDFs
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Campaign</label>
+              <label className="text-sm font-medium">Event</label>
               <Select
                 value={selectedCampaign}
                 onValueChange={(value) => {
@@ -220,7 +220,7 @@ export function PdfExport() {
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a campaign" />
+                  <SelectValue placeholder="Select an event" />
                 </SelectTrigger>
                 <SelectContent>
                   {campaigns.map((campaign) => (

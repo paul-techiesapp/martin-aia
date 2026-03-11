@@ -17,8 +17,8 @@ import { useAuth } from '../hooks/useAuth';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Campaigns', href: '/campaigns', icon: Calendar },
-  { name: 'Agents', href: '/agents', icon: Users },
+  { name: 'Events', href: '/campaigns', icon: Calendar },
+  { name: 'Units', href: '/agents', icon: Users },
   { name: 'Tiers', href: '/tiers', icon: BadgeCheck },
   { name: 'PIN Codes', href: '/pin-codes', icon: QrCode },
   { name: 'Reports', href: '/reports', icon: BarChart3 },

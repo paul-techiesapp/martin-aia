@@ -65,12 +65,12 @@ export function Dashboard() {
     <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
-        <p className="text-slate-500 mt-1">Welcome to the Agent Management System</p>
+        <p className="text-slate-500 mt-1">Welcome to the Management System</p>
       </div>
 
       <StatCardGrid columns={4}>
         <StatCard
-          title="Active Campaigns"
+          title="Active Events"
           value={activeCampaigns}
           subtitle="Currently running"
           icon={Calendar}
@@ -79,9 +79,9 @@ export function Dashboard() {
           loading={isLoading}
         />
         <StatCard
-          title="Total Agents"
+          title="Total Units"
           value={agentCount ?? 0}
-          subtitle="Registered agents"
+          subtitle="Registered units"
           icon={Users}
           iconColor="text-emerald-600"
           iconBgColor="bg-emerald-100"
@@ -128,14 +128,14 @@ export function Dashboard() {
               to="/campaigns/new"
               className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-100 transition-colors group"
             >
-              <span className="text-sm font-medium text-slate-700">Create New Campaign</span>
+              <span className="text-sm font-medium text-slate-700">Create New Event</span>
               <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
             </Link>
             <Link
               to="/agents/new"
               className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-100 transition-colors group"
             >
-              <span className="text-sm font-medium text-slate-700">Add New Agent</span>
+              <span className="text-sm font-medium text-slate-700">Add New Unit</span>
               <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
             </Link>
             <Link

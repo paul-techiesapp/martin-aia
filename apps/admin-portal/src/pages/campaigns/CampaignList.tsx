@@ -63,7 +63,7 @@ export function CampaignList() {
     return (
       <Card className="glass-card">
         <CardContent className="p-6">
-          <p className="text-red-600">Error loading campaigns: {error.message}</p>
+          <p className="text-red-600">Error loading events: {error.message}</p>
         </CardContent>
       </Card>
     );
@@ -73,29 +73,29 @@ export function CampaignList() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Campaigns</h1>
-          <p className="text-slate-500 mt-1">Manage recruitment campaigns and event slots</p>
+          <h1 className="text-3xl font-bold text-slate-900">Events</h1>
+          <p className="text-slate-500 mt-1">Manage recruitment events and time slots</p>
         </div>
         <Link to="/campaigns/new">
           <Button className="bg-slate-900 hover:bg-slate-800">
             <Plus className="h-4 w-4 mr-2" />
-            New Campaign
+            New Event
           </Button>
         </Link>
       </div>
 
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle className="text-lg">All Campaigns</CardTitle>
+          <CardTitle className="text-lg">All Events</CardTitle>
           <CardDescription>
-            {campaigns?.length ?? 0} total campaigns
+            {campaigns?.length ?? 0} total events
           </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <TableSkeleton rows={5} columns={6} />
           ) : campaigns?.length === 0 ? (
-            <p className="text-slate-500">No campaigns yet. Create your first campaign to get started.</p>
+            <p className="text-slate-500">No events yet. Create your first event to get started.</p>
           ) : (
             <Table>
               <TableHeader>
@@ -144,7 +144,7 @@ export function CampaignList() {
                             onClick={() => navigate({ to: '/campaigns/$campaignId/edit', params: { campaignId: campaign.id } })}
                           >
                             <Edit className="mr-2 h-4 w-4" />
-                            Edit Campaign
+                            Edit Event
                           </DropdownMenuItem>
                           {(campaign.status === CampaignStatus.ACTIVE || campaign.status === CampaignStatus.PAUSED) && (
                             <DropdownMenuItem
@@ -154,12 +154,12 @@ export function CampaignList() {
                               {campaign.status === CampaignStatus.ACTIVE ? (
                                 <>
                                   <Pause className="mr-2 h-4 w-4" />
-                                  Pause Campaign
+                                  Pause Event
                                 </>
                               ) : (
                                 <>
                                   <Play className="mr-2 h-4 w-4" />
-                                  Resume Campaign
+                                  Resume Event
                                 </>
                               )}
                             </DropdownMenuItem>
@@ -171,7 +171,7 @@ export function CampaignList() {
                             disabled={deleteCampaign.isPending}
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
-                            Delete Campaign
+                            Delete Event
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -185,9 +185,9 @@ export function CampaignList() {
         <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete Campaign</AlertDialogTitle>
+              <AlertDialogTitle>Delete Event</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete this campaign? This action cannot be undone.
+                Are you sure you want to delete this event? This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

@@ -34,7 +34,7 @@ const agentSchema = z.object({
   email: z.string().email('Invalid email address'),
   phone: z.string().min(8, 'Phone number must be at least 8 characters'),
   nric: z.string().min(9, 'NRIC must be at least 9 characters'),
-  agent_code: z.string().min(1, 'Agent code is required'),
+  agent_code: z.string().min(1, 'Unit code is required'),
   unit_name: z.string().min(1, 'Unit name is required'),
   tier_id: z.string().min(1, 'Tier is required'),
   status: z.nativeEnum(AgentStatus),
@@ -109,19 +109,19 @@ export function AgentForm() {
         </Button>
         <div>
           <h1 className="text-3xl font-bold">
-            {isEditing ? 'Edit Agent' : 'Create Agent'}
+            {isEditing ? 'Edit Unit' : 'Create Unit'}
           </h1>
           <p className="text-muted-foreground">
-            {isEditing ? 'Update agent details' : 'Register a new agent'}
+            {isEditing ? 'Update unit details' : 'Register a new unit'}
           </p>
         </div>
       </div>
 
       <Card className="max-w-2xl">
         <CardHeader>
-          <CardTitle>Agent Details</CardTitle>
+          <CardTitle>Unit Details</CardTitle>
           <CardDescription>
-            Enter the agent's information
+            Enter the unit's information
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -277,8 +277,8 @@ export function AgentForm() {
                   {createAgent.isPending || updateAgent.isPending
                     ? 'Saving...'
                     : isEditing
-                    ? 'Update Agent'
-                    : 'Create Agent'}
+                    ? 'Update Unit'
+                    : 'Create Unit'}
                 </Button>
                 <Button
                   type="button"

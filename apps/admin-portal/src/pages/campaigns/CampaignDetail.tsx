@@ -150,7 +150,7 @@ export function CampaignDetail() {
     return (
       <Card className="glass-card">
         <CardContent className="p-6">
-          <p className="text-slate-500">Campaign not found</p>
+          <p className="text-slate-500">Event not found</p>
         </CardContent>
       </Card>
     );
@@ -241,7 +241,7 @@ export function CampaignDetail() {
             <div>
               <CardTitle className="text-lg">Event Slots</CardTitle>
               <CardDescription>
-                Configure the available time slots for this campaign
+                Configure the available time slots for this event
               </CardDescription>
             </div>
             <Dialog open={isAddSlotOpen} onOpenChange={setIsAddSlotOpen}>
@@ -255,7 +255,7 @@ export function CampaignDetail() {
                 <DialogHeader>
                   <DialogTitle>Add New Slot</DialogTitle>
                   <DialogDescription>
-                    Create a new time slot for this campaign
+                    Create a new time slot for this event
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">

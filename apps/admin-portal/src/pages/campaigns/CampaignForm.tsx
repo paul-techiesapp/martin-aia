@@ -101,19 +101,19 @@ export function CampaignForm() {
         </Button>
         <div>
           <h1 className="text-3xl font-bold">
-            {isEditing ? 'Edit Campaign' : 'Create Campaign'}
+            {isEditing ? 'Edit Event' : 'Create Event'}
           </h1>
           <p className="text-muted-foreground">
-            {isEditing ? 'Update campaign details' : 'Set up a new recruitment campaign'}
+            {isEditing ? 'Update event details' : 'Set up a new recruitment event'}
           </p>
         </div>
       </div>
 
       <Card className="max-w-2xl">
         <CardHeader>
-          <CardTitle>Campaign Details</CardTitle>
+          <CardTitle>Event Details</CardTitle>
           <CardDescription>
-            Enter the basic information for this campaign
+            Enter the basic information for this event
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -124,12 +124,12 @@ export function CampaignForm() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Campaign Name</FormLabel>
+                    <FormLabel>Event Name</FormLabel>
                     <FormControl>
                       <Input placeholder="Q1 2026 Recruitment Drive" {...field} />
                     </FormControl>
                     <FormDescription>
-                      A descriptive name for this campaign
+                      A descriptive name for this event
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -252,8 +252,8 @@ export function CampaignForm() {
                   {createCampaign.isPending || updateCampaign.isPending
                     ? 'Saving...'
                     : isEditing
-                    ? 'Update Campaign'
-                    : 'Create Campaign'}
+                    ? 'Update Event'
+                    : 'Create Event'}
                 </Button>
                 <Button
                   type="button"

@@ -138,7 +138,7 @@ export function TierList() {
                 <Input
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Gold Agent"
+                  placeholder="Gold Unit"
                 />
               </div>
               <div>
@@ -151,7 +151,7 @@ export function TierList() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={RoleType.AGENT}>Agent</SelectItem>
+                    <SelectItem value={RoleType.AGENT}>Unit</SelectItem>
                     <SelectItem value={RoleType.BUSINESS_PARTNER}>Business Partner</SelectItem>
                   </SelectContent>
                 </Select>

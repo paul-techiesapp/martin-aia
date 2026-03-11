@@ -126,13 +126,13 @@ export function PinCodes() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label>Campaign</Label>
+              <Label>Event</Label>
               <Select value={selectedCampaignId} onValueChange={(v) => {
                 setSelectedCampaignId(v);
                 setSelectedSlotId('');
               }}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select campaign" />
+                  <SelectValue placeholder="Select event" />
                 </SelectTrigger>
                 <SelectContent>
                   {activeCampaigns?.map((campaign) => (

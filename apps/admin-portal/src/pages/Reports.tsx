@@ -202,9 +202,9 @@ export function Reports() {
 
     const csvContent = [
       ['Metric', 'Value'],
-      ['Total Campaigns', reportStats.totalCampaigns],
-      ['Active Campaigns', reportStats.activeCampaigns],
-      ['Total Agents', reportStats.totalAgents],
+      ['Total Events', reportStats.totalCampaigns],
+      ['Active Events', reportStats.activeCampaigns],
+      ['Total Units', reportStats.totalAgents],
       ['Total Invitations', reportStats.totalInvitations],
       ['Registered Invitations', reportStats.registeredInvitations],
       ['Conversion Rate', `${reportStats.conversionRate}%`],
@@ -229,19 +229,19 @@ export function Reports() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Reports & Analytics</h1>
-          <p className="text-slate-500 mt-1">Campaign performance and agent metrics</p>
+          <p className="text-slate-500 mt-1">Event performance and unit metrics</p>
         </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="w-full sm:w-48">
-          <Label className="text-slate-600">Campaign</Label>
+          <Label className="text-slate-600">Event</Label>
           <Select value={selectedCampaignId} onValueChange={setSelectedCampaignId}>
             <SelectTrigger className="mt-1">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Campaigns</SelectItem>
+              <SelectItem value="all">All Events</SelectItem>
               {campaigns?.map((campaign) => (
                 <SelectItem key={campaign.id} value={campaign.id}>
                   {campaign.name}
@@ -271,7 +271,7 @@ export function Reports() {
         <StatCard
           title="Total Invitations"
           value={reportStats?.totalInvitations || 0}
-          subtitle={`${reportStats?.activeCampaigns || 0} active campaigns`}
+          subtitle={`${reportStats?.activeCampaigns || 0} active events`}
           icon={Calendar}
           iconColor="text-sky-600"
           iconBgColor="bg-sky-100"
@@ -298,7 +298,7 @@ export function Reports() {
         <StatCard
           title="Rewards Pending"
           value={`$${reportStats?.pendingRewardsAmount || 0}`}
-          subtitle={`${reportStats?.totalAgents || 0} agents`}
+          subtitle={`${reportStats?.totalAgents || 0} units`}
           icon={DollarSign}
           iconColor="text-amber-600"
           iconBgColor="bg-amber-100"
@@ -390,7 +390,7 @@ export function Reports() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-lg">Top Performing Agents</CardTitle>
+                <CardTitle className="text-lg">Top Performing Units</CardTitle>
                 <CardDescription>By attendance rate</CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={() => handleExport('agents')}>
@@ -403,7 +403,7 @@ export function Reports() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead>Agent</TableHead>
+                  <TableHead>Unit</TableHead>
                   <TableHead className="text-right">Invitations</TableHead>
                   <TableHead className="text-right">Attendance</TableHead>
                   <TableHead className="text-right">Rate</TableHead>
@@ -413,7 +413,7 @@ export function Reports() {
                 {(topAgents || []).length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center text-slate-500">
-                      No agent data available
+                      No unit data available
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -454,15 +454,15 @@ export function Reports() {
               </TableHeader>
               <TableBody>
                 <TableRow className="hover:bg-slate-50/50 transition-colors">
-                  <TableCell className="font-medium">Total Campaigns</TableCell>
+                  <TableCell className="font-medium">Total Events</TableCell>
                   <TableCell className="text-right text-slate-600">{reportStats?.totalCampaigns || 0}</TableCell>
                 </TableRow>
                 <TableRow className="hover:bg-slate-50/50 transition-colors">
-                  <TableCell className="font-medium">Active Campaigns</TableCell>
+                  <TableCell className="font-medium">Active Events</TableCell>
                   <TableCell className="text-right text-slate-600">{reportStats?.activeCampaigns || 0}</TableCell>
                 </TableRow>
                 <TableRow className="hover:bg-slate-50/50 transition-colors">
-                  <TableCell className="font-medium">Total Agents</TableCell>
+                  <TableCell className="font-medium">Total Units</TableCell>
                   <TableCell className="text-right text-slate-600">{reportStats?.totalAgents || 0}</TableCell>
                 </TableRow>
                 <TableRow className="hover:bg-slate-50/50 transition-colors">

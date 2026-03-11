@@ -46,20 +46,20 @@ Recurring events share the same structure — venue, time slots, check-in/out wi
 **Process:**
 1. Fetch source campaign: `supabase.from('campaigns').select('*').eq('id', sourceId).single()`
 2. Fetch source slots: `supabase.from('slots').select('*').eq('campaign_id', sourceId).order('start_at')`
-3. Calculate offset: `new Date(newStartDate) - new Date(sourceCampaign.start_date)` in ms
-4. Insert new campaign (omit `id`, `created_at`, `updated_at`)
+3. Calculate offset: `new Date(newStartDate + 'T00:00:00').getTime() - new Date(sourceCampaign.start_date + 'T00:00:00').getTime()` — append `T00:00:00` to avoid UTC midnight parsing of bare date strings
+4. Insert new campaign (omit `id`, `created_at`, `updated_at`), chain `.select().single()` to get the new campaign row back (matches existing `useCreateCampaign` pattern)
 5. Map source slots → new slots with shifted datetimes and new `campaign_id`
 6. Batch insert slots: `supabase.from('slots').insert(newSlots)`
 
 **Output:** New campaign data (for navigation)
 
-**Cache invalidation:** Invalidate `['campaigns']` query key
+**Cache invalidation:** Invalidate `['campaigns']` and `['campaigns', newCampaign.id]` query keys (matches existing mutation patterns)
 
 ## UI Design
 
 ### CampaignList Dropdown Addition
 
-Add "Duplicate Event" menu item with `Copy` icon from lucide-react, positioned between "Edit Event" and the delete separator.
+Add "Duplicate Event" menu item with `Copy` icon from lucide-react, positioned immediately after "Edit Event" and before the conditional Pause/Resume item.
 
 ### Duplicate Dialog
 
@@ -68,11 +68,12 @@ Add "Duplicate Event" menu item with `Copy` icon from lucide-react, positioned b
 - **End Date** — `<DatePicker>` (required, must be after start date)
 - **Duplicate button** — loading state while mutation runs, disabled if fields incomplete
 - **Validation:** end date must be after start date; name must not be empty
+- **State types:** Dialog-local state holds `Date | undefined` for the date pickers (matching `DatePicker`'s `date?: Date` prop). Convert to `YYYY-MM-DD` strings via `format(date, 'yyyy-MM-dd')` from `date-fns` before calling the mutation.
 
 ## Date Shifting Logic
 
 ```
-offset = new Date(newStartDate).getTime() - new Date(sourceCampaign.start_date).getTime()
+offset = new Date(newStartDate + 'T00:00:00').getTime() - new Date(sourceCampaign.start_date + 'T00:00:00').getTime()
 
 For each source slot:
   new_start_at = new Date(new Date(slot.start_at).getTime() + offset).toISOString()
@@ -81,7 +82,7 @@ For each source slot:
 
 The `slots_unique_start` constraint (`campaign_id + start_at`) will not conflict since slots are inserted into a new campaign with a new ID.
 
-Timezone handling is automatic — `start_at`/`end_at` are stored as TIMESTAMPTZ, so adding a millisecond offset preserves timezone correctness.
+Both `newStartDate` and `sourceCampaign.start_date` are bare date strings (`YYYY-MM-DD`). Appending `T00:00:00` ensures JavaScript parses them as local midnight (not UTC midnight), which matches the local-time semantics of slot TIMESTAMPTZ values. The offset is a whole number of days, so adding it to slot datetimes preserves timezone correctness.
 
 ## Edge Cases
 

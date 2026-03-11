@@ -1,8 +1,8 @@
 -- Display tokens for public venue QR display URLs
 CREATE TABLE display_tokens (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   slot_id UUID NOT NULL REFERENCES slots(id) ON DELETE CASCADE,
-  token UUID NOT NULL UNIQUE DEFAULT uuid_generate_v4(),
+  token UUID NOT NULL UNIQUE DEFAULT gen_random_uuid(),
   expires_at TIMESTAMPTZ NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

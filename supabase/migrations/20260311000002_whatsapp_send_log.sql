@@ -1,6 +1,6 @@
 -- WhatsApp send log for rate limiting PIN delivery
 CREATE TABLE whatsapp_send_log (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   slot_id UUID NOT NULL REFERENCES slots(id) ON DELETE CASCADE,
   nric TEXT NOT NULL,
   sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

@@ -23,11 +23,10 @@ import {
 } from '@agent-system/shared-ui';
 import { Copy, Check, ExternalLink, Send, UserCheck, CheckCircle } from 'lucide-react';
 import { useState } from 'react';
+import { format, parseISO } from 'date-fns';
 import { useAuth } from '../hooks/useAuth';
 import { useMyInvitations } from '../hooks/useInvitations';
 import { InvitationStatus } from '@agent-system/shared-types';
-
-const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export function Invitations() {
   const { agent } = useAuth();
@@ -114,7 +113,7 @@ export function Invitations() {
                       </TableCell>
                       <TableCell className="text-slate-600">
                         {invitation.slot
-                          ? `${DAYS_OF_WEEK[invitation.slot.day_of_week]} ${invitation.slot.start_time.slice(0, 5)}`
+                          ? `${format(parseISO(invitation.slot.start_at), 'd MMM yyyy, HH:mm')}`
                           : '-'}
                       </TableCell>
                       <TableCell className="capitalize text-slate-600">

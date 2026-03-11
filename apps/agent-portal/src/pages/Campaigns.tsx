@@ -22,12 +22,11 @@ import {
   Skeleton,
 } from '@agent-system/shared-ui';
 import { Calendar, MapPin, Send, Copy, Check } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 import { useAuth } from '../hooks/useAuth';
 import { useActiveCampaigns, useCampaignSlots } from '../hooks/useCampaigns';
 import { useCreateInvitations, useInvitationCount } from '../hooks/useInvitations';
 import { CapacityType, type Slot } from '@agent-system/shared-types';
-
-const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export function Campaigns() {
   const { agent } = useAuth();
@@ -166,9 +165,9 @@ export function Campaigns() {
                     onClick={() => handleSelectSlot(slot)}
                   >
                     <div className="text-left">
-                      <div className="font-medium">{DAYS_OF_WEEK[slot.day_of_week]}</div>
+                      <div className="font-medium">{format(parseISO(slot.start_at), 'd MMM yyyy')}</div>
                       <div className="text-sm text-slate-500">
-                        {slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}
+                        {format(parseISO(slot.start_at), 'HH:mm')} - {format(parseISO(slot.end_at), 'HH:mm')}
                       </div>
                     </div>
                   </Button>
@@ -184,7 +183,7 @@ export function Campaigns() {
           <DialogHeader>
             <DialogTitle>Request Invitation Links</DialogTitle>
             <DialogDescription>
-              {selectedSlot && `${DAYS_OF_WEEK[selectedSlot.day_of_week]} ${selectedSlot.start_time.slice(0, 5)} - ${selectedSlot.end_time.slice(0, 5)}`}
+              {selectedSlot && `${format(parseISO(selectedSlot.start_at), 'd MMM yyyy, HH:mm')} - ${format(parseISO(selectedSlot.end_at), 'HH:mm')}`}
             </DialogDescription>
           </DialogHeader>
 

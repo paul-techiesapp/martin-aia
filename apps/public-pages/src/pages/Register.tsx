@@ -19,10 +19,13 @@ import {
   FormLabel,
   FormMessage,
   Skeleton,
+  ScrollArea,
+  Checkbox,
 } from '@agent-system/shared-ui';
 import { Calendar, MapPin, Clock, CheckCircle, UserPlus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { InvitationStatus } from '@agent-system/shared-types';
+import { TERMS_AND_CONDITIONS } from '../constants/terms';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -32,6 +35,9 @@ const registrationSchema = z.object({
   invitee_phone: z.string().min(8, 'Phone number must be at least 8 characters'),
   invitee_email: z.string().email('Invalid email address'),
   invitee_occupation: z.string().min(2, 'Occupation is required'),
+  acceptedTerms: z.boolean().refine((val) => val === true, {
+    message: 'You must accept the Terms & Conditions',
+  }),
 });
 
 type RegistrationFormData = z.infer<typeof registrationSchema>;
@@ -61,12 +67,14 @@ export function Register() {
 
   const form = useForm<RegistrationFormData>({
     resolver: zodResolver(registrationSchema),
+    mode: 'onChange',
     defaultValues: {
       invitee_name: '',
       invitee_nric: '',
       invitee_phone: '',
       invitee_email: '',
       invitee_occupation: '',
+      acceptedTerms: false,
     },
   });
 
@@ -150,10 +158,12 @@ export function Register() {
       return;
     }
 
+    const { acceptedTerms, ...registrationData } = formData;
+
     const { error: updateError } = await supabase
       .from('invitations')
       .update({
-        ...formData,
+        ...registrationData,
         status: InvitationStatus.REGISTERED,
         registered_at: new Date().toISOString(),
       })
@@ -351,10 +361,46 @@ export function Register() {
                 )}
               />
 
+              {/* Terms & Conditions */}
+              <div className="border-t border-slate-200 pt-4 mt-2">
+                <FormLabel className="text-slate-700">Terms & Conditions</FormLabel>
+                <ScrollArea className="h-[160px] mt-2 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <div className="space-y-3 text-xs text-slate-600 leading-relaxed pr-4">
+                    {TERMS_AND_CONDITIONS.map((section, index) => (
+                      <div key={index}>
+                        <p className="font-semibold text-slate-700">{section.title}</p>
+                        <p>{section.body}</p>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+
+                <FormField
+                  control={form.control}
+                  name="acceptedTerms"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 mt-3">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel className="text-sm text-slate-700 font-normal cursor-pointer">
+                          I have read and agree to the Terms & Conditions
+                        </FormLabel>
+                        <FormMessage />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               <Button
                 type="submit"
                 className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white font-medium mt-2"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !form.formState.isValid}
               >
                 {isSubmitting ? 'Registering...' : 'Complete Registration'}
               </Button>

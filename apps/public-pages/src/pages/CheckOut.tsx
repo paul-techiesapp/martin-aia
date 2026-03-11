@@ -18,26 +18,38 @@ import {
   FormLabel,
   FormMessage,
 } from '@agent-system/shared-ui';
-import { CheckCircle, LogOut } from 'lucide-react';
+import { CheckCircle, LogOut, MessageSquare, ArrowRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { InvitationStatus } from '@agent-system/shared-types';
 
-const checkoutSchema = z.object({
-  pin_code: z.string().length(6, 'PIN code must be 6 digits'),
+// Step 1: NRIC schema
+const nricSchema = z.object({
   nric: z.string().min(9, 'NRIC must be at least 9 characters'),
 });
 
-type CheckoutFormData = z.infer<typeof checkoutSchema>;
+// Step 2: PIN schema
+const pinSchema = z.object({
+  pin_code: z.string().length(6, 'PIN code must be 6 digits'),
+});
+
+type NricFormData = z.infer<typeof nricSchema>;
+type PinFormData = z.infer<typeof pinSchema>;
 
 export function CheckOut() {
   const search = useSearch({ strict: false }) as { slot?: string; ts?: string; sig?: string };
   const slotId = search.slot;
 
+  const [step, setStep] = useState<1 | 2>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [attendeeName, setAttendeeName] = useState<string>('');
+  const [attendeeName, setAttendeeName] = useState('');
+  const [maskedPhone, setMaskedPhone] = useState('');
+  const [nric, setNric] = useState('');
+  const [sendCount, setSendCount] = useState(0);
 
+  // QR verification states (preserved from Task #4)
   const [isVerifying, setIsVerifying] = useState(false);
   const [isQrValid, setIsQrValid] = useState<boolean | null>(null);
   const [qrError, setQrError] = useState<string | null>(null);
@@ -71,15 +83,83 @@ export function CheckOut() {
       });
   }, [hasQrToken, slotId]);
 
-  const form = useForm<CheckoutFormData>({
-    resolver: zodResolver(checkoutSchema),
-    defaultValues: {
-      pin_code: '',
-      nric: '',
-    },
+  const nricForm = useForm<NricFormData>({
+    resolver: zodResolver(nricSchema),
+    defaultValues: { nric: '' },
   });
 
-  const onSubmit = async (formData: CheckoutFormData) => {
+  const pinForm = useForm<PinFormData>({
+    resolver: zodResolver(pinSchema),
+    defaultValues: { pin_code: '' },
+  });
+
+  // Step 1: Send PIN via WhatsApp
+  const handleSendPin = async (formData: NricFormData) => {
+    setIsSending(true);
+    setError(null);
+
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke('send-whatsapp-pin', {
+        body: { slot_id: slotId, nric: formData.nric },
+      });
+
+      if (fnError) {
+        const errorBody = typeof fnError.context === 'object' ? fnError.context : null;
+        setError(errorBody?.error || fnError.message || 'Failed to send PIN. Please try again.');
+        setIsSending(false);
+        return;
+      }
+
+      if (!data?.success) {
+        setError(data?.error || 'Failed to send PIN. Please try again.');
+        setIsSending(false);
+        return;
+      }
+
+      setNric(formData.nric);
+      setMaskedPhone(data.masked_phone);
+      setSendCount((prev) => prev + 1);
+      setStep(2);
+    } catch {
+      setError('Failed to connect to server. Please try again.');
+    }
+    setIsSending(false);
+  };
+
+  // Resend PIN
+  const handleResendPin = async () => {
+    if (sendCount >= 3) return;
+    setIsSending(true);
+    setError(null);
+
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke('send-whatsapp-pin', {
+        body: { slot_id: slotId, nric },
+      });
+
+      if (fnError) {
+        const errorBody = typeof fnError.context === 'object' ? fnError.context : null;
+        setError(errorBody?.error || fnError.message || 'Failed to resend PIN.');
+        setIsSending(false);
+        return;
+      }
+
+      if (!data?.success) {
+        setError(data?.error || 'Failed to resend PIN.');
+        setIsSending(false);
+        return;
+      }
+
+      setSendCount((prev) => prev + 1);
+      setMaskedPhone(data.masked_phone);
+    } catch {
+      setError('Failed to connect to server.');
+    }
+    setIsSending(false);
+  };
+
+  // Step 2: Complete checkout with PIN
+  const handleCheckout = async (formData: PinFormData) => {
     setIsSubmitting(true);
     setError(null);
 
@@ -98,7 +178,7 @@ export function CheckOut() {
     }
 
     // 2. Verify PIN is linked to this NRIC
-    if (pinCode.linked_nric !== formData.nric) {
+    if (pinCode.linked_nric !== nric) {
       setError('This PIN code is not associated with this NRIC');
       setIsSubmitting(false);
       return;
@@ -108,7 +188,7 @@ export function CheckOut() {
     const { data: invitation, error: invError } = await supabase
       .from('invitations')
       .select('id, invitee_name, status')
-      .eq('invitee_nric', formData.nric)
+      .eq('invitee_nric', nric)
       .eq('slot_id', slotId)
       .eq('status', InvitationStatus.ATTENDED)
       .single();
@@ -164,6 +244,7 @@ export function CheckOut() {
     setIsSubmitting(false);
   };
 
+  // QR verification guard screens
   if (isVerifying) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-sky-900 flex items-center justify-center p-4">
@@ -189,6 +270,7 @@ export function CheckOut() {
     );
   }
 
+  // Success screen
   if (isSuccess) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-sky-900 flex items-center justify-center p-4">
@@ -221,9 +303,29 @@ export function CheckOut() {
           </div>
           <CardTitle className="text-2xl font-bold text-slate-900">Event Check-Out</CardTitle>
           <CardDescription className="text-slate-500">
-            Enter your PIN code and NRIC to check out
+            {step === 1
+              ? 'Enter your NRIC to receive your PIN via WhatsApp'
+              : 'Enter the PIN sent to your WhatsApp'}
           </CardDescription>
+
+          {/* Step indicator */}
+          <div className="flex items-center justify-center gap-2 mt-4">
+            <div className={`flex items-center gap-1.5 text-xs font-medium ${step >= 1 ? 'text-violet-600' : 'text-slate-400'}`}>
+              <div className={`h-6 w-6 rounded-full flex items-center justify-center text-white text-xs ${step >= 1 ? 'bg-violet-600' : 'bg-slate-300'}`}>
+                {step > 1 ? <CheckCircle className="h-4 w-4" /> : '1'}
+              </div>
+              NRIC
+            </div>
+            <div className="w-8 h-px bg-slate-300" />
+            <div className={`flex items-center gap-1.5 text-xs font-medium ${step >= 2 ? 'text-violet-600' : 'text-slate-400'}`}>
+              <div className={`h-6 w-6 rounded-full flex items-center justify-center text-white text-xs ${step >= 2 ? 'bg-violet-600' : 'bg-slate-300'}`}>
+                2
+              </div>
+              PIN
+            </div>
+          </div>
         </CardHeader>
+
         <CardContent className="px-6 pb-8">
           {error && (
             <div className="p-3 mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
@@ -231,50 +333,107 @@ export function CheckOut() {
             </div>
           )}
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="pin_code"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-slate-700">PIN Code</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="123456"
-                        maxLength={6}
-                        className="text-center text-2xl tracking-widest font-mono h-14 bg-slate-50 border-slate-200"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          {step === 1 ? (
+            <Form {...nricForm}>
+              <form onSubmit={nricForm.handleSubmit(handleSendPin)} className="space-y-4">
+                <FormField
+                  control={nricForm.control}
+                  name="nric"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-700">NRIC Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="S1234567A" className="h-11" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="nric"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-slate-700">NRIC Number</FormLabel>
-                    <FormControl>
-                      <Input placeholder="S1234567A" className="h-11" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <p className="text-xs text-slate-500">
+                  Your PIN code will be sent to the WhatsApp number you registered with.
+                </p>
 
-              <Button
-                type="submit"
-                className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white font-medium mt-2"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Checking out...' : 'Check Out'}
-              </Button>
-            </form>
-          </Form>
+                <Button
+                  type="submit"
+                  className="w-full h-11 bg-violet-600 hover:bg-violet-700 text-white font-medium mt-2"
+                  disabled={isSending}
+                >
+                  {isSending ? (
+                    'Sending...'
+                  ) : (
+                    <>
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      Send PIN to WhatsApp
+                    </>
+                  )}
+                </Button>
+              </form>
+            </Form>
+          ) : (
+            <>
+              {/* WhatsApp confirmation banner */}
+              <div className="p-3 mb-4 text-sm bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-2">
+                <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-medium text-emerald-700">PIN sent to WhatsApp</p>
+                  <p className="text-emerald-600">{maskedPhone}</p>
+                </div>
+              </div>
+
+              <Form {...pinForm}>
+                <form onSubmit={pinForm.handleSubmit(handleCheckout)} className="space-y-4">
+                  <FormField
+                    control={pinForm.control}
+                    name="pin_code"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-slate-700">PIN Code</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="123456"
+                            maxLength={6}
+                            className="text-center text-2xl tracking-widest font-mono h-14 bg-slate-50 border-slate-200"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button
+                    type="submit"
+                    className="w-full h-11 bg-amber-600 hover:bg-amber-700 text-white font-medium"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      'Checking out...'
+                    ) : (
+                      <>
+                        <ArrowRight className="h-4 w-4 mr-2" />
+                        Complete Check Out
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full text-sm text-slate-500"
+                    disabled={isSending || sendCount >= 3}
+                    onClick={handleResendPin}
+                  >
+                    {isSending
+                      ? 'Sending...'
+                      : sendCount >= 3
+                        ? 'Maximum attempts reached'
+                        : `Resend PIN (${3 - sendCount} remaining)`}
+                  </Button>
+                </form>
+              </Form>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

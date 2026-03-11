@@ -6,20 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
-function getNextOccurrence(dayOfWeek: number): Date {
-  const today = new Date();
-  const currentDay = today.getDay();
-  let daysUntil = dayOfWeek - currentDay;
-  if (daysUntil < 0) daysUntil += 7;
-  if (daysUntil === 0) return today;
-  const next = new Date(today);
-  next.setDate(today.getDate() + daysUntil);
-  return next;
-}
-
-function formatDate(date: Date): string {
+function formatDate(isoDatetime: string): string {
+  const date = new Date(isoDatetime);
   return date.toLocaleDateString("en-SG", {
     weekday: "long",
     year: "numeric",
@@ -28,16 +16,23 @@ function formatDate(date: Date): string {
   });
 }
 
+function formatTime(isoDatetime: string): string {
+  const date = new Date(isoDatetime);
+  return date.toLocaleTimeString("en-SG", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
 function buildEmailHtml(
   inviteeName: string,
   campaignName: string,
   venue: string,
-  dayOfWeek: number,
-  startTime: string,
-  endTime: string
+  startAt: string,
+  endAt: string
 ): string {
-  const nextDate = getNextOccurrence(dayOfWeek);
-  const formattedDate = formatDate(nextDate);
+  const formattedDate = formatDate(startAt);
 
   return `
 <!DOCTYPE html>
@@ -53,7 +48,7 @@ function buildEmailHtml(
       <table style="width: 100%; font-size: 14px;">
         <tr><td style="color: #64748b; padding: 4px 12px 4px 0;">Venue</td><td style="color: #334155;">${venue}</td></tr>
         <tr><td style="color: #64748b; padding: 4px 12px 4px 0;">Date</td><td style="color: #334155;">${formattedDate}</td></tr>
-        <tr><td style="color: #64748b; padding: 4px 12px 4px 0;">Time</td><td style="color: #334155;">${startTime.slice(0, 5)} – ${endTime.slice(0, 5)}</td></tr>
+        <tr><td style="color: #64748b; padding: 4px 12px 4px 0;">Time</td><td style="color: #334155;">${formatTime(startAt)} – ${formatTime(endAt)}</td></tr>
       </table>
     </div>
     <p style="margin: 0;">Please arrive on time. We look forward to seeing you!</p>
@@ -107,7 +102,7 @@ serve(async (req) => {
     // Fetch slot + campaign
     const { data: slot, error: slotError } = await supabase
       .from("slots")
-      .select("id, day_of_week, start_time, end_time, campaign:campaigns(name, venue, end_date)")
+      .select("id, start_at, end_at, campaign:campaigns(name, venue, end_date)")
       .eq("id", slot_id)
       .single();
 
@@ -161,7 +156,7 @@ serve(async (req) => {
       );
     }
 
-    const subject = `Reminder: ${campaign.name} — ${DAYS[slot.day_of_week]} ${slot.start_time.slice(0, 5)}`;
+    const subject = `Reminder: ${campaign.name} — ${formatDate(slot.start_at)}`;
     let sent = 0;
     let failed = 0;
 
@@ -177,9 +172,8 @@ serve(async (req) => {
           r.invitee_name || "Attendee",
           campaign.name,
           campaign.venue,
-          slot.day_of_week,
-          slot.start_time,
-          slot.end_time
+          slot.start_at,
+          slot.end_at
         ),
       }));
 

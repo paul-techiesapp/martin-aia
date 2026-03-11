@@ -11,9 +11,11 @@ import { Dashboard } from './pages/Dashboard';
 import { Campaigns } from './pages/Campaigns';
 import { Invitations } from './pages/Invitations';
 import { Rewards } from './pages/Rewards';
+import { Partners } from './pages/Partners';
+import { AvailableInvitations } from './pages/AvailableInvitations';
+import { MyClaimedInvitations } from './pages/MyClaimedInvitations';
 import { supabase } from './lib/supabase';
 
-// Check if user is authenticated
 const isAuthenticated = async () => {
   const { data: { session } } = await supabase.auth.getSession();
   return !!session;
@@ -55,6 +57,7 @@ const indexRoute = createRoute({
   component: Dashboard,
 });
 
+// Agent routes
 const campaignsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/campaigns',
@@ -73,6 +76,25 @@ const rewardsRoute = createRoute({
   component: Rewards,
 });
 
+const partnersRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/partners',
+  component: Partners,
+});
+
+// Partner routes
+const availableInvitationsRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/available-invitations',
+  component: AvailableInvitations,
+});
+
+const myClaimedInvitationsRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/my-invitations',
+  component: MyClaimedInvitations,
+});
+
 const routeTree = rootRoute.addChildren([
   loginRoute,
   authenticatedRoute.addChildren([
@@ -80,6 +102,9 @@ const routeTree = rootRoute.addChildren([
     campaignsRoute,
     invitationsRoute,
     rewardsRoute,
+    partnersRoute,
+    availableInvitationsRoute,
+    myClaimedInvitationsRoute,
   ]),
 ]);
 

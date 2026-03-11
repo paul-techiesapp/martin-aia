@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearch } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,13 +30,46 @@ const checkinSchema = z.object({
 type CheckinFormData = z.infer<typeof checkinSchema>;
 
 export function CheckIn() {
-  const search = useSearch({ strict: false }) as { slot?: string };
+  const search = useSearch({ strict: false }) as { slot?: string; ts?: string; sig?: string };
   const slotId = search.slot;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [attendeeName, setAttendeeName] = useState<string>('');
+
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isQrValid, setIsQrValid] = useState<boolean | null>(null);
+  const [qrError, setQrError] = useState<string | null>(null);
+
+  const hasQrToken = !!(search.ts && search.sig);
+
+  useEffect(() => {
+    if (!hasQrToken || !slotId) {
+      setIsQrValid(true); // No QR token = legacy flow, allow
+      return;
+    }
+
+    setIsVerifying(true);
+    supabase.functions
+      .invoke('verify-qr-token', {
+        body: {
+          slot_id: slotId,
+          mode: 'checkin',
+          ts: search.ts,
+          sig: search.sig,
+        },
+      })
+      .then(({ data, error }) => {
+        if (error || !data?.valid) {
+          setIsQrValid(false);
+          setQrError(data?.error || 'Invalid QR code');
+        } else {
+          setIsQrValid(true);
+        }
+        setIsVerifying(false);
+      });
+  }, [hasQrToken, slotId]);
 
   const form = useForm<CheckinFormData>({
     resolver: zodResolver(checkinSchema),
@@ -134,6 +167,31 @@ export function CheckIn() {
     setIsSuccess(true);
     setIsSubmitting(false);
   };
+
+  if (isVerifying) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-sky-900 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm shadow-2xl border-0">
+          <CardContent className="p-10 text-center">
+            <p className="text-slate-600">Verifying QR code...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isQrValid === false) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-sky-900 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm shadow-2xl border-0">
+          <CardContent className="p-10 text-center space-y-4">
+            <p className="text-red-600 font-medium">{qrError}</p>
+            <p className="text-slate-500 text-sm">Please scan the current QR code at the venue.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (isSuccess) {
     return (

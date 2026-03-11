@@ -9,7 +9,7 @@ import {
   StatCardGrid,
   Skeleton,
 } from '@agent-system/shared-ui';
-import { Calendar, Send, TrendingUp, Award, ArrowRight, Users, CheckSquare, UserCheck } from 'lucide-react';
+import { Calendar, Send, Award, ArrowRight, Users, CheckSquare, UserCheck } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useMyInvitations } from '../hooks/useInvitations';
 import { useActiveCampaigns } from '../hooks/useCampaigns';
@@ -24,7 +24,6 @@ function AgentDashboard() {
   const { data: partners, isLoading: partnersLoading } = useMyPartners(agent?.id);
 
   const pendingInvitations = invitations?.filter(i => i.status === InvitationStatus.PENDING).length ?? 0;
-  const registeredInvitations = invitations?.filter(i => i.status === InvitationStatus.REGISTERED).length ?? 0;
   const completedInvitations = invitations?.filter(i => i.status === InvitationStatus.COMPLETED).length ?? 0;
   const activeCampaigns = campaigns?.length ?? 0;
   const activePartners = partners?.filter(p => p.status === 'active').length ?? 0;

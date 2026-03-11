@@ -52,9 +52,9 @@ export function AvailableInvitations() {
       toast({ title: 'Invitation claimed', description: 'Copy the link below to share it.' });
     } catch (err: any) {
       if (err.message === 'ALREADY_CLAIMED') {
-        toast({ title: 'Already claimed', description: 'This invitation was just claimed by someone else — please select another.', variant: 'destructive' });
+        toast({ title: 'Already claimed', description: 'This invitation was just claimed by someone else — please select another.', variant: 'error' });
       } else {
-        toast({ title: 'Failed to claim', description: err.message, variant: 'destructive' });
+        toast({ title: 'Failed to claim', description: err.message, variant: 'error' });
       }
     } finally {
       setClaimingId(null);

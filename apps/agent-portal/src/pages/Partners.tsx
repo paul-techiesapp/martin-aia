@@ -81,7 +81,7 @@ export function Partners() {
       setIsAddOpen(false);
       setForm({ name: '', email: '', phone: '', nric: '', password: '' });
     } catch (err: any) {
-      toast({ title: 'Failed to create partner', description: err.message, variant: 'destructive' });
+      toast({ title: 'Failed to create partner', description: err.message, variant: 'error' });
     }
   };
 
@@ -95,7 +95,7 @@ export function Partners() {
       });
       setDeactivateId(null);
     } catch (err: any) {
-      toast({ title: 'Failed to deactivate', description: err.message, variant: 'destructive' });
+      toast({ title: 'Failed to deactivate', description: err.message, variant: 'error' });
     }
   };
 
@@ -161,7 +161,7 @@ export function Partners() {
                     <TableCell className="text-slate-600">{p.phone}</TableCell>
                     <TableCell className="text-slate-600">{claimCounts?.[p.id] ?? 0}</TableCell>
                     <TableCell>
-                      <Badge variant={p.status === 'active' ? 'success' : 'secondary'}>
+                      <Badge variant={p.status === 'active' ? 'success' : 'inactive'}>
                         {p.status}
                       </Badge>
                     </TableCell>

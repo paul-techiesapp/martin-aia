@@ -56,6 +56,7 @@ export function useCreateInvitations() {
           invitee_email: null,
           invitee_occupation: null,
           registered_at: null,
+          claimed_by_partner_id: null,
         });
       }
 

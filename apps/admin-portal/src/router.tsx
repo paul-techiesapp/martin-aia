@@ -17,6 +17,7 @@ import { TierList } from './pages/tiers/TierList';
 import { PinCodes } from './pages/PinCodes';
 import { Reports } from './pages/Reports';
 import { PdfExport } from './pages/PdfExport';
+import { VenueDisplay } from './pages/VenueDisplay';
 
 // Root route
 const rootRoute = createRootRoute({
@@ -122,8 +123,19 @@ const pdfExportRoute = createRoute({
   component: PdfExport,
 });
 
+const venueDisplayRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/venue-display/$slotId',
+  component: () => (
+    <ProtectedRoute>
+      <VenueDisplay />
+    </ProtectedRoute>
+  ),
+});
+
 const routeTree = rootRoute.addChildren([
   loginRoute,
+  venueDisplayRoute,
   protectedLayoutRoute.addChildren([
     indexRoute,
     campaignsRoute,

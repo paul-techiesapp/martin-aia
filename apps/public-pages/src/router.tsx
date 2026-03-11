@@ -37,7 +37,7 @@ const indexRoute = createRoute({
   component: () => (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="text-center space-y-4">
-        <h1 className="text-3xl font-bold">Agent Recruitment System</h1>
+        <h1 className="text-3xl font-bold">Unit Recruitment System</h1>
         <p className="text-muted-foreground">
           Use your invitation link to register for an event.
         </p>

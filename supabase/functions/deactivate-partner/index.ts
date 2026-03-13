@@ -85,7 +85,7 @@ serve(async (req) => {
       ban_duration: "876000h",
     });
 
-    // Step 2: Atomically update status and release pending invitations via RPC
+    // Step 2: Atomically update status and deactivate agent links via RPC
     const { data: releasedCount, error: rpcError } = await supabase
       .rpc("deactivate_partner_and_release", { partner_uuid: partner_id });
 
@@ -98,7 +98,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, released_invitations: releasedCount }),
+      JSON.stringify({ success: true, released_links: releasedCount }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

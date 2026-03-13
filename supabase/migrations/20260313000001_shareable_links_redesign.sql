@@ -148,6 +148,12 @@ CREATE POLICY "Agents read own registrations"
   ON registrations FOR SELECT TO authenticated
   USING (agent_id = get_agent_id());
 
+CREATE POLICY "Partners read registrations via own links"
+  ON registrations FOR SELECT TO authenticated
+  USING (agent_link_id IN (
+    SELECT id FROM agent_links WHERE partner_id = get_partner_id()
+  ));
+
 CREATE POLICY "Anon insert via RPC"
   ON registrations FOR INSERT TO anon
   WITH CHECK (true);

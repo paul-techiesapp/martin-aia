@@ -15,10 +15,7 @@ import {
 } from '@agent-system/shared-ui';
 import { FileDown, FileText, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import {
-  generateBulkInvitationCards,
-  generatePinSheet,
-} from '../utils/pdfGenerator';
+import { generateBulkInvitationCards } from '../utils/pdfGenerator';
 import { format, parseISO } from 'date-fns';
 
 interface Campaign {
@@ -34,10 +31,12 @@ interface Slot {
   end_at: string;
 }
 
-interface Invitation {
+interface Registration {
   id: string;
   invitee_name: string | null;
-  unique_token: string;
+  agent_link: {
+    link_code: string;
+  } | null;
   slot: {
     start_at: string;
     end_at: string;
@@ -48,17 +47,10 @@ interface Invitation {
   };
 }
 
-interface PinCode {
-  id: string;
-  code: string;
-  is_used: boolean;
-}
-
 export function PdfExport() {
   const [selectedCampaign, setSelectedCampaign] = useState<string>('');
   const [selectedSlot, setSelectedSlot] = useState<string>('');
   const [isGeneratingInvitations, setIsGeneratingInvitations] = useState(false);
-  const [isGeneratingPins, setIsGeneratingPins] = useState(false);
 
   // Fetch campaigns
   const { data: campaigns = [] } = useQuery({
@@ -89,17 +81,17 @@ export function PdfExport() {
     enabled: !!selectedCampaign,
   });
 
-  // Fetch invitations for selected slot
-  const { data: invitations = [] } = useQuery({
-    queryKey: ['invitations-for-pdf', selectedSlot],
+  // Fetch registrations for selected slot
+  const { data: registrations = [] } = useQuery({
+    queryKey: ['registrations-for-pdf', selectedSlot],
     queryFn: async () => {
       if (!selectedSlot) return [];
       const { data, error } = await supabase
-        .from('invitations')
+        .from('registrations')
         .select(`
           id,
           invitee_name,
-          unique_token,
+          agent_link:agent_links(link_code),
           slot:slots(
             start_at,
             end_at,
@@ -109,47 +101,31 @@ export function PdfExport() {
         .eq('slot_id', selectedSlot)
         .not('invitee_name', 'is', null);
       if (error) throw error;
-      return data as unknown as Invitation[];
+      return data as unknown as Registration[];
     },
     enabled: !!selectedSlot,
   });
 
-  // Fetch PIN codes for selected slot
-  const { data: pinCodes = [] } = useQuery({
-    queryKey: ['pincodes-for-pdf', selectedSlot],
-    queryFn: async () => {
-      if (!selectedSlot) return [];
-      const { data, error } = await supabase
-        .from('pin_codes')
-        .select('id, code, is_used')
-        .eq('slot_id', selectedSlot)
-        .order('code');
-      if (error) throw error;
-      return data as PinCode[];
-    },
-    enabled: !!selectedSlot,
-  });
-
-  const selectedSlotData = slots.find((s) => s.id === selectedSlot);
   const selectedCampaignData = campaigns.find((c) => c.id === selectedCampaign);
 
   const handleGenerateInvitationCards = async () => {
-    if (!selectedSlot || invitations.length === 0) return;
+    if (!selectedSlot || registrations.length === 0) return;
 
     setIsGeneratingInvitations(true);
     try {
-      // Use public-pages URL for registration links (not the admin portal URL)
       const publicPagesUrl = import.meta.env.VITE_PUBLIC_PAGES_URL || window.location.origin;
-      const invitationData = invitations.map((inv) => ({
-        inviteeName: inv.invitee_name || 'Guest',
-        campaignName: inv.slot.campaign.name,
-        venue: inv.slot.campaign.venue,
-        dayOfWeek: format(parseISO(inv.slot.start_at), 'EEE'),
-        slotDate: inv.slot.start_at,
-        startTime: format(parseISO(inv.slot.start_at), 'HH:mm'),
-        endTime: format(parseISO(inv.slot.end_at), 'HH:mm'),
-        uniqueToken: inv.unique_token,
-        registrationUrl: `${publicPagesUrl}/public/register/${inv.unique_token}`,
+      const invitationData = registrations.map((reg) => ({
+        inviteeName: reg.invitee_name || 'Guest',
+        campaignName: reg.slot.campaign.name,
+        venue: reg.slot.campaign.venue,
+        dayOfWeek: format(parseISO(reg.slot.start_at), 'EEE'),
+        slotDate: reg.slot.start_at,
+        startTime: format(parseISO(reg.slot.start_at), 'HH:mm'),
+        endTime: format(parseISO(reg.slot.end_at), 'HH:mm'),
+        uniqueToken: reg.agent_link?.link_code ?? reg.id,
+        registrationUrl: reg.agent_link
+          ? `${publicPagesUrl}/public/register/${reg.agent_link.link_code}`
+          : '',
       }));
 
       const doc = generateBulkInvitationCards(invitationData);
@@ -161,36 +137,12 @@ export function PdfExport() {
     }
   };
 
-  const handleGeneratePinSheet = async () => {
-    if (!selectedSlot || !selectedSlotData || !selectedCampaignData || pinCodes.length === 0) return;
-
-    setIsGeneratingPins(true);
-    try {
-      const baseUrl = window.location.origin;
-      const slotInfo = `${format(parseISO(selectedSlotData.start_at), 'EEE d MMM yyyy, HH:mm')} - ${format(parseISO(selectedSlotData.end_at), 'HH:mm')}`;
-
-      const doc = generatePinSheet({
-        campaignName: selectedCampaignData.name,
-        slotInfo,
-        pinCodes: pinCodes.map((p) => p.code),
-        checkinUrl: `${baseUrl}/public/checkin?slot=${selectedSlot}`,
-        checkoutUrl: `${baseUrl}/public/checkout?slot=${selectedSlot}`,
-      });
-
-      doc.save(`pin-sheet-${selectedCampaignData.name}-${format(parseISO(selectedSlotData.start_at), 'yyyy-MM-dd')}.pdf`);
-    } catch (error) {
-      console.error('Error generating PIN sheet:', error);
-    } finally {
-      setIsGeneratingPins(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">PDF Export</h1>
         <p className="text-muted-foreground">
-          Generate invitation cards and PIN sheets for events
+          Generate invitation cards for events
         </p>
       </div>
 
@@ -251,7 +203,7 @@ export function PdfExport() {
 
       {/* Export Options */}
       {selectedSlot && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6">
           {/* Invitation Cards */}
           <Card>
             <CardHeader>
@@ -267,7 +219,7 @@ export function PdfExport() {
               <div className="bg-muted p-4 rounded-md space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Registered Invitations:</span>
-                  <span className="font-medium">{invitations.length}</span>
+                  <span className="font-medium">{registrations.length}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Format:</span>
@@ -277,7 +229,7 @@ export function PdfExport() {
 
               <Button
                 onClick={handleGenerateInvitationCards}
-                disabled={invitations.length === 0 || isGeneratingInvitations}
+                disabled={registrations.length === 0 || isGeneratingInvitations}
                 className="w-full"
               >
                 {isGeneratingInvitations ? (
@@ -293,7 +245,7 @@ export function PdfExport() {
                 )}
               </Button>
 
-              {invitations.length === 0 && (
+              {registrations.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center">
                   No registered invitations found for this slot
                 </p>
@@ -301,62 +253,6 @@ export function PdfExport() {
             </CardContent>
           </Card>
 
-          {/* PIN Sheet */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                PIN Code Sheet
-              </CardTitle>
-              <CardDescription>
-                Generate a printable sheet with all PIN codes for check-in/out
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-muted p-4 rounded-md space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Total PIN Codes:</span>
-                  <span className="font-medium">{pinCodes.length}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Used:</span>
-                  <span className="font-medium">{pinCodes.filter((p) => p.is_used).length}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Available:</span>
-                  <span className="font-medium">{pinCodes.filter((p) => !p.is_used).length}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Format:</span>
-                  <span className="font-medium">A4 Portrait</span>
-                </div>
-              </div>
-
-              <Button
-                onClick={handleGeneratePinSheet}
-                disabled={pinCodes.length === 0 || isGeneratingPins}
-                className="w-full"
-              >
-                {isGeneratingPins ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <FileDown className="mr-2 h-4 w-4" />
-                    Download PIN Sheet
-                  </>
-                )}
-              </Button>
-
-              {pinCodes.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center">
-                  No PIN codes found for this slot. Generate PINs first.
-                </p>
-              )}
-            </CardContent>
-          </Card>
         </div>
       )}
     </div>

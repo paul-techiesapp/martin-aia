@@ -17,23 +17,30 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  Tabs,
+  TabsList,
+  TabsTrigger,
   Logo,
 } from '@agent-system/shared-ui';
 import { CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { InvitationStatus } from '@agent-system/shared-types';
+import { RegistrationStatus } from '@agent-system/shared-types';
 
-const checkinSchema = z.object({
-  pin_code: z.string().length(6, 'PIN code must be 6 digits'),
-  nric: z.string().min(9, 'NRIC must be at least 9 characters'),
+const nricSchema = z.object({
+  identifier: z.string().min(9, 'NRIC must be at least 9 characters'),
 });
 
-type CheckinFormData = z.infer<typeof checkinSchema>;
+const phoneSchema = z.object({
+  identifier: z.string().min(8, 'Phone number must be at least 8 characters'),
+});
+
+type IdentifierFormData = z.infer<typeof nricSchema>;
 
 export function CheckIn() {
   const search = useSearch({ strict: false }) as { slot?: string; ts?: string; sig?: string };
   const slotId = search.slot;
 
+  const [identifyBy, setIdentifyBy] = useState<'nric' | 'phone'>('nric');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,59 +79,46 @@ export function CheckIn() {
       });
   }, [hasQrToken, slotId]);
 
-  const form = useForm<CheckinFormData>({
-    resolver: zodResolver(checkinSchema),
+  const form = useForm<IdentifierFormData>({
+    resolver: zodResolver(identifyBy === 'nric' ? nricSchema : phoneSchema),
     defaultValues: {
-      pin_code: '',
-      nric: '',
+      identifier: '',
     },
   });
 
-  const onSubmit = async (formData: CheckinFormData) => {
+  // Reset form when switching identifier type
+  useEffect(() => {
+    form.reset({ identifier: '' });
+    setError(null);
+  }, [identifyBy]);
+
+  const onSubmit = async (formData: IdentifierFormData) => {
     setIsSubmitting(true);
     setError(null);
 
-    // 1. Find the PIN code
-    const { data: pinCode, error: pinError } = await supabase
-      .from('pin_codes')
-      .select('id, slot_id, linked_nric, is_used')
-      .eq('code', formData.pin_code)
-      .eq('slot_id', slotId)
-      .single();
+    // 1. Look up registration by NRIC or phone
+    const filterColumn = identifyBy === 'nric' ? 'invitee_nric' : 'invitee_phone';
 
-    if (pinError || !pinCode) {
-      setError('Invalid PIN code for this slot');
-      setIsSubmitting(false);
-      return;
-    }
-
-    // 2. Check if PIN is already used by someone else
-    if (pinCode.is_used && pinCode.linked_nric !== formData.nric) {
-      setError('This PIN code has already been used by another attendee');
-      setIsSubmitting(false);
-      return;
-    }
-
-    // 3. Find the invitation with this NRIC for this slot
-    const { data: invitation, error: invError } = await supabase
-      .from('invitations')
+    const { data: registration, error: regError } = await supabase
+      .from('registrations')
       .select('id, invitee_name, status')
-      .eq('invitee_nric', formData.nric)
+      .eq(filterColumn, formData.identifier)
       .eq('slot_id', slotId)
-      .eq('status', InvitationStatus.REGISTERED)
+      .eq('status', RegistrationStatus.REGISTERED)
       .single();
 
-    if (invError || !invitation) {
-      setError('No registered invitation found for this NRIC. Please ensure you have registered first.');
+    if (regError || !registration) {
+      const idLabel = identifyBy === 'nric' ? 'NRIC' : 'phone number';
+      setError(`No registered attendee found for this ${idLabel}. Please ensure you have registered first.`);
       setIsSubmitting(false);
       return;
     }
 
-    // 4. Check if already checked in
+    // 2. Check if already checked in
     const { data: existingAttendance } = await supabase
       .from('attendance')
       .select('id')
-      .eq('invitation_id', invitation.id)
+      .eq('registration_id', registration.id)
       .single();
 
     if (existingAttendance) {
@@ -133,20 +127,11 @@ export function CheckIn() {
       return;
     }
 
-    // 5. Link PIN to NRIC if not already linked
-    if (!pinCode.is_used) {
-      await supabase
-        .from('pin_codes')
-        .update({ linked_nric: formData.nric, is_used: true })
-        .eq('id', pinCode.id);
-    }
-
-    // 6. Create attendance record
+    // 3. Create attendance record
     const { error: attendanceError } = await supabase
       .from('attendance')
       .insert({
-        invitation_id: invitation.id,
-        pin_code_id: pinCode.id,
+        registration_id: registration.id,
         checkin_time: new Date().toISOString(),
         checkout_time: null,
         is_full_attendance: false,
@@ -158,13 +143,13 @@ export function CheckIn() {
       return;
     }
 
-    // 7. Update invitation status
+    // 4. Update registration status to attended
     await supabase
-      .from('invitations')
-      .update({ status: InvitationStatus.ATTENDED })
-      .eq('id', invitation.id);
+      .from('registrations')
+      .update({ status: RegistrationStatus.ATTENDED })
+      .eq('id', registration.id);
 
-    setAttendeeName(invitation.invitee_name);
+    setAttendeeName(registration.invitee_name);
     setIsSuccess(true);
     setIsSubmitting(false);
   };
@@ -224,7 +209,7 @@ export function CheckIn() {
           <Logo size="lg" showText={false} className="mx-auto mb-4" />
           <CardTitle className="text-2xl font-bold text-slate-900">Event Check-In</CardTitle>
           <CardDescription className="text-slate-500">
-            Enter your PIN code and NRIC to check in
+            Enter your {identifyBy === 'nric' ? 'NRIC' : 'phone number'} to check in
           </CardDescription>
         </CardHeader>
         <CardContent className="px-6 pb-8">
@@ -234,35 +219,34 @@ export function CheckIn() {
             </div>
           )}
 
+          {/* Identifier toggle */}
+          <Tabs
+            value={identifyBy}
+            onValueChange={(val) => setIdentifyBy(val as 'nric' | 'phone')}
+            className="mb-4"
+          >
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="nric">Identify by NRIC</TabsTrigger>
+              <TabsTrigger value="phone">Identify by Phone</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="pin_code"
+                name="identifier"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-700">PIN Code</FormLabel>
+                    <FormLabel className="text-slate-700">
+                      {identifyBy === 'nric' ? 'NRIC Number' : 'Phone Number'}
+                    </FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="123456"
-                        maxLength={6}
-                        className="text-center text-2xl tracking-widest font-mono h-14 bg-slate-50 border-slate-200"
+                        placeholder={identifyBy === 'nric' ? 'S1234567A' : '+65 9123 4567'}
+                        className="h-11"
                         {...field}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="nric"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-slate-700">NRIC Number</FormLabel>
-                    <FormControl>
-                      <Input placeholder="S1234567A" className="h-11" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
-import { cn, Button, Sheet, SheetContent, SheetTrigger } from '@agent-system/shared-ui';
+import { cn, Button, Sheet, SheetContent, SheetTrigger, Logo } from '@agent-system/shared-ui';
 import { Home, Calendar, Send, Award, LogOut, Menu, Users, CheckSquare } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
@@ -32,11 +32,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const SidebarContent = () => (
     <>
       <div className="flex h-16 items-center gap-3 px-6 border-b border-white/10">
-        <div className="h-9 w-9 rounded-xl bg-sky-600 flex items-center justify-center shadow-lg">
-          <Users className="h-5 w-5 text-white" />
-        </div>
+        <Logo size="md" showText={false} />
         <span className="font-semibold text-lg text-white">
-          {role === 'partner' ? 'Partner Portal' : 'Unit Portal'}
+          {role === 'partner' ? 'RACC Partner Portal' : 'RACC Unit Portal'}
         </span>
       </div>
       <nav className="p-4 space-y-1">

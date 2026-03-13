@@ -9,6 +9,7 @@ import {
   CardTitle,
   Input,
   Label,
+  Logo,
 } from '@agent-system/shared-ui';
 import { useAuth } from '../hooks/useAuth';
 
@@ -39,10 +40,8 @@ export function Login() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto h-12 w-12 rounded-lg bg-primary flex items-center justify-center mb-4">
-            <span className="text-primary-foreground font-bold text-xl">A</span>
-          </div>
-          <CardTitle className="text-2xl">Unit Portal</CardTitle>
+          <Logo size="lg" showText={false} className="mx-auto mb-4" />
+          <CardTitle className="text-2xl">RACC Portal</CardTitle>
           <CardDescription>
             Sign in to manage your invitations and rewards
           </CardDescription>

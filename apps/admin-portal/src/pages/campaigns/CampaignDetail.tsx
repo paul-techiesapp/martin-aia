@@ -241,8 +241,8 @@ export function CampaignDetail() {
     const dateStr = format(newSlot.date, 'yyyy-MM-dd');
     await createSlot.mutateAsync({
       campaign_id: campaignId,
-      start_at: `${dateStr}T${newSlot.start_time}:00`,
-      end_at: `${dateStr}T${newSlot.end_time}:00`,
+      start_at: new Date(`${dateStr}T${newSlot.start_time}:00`).toISOString(),
+      end_at: new Date(`${dateStr}T${newSlot.end_time}:00`).toISOString(),
       checkin_window_minutes: newSlot.checkin_window_minutes,
       checkout_window_minutes: newSlot.checkout_window_minutes,
       is_active: true,
@@ -273,8 +273,8 @@ export function CampaignDetail() {
     for (const dateStr of selectedDates) {
       await createSlot.mutateAsync({
         campaign_id: campaignId,
-        start_at: `${dateStr}T${bulkStartTime}:00`,
-        end_at: `${dateStr}T${bulkEndTime}:00`,
+        start_at: new Date(`${dateStr}T${bulkStartTime}:00`).toISOString(),
+        end_at: new Date(`${dateStr}T${bulkEndTime}:00`).toISOString(),
         checkin_window_minutes: bulkCheckinWindow,
         checkout_window_minutes: bulkCheckoutWindow,
         is_active: true,

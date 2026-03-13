@@ -8,6 +8,17 @@
 
 Integrate WhatsApp OTP delivery via the OneWaySMS WBA API into the check-out flow as part of the full shareable links redesign. This replaces PIN-based checkout with a proper OTP system — fresh 6-digit codes generated on demand, delivered via WhatsApp, with 5-minute expiry.
 
+### Parent Spec Supersessions
+
+This spec supersedes or modifies the following items from the [parent spec](2026-03-11-shareable-links-redesign.md):
+
+| Parent Spec Item | Change |
+|------------------|--------|
+| `whatsapp_send_log` table retained (migration step 10) | **Dropped.** Rate limiting uses `otp_codes.created_at` directly. Migration step 10 is removed. |
+| Edge Function named `send-whatsapp-otp` | **Renamed** to `send-checkout-otp` (canonical name) |
+| Edge Function named `verify-otp` | **Renamed** to `verify-checkout-otp` (canonical name) |
+| `otp_codes` includes `updated_at` column | **Removed.** OTP records are write-once (insert → mark used). No updates needed. |
+
 ## Decisions Made
 
 | Decision | Choice | Rationale |
@@ -65,11 +76,13 @@ GET https://wba-api.onewaysms.com/api.aspx
 ### Environment Variables (Edge Function Secrets)
 
 ```
-ONEWAYSMS_API_USERNAME=APISCYZJRET
-ONEWAYSMS_API_PASSWORD=APISCYZJRETSCYZ
+ONEWAYSMS_API_USERNAME=<set-in-supabase-secrets>
+ONEWAYSMS_API_PASSWORD=<set-in-supabase-secrets>
 ONEWAYSMS_TEMPLATE_ID=2374
 WHATSAPP_PROVIDER=onewaysms
 ```
+
+> **Note:** Real credentials must only be stored in Supabase Edge Function secrets and Render environment variables, never in committed files.
 
 `WHATSAPP_PROVIDER` controls provider selection:
 - `onewaysms` → real API calls
@@ -91,9 +104,9 @@ CREATE TABLE otp_codes (
   created_at      timestamptz NOT NULL DEFAULT now()
 );
 
--- For OTP verification lookup
+-- For OTP verification lookup (includes expires_at for index-only scan)
 CREATE INDEX idx_otp_codes_verification
-  ON otp_codes(registration_id, code, is_used);
+  ON otp_codes(registration_id, code, is_used, expires_at);
 
 -- For rate limiting queries
 CREATE INDEX idx_otp_codes_rate_limit
@@ -138,7 +151,8 @@ All other schema changes (agent_links, invitations → registrations, attendance
 9. **Normalize phone:** Strip `+`, `-`, spaces from registration's `invitee_phone`
 10. **Call OneWaySMS API:** `GET` with template message `*T2374|{code}`
 11. **Check response:** HTTP 200 + body > 0 = success
-12. **Return:**
+12. **On send failure:** Delete the OTP record inserted at step 8 so it does not count against the rate limit. Return 502 with provider error code.
+13. **Return:**
 ```json
 {
   "success": true,
@@ -172,12 +186,14 @@ All other schema changes (agent_links, invitations → registrations, attendance
 **Flow:**
 
 1. **Look up registration** by `slot_id` + identifier (same logic as send)
-2. **Find valid OTP:** `SELECT * FROM otp_codes WHERE registration_id = $1 AND code = $2 AND is_used = false AND expires_at > NOW()`
-3. **Not found** → 400 "Invalid or expired OTP"
-4. **Mark OTP as used:** `UPDATE otp_codes SET is_used = true WHERE id = $1`
-5. **Update attendance:** `UPDATE attendance SET checkout_time = NOW(), is_full_attendance = true WHERE registration_id = $1`
-6. **Update registration status:** `UPDATE registrations SET status = 'completed' WHERE id = $1`
-7. **Return:**
+2. **Validate not already checked out:** `SELECT checkout_time FROM attendance WHERE registration_id = $1`. If `checkout_time IS NOT NULL` → 400 `already_checked_out`
+3. **Find valid OTP with row lock:** `SELECT * FROM otp_codes WHERE registration_id = $1 AND code = $2 AND is_used = false AND expires_at > NOW() FOR UPDATE`
+4. **Not found** → 400 "Invalid or expired OTP"
+5. **Atomic checkout (steps 5-7 in a single transaction):**
+   - **Mark OTP as used:** `UPDATE otp_codes SET is_used = true WHERE id = $1`
+   - **Update attendance:** `UPDATE attendance SET checkout_time = NOW(), is_full_attendance = true WHERE registration_id = $1`
+   - **Update registration status:** `UPDATE registrations SET status = 'completed' WHERE id = $1`
+6. **Return:**
 ```json
 {
   "success": true
@@ -204,7 +220,7 @@ All other schema changes (agent_links, invitations → registrations, attendance
 
 ### WhatsApp Service Layer
 
-Refactor existing `whatsapp-service.ts` into a shared utility used by `send-checkout-otp`:
+Replace existing `whatsapp-service.ts` with a new shared utility for `send-checkout-otp`. The current implementation targets a different API endpoint (`gateway.onewaysms.com` SMS gateway with JSON POST) and is incompatible with the WBA WhatsApp API (`wba-api.onewaysms.com` with GET query parameters):
 
 ```typescript
 // Shared: supabase/functions/_shared/whatsapp-service.ts
@@ -291,15 +307,15 @@ function normalizePhone(phone: string): string {
 This is a breaking change requiring coordinated deployment:
 
 1. **Maintenance mode** — brief window
-2. **Database migration** — single migration file, ordered:
+2. **Database migration** — single migration file, ordered (FK-dependency aware):
    a. Create `registration_status` enum
    b. Create `agent_links` table
-   c. Create `otp_codes` table
-   d. Modify `attendance`: drop `pin_code_id`
-   e. Rename `invitations` → `registrations` with schema changes
-   f. Modify `attendance`: rename `invitation_id` → `registration_id`
+   c. Modify `attendance`: drop `pin_code_id` column and FK
+   d. Rename `invitations` → `registrations` with schema changes (must happen before `otp_codes` and attendance FK update)
+   e. Create `otp_codes` table (depends on `registrations` existing for FK)
+   f. Modify `attendance`: rename `invitation_id` → `registration_id`, update FK
    g. Drop `pin_codes` table
-   h. Drop `whatsapp_send_log` table
+   h. Drop `whatsapp_send_log` table (superseded by `otp_codes` for rate limiting)
    i. Rename `campaigns.invitation_type` → `registration_type`
    j. Drop old `invitation_status` enum
    k. Create RLS policies for new/modified tables

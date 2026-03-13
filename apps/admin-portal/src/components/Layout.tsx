@@ -6,7 +6,6 @@ import {
   Calendar,
   Users,
   BadgeCheck,
-  QrCode,
   BarChart3,
   FileText,
   LogOut,
@@ -20,7 +19,6 @@ const navigation = [
   { name: 'Events', href: '/campaigns', icon: Calendar },
   { name: 'Units', href: '/agents', icon: Users },
   { name: 'Tiers', href: '/tiers', icon: BadgeCheck },
-  { name: 'PIN Codes', href: '/pin-codes', icon: QrCode },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
   { name: 'PDF Export', href: '/pdf-export', icon: FileText },
 ];

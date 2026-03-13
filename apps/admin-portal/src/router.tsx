@@ -14,7 +14,6 @@ import { CampaignDetail } from './pages/campaigns/CampaignDetail';
 import { AgentList } from './pages/agents/AgentList';
 import { AgentForm } from './pages/agents/AgentForm';
 import { TierList } from './pages/tiers/TierList';
-import { PinCodes } from './pages/PinCodes';
 import { Reports } from './pages/Reports';
 import { PdfExport } from './pages/PdfExport';
 import { VenueDisplay } from './pages/VenueDisplay';
@@ -102,13 +101,6 @@ const tiersRoute = createRoute({
   component: TierList,
 });
 
-// PIN codes route
-const pinCodesRoute = createRoute({
-  getParentRoute: () => protectedLayoutRoute,
-  path: '/pin-codes',
-  component: PinCodes,
-});
-
 // Reports route
 const reportsRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
@@ -146,7 +138,6 @@ const routeTree = rootRoute.addChildren([
     newAgentRoute,
     editAgentRoute,
     tiersRoute,
-    pinCodesRoute,
     reportsRoute,
     pdfExportRoute,
   ]),

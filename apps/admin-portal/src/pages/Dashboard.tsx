@@ -9,13 +9,16 @@ import {
   StatCard,
   StatCardGrid,
 } from '@agent-system/shared-ui';
-import { Calendar, Users, UserCheck, DollarSign, ArrowRight } from 'lucide-react';
+import { Calendar, Users, UserCheck, ClipboardList, DollarSign, ArrowRight } from 'lucide-react';
 import { useCampaigns } from '../hooks/useCampaigns';
+import { useRegistrationStats } from '../hooks/useRegistrations';
 import { CampaignStatus } from '@agent-system/shared-types';
 import { supabase } from '../lib/supabase';
 
 export function Dashboard() {
   const { data: campaigns, isLoading: campaignsLoading } = useCampaigns();
+
+  const { data: registrationStats, isLoading: registrationStatsLoading } = useRegistrationStats();
 
   const activeCampaigns = campaigns?.filter(c => c.status === CampaignStatus.ACTIVE).length ?? 0;
 
@@ -59,7 +62,7 @@ export function Dashboard() {
     },
   });
 
-  const isLoading = campaignsLoading || agentsLoading || attendanceLoading || rewardsLoading;
+  const isLoading = campaignsLoading || agentsLoading || attendanceLoading || rewardsLoading || registrationStatsLoading;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -68,7 +71,7 @@ export function Dashboard() {
         <p className="text-slate-500 mt-1">Welcome to the Management System</p>
       </div>
 
-      <StatCardGrid columns={4}>
+      <StatCardGrid columns={5}>
         <StatCard
           title="Active Events"
           value={activeCampaigns}
@@ -85,6 +88,15 @@ export function Dashboard() {
           icon={Users}
           iconColor="text-emerald-600"
           iconBgColor="bg-emerald-100"
+          loading={isLoading}
+        />
+        <StatCard
+          title="Total Registrations"
+          value={registrationStats?.totalRegistrations ?? 0}
+          subtitle={`${registrationStats?.completed ?? 0} completed`}
+          icon={ClipboardList}
+          iconColor="text-indigo-600"
+          iconBgColor="bg-indigo-100"
           loading={isLoading}
         />
         <StatCard
@@ -139,10 +151,10 @@ export function Dashboard() {
               <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
             </Link>
             <Link
-              to="/pin-codes"
+              to="/reports"
               className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-100 transition-colors group"
             >
-              <span className="text-sm font-medium text-slate-700">Generate PIN Codes</span>
+              <span className="text-sm font-medium text-slate-700">View Reports</span>
               <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
             </Link>
           </CardContent>

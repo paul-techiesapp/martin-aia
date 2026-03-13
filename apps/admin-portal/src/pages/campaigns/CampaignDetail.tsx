@@ -38,9 +38,159 @@ import { ArrowLeft, Plus, Trash2, Power, PowerOff, Mail, CalendarPlus } from 'lu
 import { useCampaign, useUpdateCampaignStatus } from '../../hooks/useCampaigns';
 import { useEmailReminders } from '../../hooks/useEmailReminders';
 import { useSlots, useCreateSlot, useDeleteSlot, useToggleSlotActive } from '../../hooks/useSlots';
+import { useRegistrationsBySlot } from '../../hooks/useRegistrations';
 import { CampaignStatus } from '@agent-system/shared-types';
 import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import type { Slot } from '@agent-system/shared-types';
+
+function getRegistrationStatusVariant(status: string): 'active' | 'warning' | 'info' | 'inactive' {
+  switch (status) {
+    case 'registered': return 'info';
+    case 'attended': return 'warning';
+    case 'completed': return 'active';
+    case 'expired': return 'inactive';
+    default: return 'inactive';
+  }
+}
+
+function SlotRow({
+  slot,
+  isExpanded,
+  onToggleExpand,
+  onOpenReminder,
+  onToggleActive,
+  onDelete,
+}: {
+  slot: Slot;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  onOpenReminder: () => void;
+  onToggleActive: () => void;
+  onDelete: () => void;
+}) {
+  const { data: registrations, isLoading: isLoadingRegistrations } = useRegistrationsBySlot(slot.id);
+  const count = registrations?.length ?? 0;
+
+  return (
+    <>
+      <TableRow className="hover:bg-slate-50/50 transition-colors">
+        <TableCell className="font-medium">
+          {format(parseISO(slot.start_at), 'd MMM yyyy')}
+        </TableCell>
+        <TableCell className="text-slate-600">
+          {format(parseISO(slot.start_at), 'HH:mm')} - {format(parseISO(slot.end_at), 'HH:mm')}
+        </TableCell>
+        <TableCell className="text-slate-600">{slot.checkin_window_minutes} mins</TableCell>
+        <TableCell className="text-slate-600">{slot.checkout_window_minutes} mins</TableCell>
+        <TableCell>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-auto px-2 py-1 text-sm"
+            onClick={onToggleExpand}
+          >
+            <Badge variant={count > 0 ? 'active' : 'inactive'}>
+              {count} registered
+            </Badge>
+          </Button>
+        </TableCell>
+        <TableCell>
+          <Badge variant={slot.is_active ? 'active' : 'inactive'}>
+            {slot.is_active ? 'Active' : 'Inactive'}
+          </Badge>
+        </TableCell>
+        <TableCell className="text-right">
+          <div className="flex items-center justify-end gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={onOpenReminder}
+              title="Send email reminders"
+            >
+              <Mail className="h-4 w-4 text-indigo-500" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={onToggleActive}
+            >
+              {slot.is_active ? (
+                <PowerOff className="h-4 w-4" />
+              ) : (
+                <Power className="h-4 w-4" />
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={onDelete}
+            >
+              <Trash2 className="h-4 w-4 text-red-500" />
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+      {isExpanded && (
+        <TableRow>
+          <TableCell colSpan={7} className="bg-slate-50/50 p-0">
+            <div className="p-4">
+              <h4 className="text-sm font-semibold text-slate-700 mb-3">
+                Registrations for {format(parseISO(slot.start_at), 'd MMM yyyy, HH:mm')}
+              </h4>
+              {isLoadingRegistrations ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-8 w-full" />
+                  ))}
+                </div>
+              ) : !registrations || registrations.length === 0 ? (
+                <p className="text-sm text-slate-500">No registrations for this slot yet.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead>Name</TableHead>
+                      <TableHead>NRIC</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Agent</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {registrations.map((reg) => (
+                      <TableRow key={reg.id} className="hover:bg-white/50 transition-colors">
+                        <TableCell className="font-medium">{reg.invitee_name}</TableCell>
+                        <TableCell className="text-slate-600 font-mono text-sm">{reg.invitee_nric}</TableCell>
+                        <TableCell className="text-slate-600">{reg.invitee_phone}</TableCell>
+                        <TableCell className="text-slate-600">
+                          {reg.agent?.name ?? '-'}
+                          {reg.agent?.agent_code ? ` (${reg.agent.agent_code})` : ''}
+                        </TableCell>
+                        <TableCell className="capitalize text-slate-600">
+                          {reg.capacity_type?.replace('_', ' ') ?? '-'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getRegistrationStatusVariant(reg.status)}>
+                            {reg.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
+          </TableCell>
+        </TableRow>
+      )}
+    </>
+  );
+}
 
 export function CampaignDetail() {
   const navigate = useNavigate();
@@ -55,6 +205,7 @@ export function CampaignDetail() {
   const sendReminders = useEmailReminders();
   const [reminderSlot, setReminderSlot] = useState<{ id: string; label: string; count: number } | null>(null);
   const { toast } = useToast();
+  const [expandedSlotId, setExpandedSlotId] = useState<string | null>(null);
 
   const [isAddSlotOpen, setIsAddSlotOpen] = useState(false);
   const [newSlot, setNewSlot] = useState({
@@ -139,7 +290,7 @@ export function CampaignDetail() {
 
   const handleOpenReminderDialog = async (slot: { id: string; start_at: string }) => {
     const { count } = await supabase
-      .from('invitations')
+      .from('registrations')
       .select('id', { count: 'exact', head: true })
       .eq('slot_id', slot.id)
       .eq('status', 'registered')
@@ -488,60 +639,22 @@ export function CampaignDetail() {
                   <TableHead>Time</TableHead>
                   <TableHead>Check-in Window</TableHead>
                   <TableHead>Check-out Window</TableHead>
+                  <TableHead>Registrations</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {slots?.map((slot) => (
-                  <TableRow key={slot.id} className="hover:bg-slate-50/50 transition-colors">
-                    <TableCell className="font-medium">
-                      {format(parseISO(slot.start_at), 'd MMM yyyy')}
-                    </TableCell>
-                    <TableCell className="text-slate-600">
-                      {format(parseISO(slot.start_at), 'HH:mm')} - {format(parseISO(slot.end_at), 'HH:mm')}
-                    </TableCell>
-                    <TableCell className="text-slate-600">{slot.checkin_window_minutes} mins</TableCell>
-                    <TableCell className="text-slate-600">{slot.checkout_window_minutes} mins</TableCell>
-                    <TableCell>
-                      <Badge variant={slot.is_active ? 'active' : 'inactive'}>
-                        {slot.is_active ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={() => handleOpenReminderDialog(slot)}
-                          title="Send email reminders"
-                        >
-                          <Mail className="h-4 w-4 text-indigo-500" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={() => toggleSlotActive.mutate({ id: slot.id, is_active: !slot.is_active })}
-                        >
-                          {slot.is_active ? (
-                            <PowerOff className="h-4 w-4" />
-                          ) : (
-                            <Power className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={() => handleDeleteSlot(slot.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                  <SlotRow
+                    key={slot.id}
+                    slot={slot}
+                    isExpanded={expandedSlotId === slot.id}
+                    onToggleExpand={() => setExpandedSlotId(expandedSlotId === slot.id ? null : slot.id)}
+                    onOpenReminder={() => handleOpenReminderDialog(slot)}
+                    onToggleActive={() => toggleSlotActive.mutate({ id: slot.id, is_active: !slot.is_active })}
+                    onDelete={() => handleDeleteSlot(slot.id)}
+                  />
                 ))}
               </TableBody>
             </Table>
@@ -557,10 +670,10 @@ export function CampaignDetail() {
             <DialogDescription>
               {reminderSlot && reminderSlot.count > 0 ? (
                 <>
-                  This will send a reminder email to <strong>{reminderSlot.count} registered invitee{reminderSlot.count > 1 ? 's' : ''}</strong> for the <strong>{reminderSlot.label}</strong> slot.
+                  This will send a reminder email to <strong>{reminderSlot.count} registered attendee{reminderSlot.count > 1 ? 's' : ''}</strong> for the <strong>{reminderSlot.label}</strong> slot.
                 </>
               ) : (
-                'No registered invitees with email addresses for this slot.'
+                'No registered attendees with email addresses for this slot.'
               )}
             </DialogDescription>
           </DialogHeader>

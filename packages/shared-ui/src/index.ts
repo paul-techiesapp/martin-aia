@@ -107,6 +107,8 @@ export {
   DropdownMenuSubTrigger,
   DropdownMenuRadioGroup,
 } from './components/ui/dropdown-menu';
+export { Logo } from './components/logo';
+export type { LogoProps } from './components/logo';
 export {
   AppSidebar,
   SidebarProvider,

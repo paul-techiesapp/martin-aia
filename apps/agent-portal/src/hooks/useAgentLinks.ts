@@ -106,15 +106,13 @@ export function useCreateLink() {
         return existing as AgentLink;
       }
 
-      // Create new link with a generated link_code
-      const linkCode = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+      // Create new link — link_code is auto-generated as UUID by database default
       const { data, error } = await supabase
         .from('agent_links')
         .insert({
           agent_id: agentId,
           slot_id: slotId,
           partner_id: partnerId || null,
-          link_code: linkCode,
           is_active: true,
         })
         .select()

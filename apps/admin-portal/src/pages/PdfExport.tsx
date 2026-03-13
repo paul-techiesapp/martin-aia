@@ -145,6 +145,7 @@ export function PdfExport() {
         campaignName: inv.slot.campaign.name,
         venue: inv.slot.campaign.venue,
         dayOfWeek: format(parseISO(inv.slot.start_at), 'EEE'),
+        slotDate: inv.slot.start_at,
         startTime: format(parseISO(inv.slot.start_at), 'HH:mm'),
         endTime: format(parseISO(inv.slot.end_at), 'HH:mm'),
         uniqueToken: inv.unique_token,

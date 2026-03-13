@@ -5,6 +5,7 @@ interface InvitationCardData {
   campaignName: string;
   venue: string;
   dayOfWeek: string;
+  slotDate: string;      // ISO datetime string e.g., "2026-03-15T09:00:00+00:00"
   startTime: string;
   endTime: string;
   uniqueToken: string;
@@ -19,6 +20,117 @@ interface PinSheetData {
   checkoutUrl: string;
 }
 
+/**
+ * Draw a single Split Panel invitation card on the current jsPDF page.
+ * Matches the RACC Agency brand: navy left panel with date, white right panel with details.
+ */
+function drawInvitationCard(doc: jsPDF, data: InvitationCardData): void {
+  const pageW = 148;
+  const pageH = 105;
+  const leftW = 40; // Left panel width in mm
+
+  // Parse slot date for left panel display
+  const slotDate = new Date(data.slotDate);
+  const dayNum = slotDate.getDate().toString();
+  const monthYear = slotDate.toLocaleString('en', { month: 'short' }).toUpperCase() + ' ' + slotDate.getFullYear();
+
+  // --- Page background ---
+  doc.setFillColor(248, 250, 252);
+  doc.rect(0, 0, pageW, pageH, 'F');
+
+  // --- Left Panel (solid navy — jsPDF can't render gradients) ---
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0, 0, leftW, pageH, 'F');
+
+  // RACC Agency label (gold)
+  doc.setTextColor(218, 165, 32);
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'bold');
+  doc.text('RACC AGENCY', leftW / 2, 12, { align: 'center' });
+
+  // "Event Invitation" subtitle
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(6);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Event Invitation', leftW / 2, 18, { align: 'center' });
+
+  // Date display — large day number (matches React component left panel)
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(22);
+  doc.setFont('helvetica', 'bold');
+  doc.text(dayNum, leftW / 2, 55, { align: 'center' });
+
+  // Month + Year
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.text(monthYear, leftW / 2, 63, { align: 'center' });
+
+  // Time
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`${data.startTime} - ${data.endTime}`, leftW / 2, 70, { align: 'center' });
+
+  // --- Right Panel ---
+  const rightX = leftW + 5;
+  const rightW = pageW - leftW - 10;
+
+  // Campaign name
+  doc.setTextColor(15, 23, 42);
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  const nameLines = doc.splitTextToSize(data.campaignName, rightW);
+  doc.text(nameLines, rightX, 15);
+  const nameEndY = 15 + nameLines.length * 6;
+
+  // Venue
+  doc.setTextColor(100, 116, 139);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text(data.venue, rightX, nameEndY + 4);
+
+  // Dashed divider
+  const dividerY = nameEndY + 10;
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineDashPattern([1, 1], 0);
+  doc.line(rightX, dividerY, rightX + rightW, dividerY);
+  doc.setLineDashPattern([], 0); // Reset dash
+
+  // Invitee section
+  doc.setTextColor(148, 163, 184);
+  doc.setFontSize(7);
+  doc.text('INVITEE', rightX, dividerY + 7);
+
+  doc.setTextColor(15, 23, 42);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text(data.inviteeName, rightX, dividerY + 14);
+
+  // Registration instructions
+  doc.setTextColor(100, 116, 139);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Register using your unique link:', rightX, dividerY + 24);
+
+  // Registration URL
+  doc.setTextColor(3, 105, 161); // Sky blue for links
+  doc.setFontSize(7);
+  const shortUrl =
+    data.registrationUrl.length > 55
+      ? data.registrationUrl.substring(0, 52) + '...'
+      : data.registrationUrl;
+  doc.text(shortUrl, rightX, dividerY + 30);
+
+  // Token reference (bottom right)
+  doc.setTextColor(148, 163, 184);
+  doc.setFontSize(6);
+  doc.text(
+    `Ref: ${data.uniqueToken.substring(0, 8)}...`,
+    pageW - 5,
+    pageH - 5,
+    { align: 'right' },
+  );
+}
+
 export function generateInvitationCard(data: InvitationCardData): jsPDF {
   const doc = new jsPDF({
     orientation: 'landscape',
@@ -26,68 +138,7 @@ export function generateInvitationCard(data: InvitationCardData): jsPDF {
     format: [148, 105], // A6 landscape
   });
 
-  // Background
-  doc.setFillColor(248, 250, 252);
-  doc.rect(0, 0, 148, 105, 'F');
-
-  // Header bar
-  doc.setFillColor(59, 130, 246);
-  doc.rect(0, 0, 148, 20, 'F');
-
-  // Title
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text('EVENT INVITATION', 74, 13, { align: 'center' });
-
-  // Campaign name
-  doc.setTextColor(30, 41, 59);
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text(data.campaignName, 74, 32, { align: 'center' });
-
-  // Invitee name
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(71, 85, 105);
-  doc.text(`Dear ${data.inviteeName},`, 10, 45);
-
-  doc.setFontSize(10);
-  doc.text('You are cordially invited to attend:', 10, 52);
-
-  // Event details box
-  doc.setFillColor(241, 245, 249);
-  doc.roundedRect(10, 56, 128, 25, 3, 3, 'F');
-
-  doc.setTextColor(30, 41, 59);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Date & Time:', 15, 64);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`${data.dayOfWeek}, ${data.startTime} - ${data.endTime}`, 50, 64);
-
-  doc.setFont('helvetica', 'bold');
-  doc.text('Venue:', 15, 72);
-  doc.setFont('helvetica', 'normal');
-  doc.text(data.venue, 50, 72);
-
-  // Registration instructions
-  doc.setFontSize(9);
-  doc.setTextColor(71, 85, 105);
-  doc.text('Please register using your unique link:', 10, 88);
-
-  doc.setTextColor(59, 130, 246);
-  doc.setFontSize(8);
-  const shortUrl = data.registrationUrl.length > 60
-    ? data.registrationUrl.substring(0, 57) + '...'
-    : data.registrationUrl;
-  doc.text(shortUrl, 10, 93);
-
-  // Token reference
-  doc.setTextColor(148, 163, 184);
-  doc.setFontSize(7);
-  doc.text(`Ref: ${data.uniqueToken.substring(0, 8)}...`, 128, 100, { align: 'right' });
-
+  drawInvitationCard(doc, data);
   return doc;
 }
 
@@ -102,68 +153,7 @@ export function generateBulkInvitationCards(invitations: InvitationCardData[]): 
     if (index > 0) {
       doc.addPage([148, 105], 'landscape');
     }
-
-    // Background
-    doc.setFillColor(248, 250, 252);
-    doc.rect(0, 0, 148, 105, 'F');
-
-    // Header bar
-    doc.setFillColor(59, 130, 246);
-    doc.rect(0, 0, 148, 20, 'F');
-
-    // Title
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('EVENT INVITATION', 74, 13, { align: 'center' });
-
-    // Campaign name
-    doc.setTextColor(30, 41, 59);
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text(invitation.campaignName, 74, 32, { align: 'center' });
-
-    // Invitee name
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(71, 85, 105);
-    doc.text(`Dear ${invitation.inviteeName},`, 10, 45);
-
-    doc.setFontSize(10);
-    doc.text('You are cordially invited to attend:', 10, 52);
-
-    // Event details box
-    doc.setFillColor(241, 245, 249);
-    doc.roundedRect(10, 56, 128, 25, 3, 3, 'F');
-
-    doc.setTextColor(30, 41, 59);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Date & Time:', 15, 64);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`${invitation.dayOfWeek}, ${invitation.startTime} - ${invitation.endTime}`, 50, 64);
-
-    doc.setFont('helvetica', 'bold');
-    doc.text('Venue:', 15, 72);
-    doc.setFont('helvetica', 'normal');
-    doc.text(invitation.venue, 50, 72);
-
-    // Registration instructions
-    doc.setFontSize(9);
-    doc.setTextColor(71, 85, 105);
-    doc.text('Please register using your unique link:', 10, 88);
-
-    doc.setTextColor(59, 130, 246);
-    doc.setFontSize(8);
-    const shortUrl = invitation.registrationUrl.length > 60
-      ? invitation.registrationUrl.substring(0, 57) + '...'
-      : invitation.registrationUrl;
-    doc.text(shortUrl, 10, 93);
-
-    // Token reference
-    doc.setTextColor(148, 163, 184);
-    doc.setFontSize(7);
-    doc.text(`Ref: ${invitation.uniqueToken.substring(0, 8)}...`, 128, 100, { align: 'right' });
+    drawInvitationCard(doc, invitation);
   });
 
   return doc;

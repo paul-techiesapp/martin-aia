@@ -123,22 +123,22 @@ serve(async (req) => {
       );
     }
 
-    // Fetch registered invitees with email
-    const { data: invitations, error: invError } = await supabase
-      .from("invitations")
+    // Fetch registered/attended registrants with email
+    const { data: registrations, error: regError } = await supabase
+      .from("registrations")
       .select("invitee_name, invitee_email")
       .eq("slot_id", slot_id)
-      .eq("status", "registered")
+      .in("status", ["registered", "attended"])
       .not("invitee_email", "is", null);
 
-    if (invError) {
+    if (regError) {
       return new Response(
-        JSON.stringify({ error: "Failed to fetch invitees" }),
+        JSON.stringify({ error: "Failed to fetch registrants" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const recipients = (invitations || []).filter((i) => i.invitee_email);
+    const recipients = (registrations || []).filter((i) => i.invitee_email);
 
     if (recipients.length === 0) {
       return new Response(

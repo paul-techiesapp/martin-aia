@@ -30,8 +30,7 @@ function getPhase(slot: SlotData): SlotPhase {
   return "ended";
 }
 
-function getQrMode(phase: SlotPhase): 'checkin' | 'checkout' | null {
-  if (phase === 'checkin' || phase === 'in-progress') return 'checkin';
+function getQrMode(phase: SlotPhase): 'checkout' | null {
   if (phase === 'checkout') return 'checkout';
   return null;
 }
@@ -82,8 +81,7 @@ export function VenueDisplay() {
     }
 
     // Fallback: static URL without HMAC signing
-    const path = mode === 'checkin' ? '/public/checkin' : '/public/checkout';
-    setQrUrl(`${publicPagesUrl}${path}?slot=${slot.id}`);
+    setQrUrl(`${publicPagesUrl}/public/checkout?slot=${slot.id}`);
     setCountdown(REFRESH_INTERVAL);
   }, [slot, publicPagesUrl]);
 
@@ -110,15 +108,14 @@ export function VenueDisplay() {
 
   const mode = getQrMode(phase);
   const isActive = !!mode;
-  const color = mode === 'checkin' ? '#22c55e' : mode === 'checkout' ? '#f59e0b' : '#64748b';
+  const color = mode === 'checkout' ? '#f59e0b' : '#64748b';
   const labels: Record<SlotPhase, string> = {
     waiting: 'EVENT STARTS SOON',
-    checkin: 'CHECK IN',
-    'in-progress': 'CHECK IN',
+    checkin: 'CHECK-IN IN PROGRESS',
+    'in-progress': 'EVENT IN PROGRESS',
     checkout: 'CHECK OUT',
     ended: 'EVENT ENDED',
   };
-  const scanLabel = mode === 'checkin' ? 'check in' : 'check out';
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-8 text-center">
@@ -134,7 +131,7 @@ export function VenueDisplay() {
           <div className="mt-8 bg-white p-6 rounded-2xl">
             <QRCodeSVG value={qrUrl} size={280} />
           </div>
-          <p className="text-slate-400 text-sm mt-6">Scan to {scanLabel}</p>
+          <p className="text-slate-400 text-sm mt-6">Scan to check out</p>
           <div className="mt-4 inline-flex items-center gap-2 bg-slate-900 px-4 py-2 rounded-full">
             <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: color }} />
             <span className="text-sm text-slate-400">Refreshes in <strong className="text-white">{countdown}s</strong></span>

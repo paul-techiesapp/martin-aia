@@ -17,6 +17,7 @@ import { TierList } from './pages/tiers/TierList';
 import { Reports } from './pages/Reports';
 import { PdfExport } from './pages/PdfExport';
 import { VenueDisplay } from './pages/VenueDisplay';
+import { CheckInScanner } from './pages/CheckInScanner';
 
 // Root route
 const rootRoute = createRootRoute({
@@ -115,6 +116,13 @@ const pdfExportRoute = createRoute({
   component: PdfExport,
 });
 
+// Check-in Scanner route
+const checkInScannerRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/check-in',
+  component: CheckInScanner,
+});
+
 const venueDisplayRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/venue-display/$slotId',
@@ -140,6 +148,7 @@ const routeTree = rootRoute.addChildren([
     tiersRoute,
     reportsRoute,
     pdfExportRoute,
+    checkInScannerRoute,
   ]),
 ]);
 

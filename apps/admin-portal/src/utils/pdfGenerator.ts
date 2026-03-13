@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf';
+import QRCode from 'qrcode';
 
 interface InvitationCardData {
   inviteeName: string;
@@ -9,22 +10,27 @@ interface InvitationCardData {
   startTime: string;
   endTime: string;
   uniqueToken: string;
+  registrationId: string;
   registrationUrl: string;
 }
 
-interface PinSheetData {
-  campaignName: string;
-  slotInfo: string;
-  pinCodes: string[];
-  checkinUrl: string;
-  checkoutUrl: string;
+/**
+ * Generate QR code as base64 data URL
+ */
+async function generateQrDataUrl(text: string): Promise<string> {
+  return QRCode.toDataURL(text, {
+    width: 200,
+    margin: 1,
+    color: { dark: '#0f172a', light: '#ffffff' },
+  });
 }
 
 /**
  * Draw a single Split Panel invitation card on the current jsPDF page.
  * Matches the RACC Agency brand: navy left panel with date, white right panel with details.
+ * Includes a QR code for admin check-in scanning.
  */
-function drawInvitationCard(doc: jsPDF, data: InvitationCardData): void {
+async function drawInvitationCard(doc: jsPDF, data: InvitationCardData): Promise<void> {
   const pageW = 148;
   const pageH = 105;
   const leftW = 40; // Left panel width in mm
@@ -78,7 +84,7 @@ function drawInvitationCard(doc: jsPDF, data: InvitationCardData): void {
   doc.setTextColor(15, 23, 42);
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  const nameLines = doc.splitTextToSize(data.campaignName, rightW);
+  const nameLines = doc.splitTextToSize(data.campaignName, rightW - 30); // Leave space for QR
   doc.text(nameLines, rightX, 15);
   const nameEndY = 15 + nameLines.length * 6;
 
@@ -87,6 +93,27 @@ function drawInvitationCard(doc: jsPDF, data: InvitationCardData): void {
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.text(data.venue, rightX, nameEndY + 4);
+
+  // --- QR Code (top right of right panel) ---
+  const qrSize = 25; // mm
+  const qrX = pageW - qrSize - 5;
+  const qrY = 5;
+  try {
+    const qrDataUrl = await generateQrDataUrl(`CHECKIN:${data.registrationId}`);
+    doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
+  } catch {
+    // If QR generation fails, draw placeholder
+    doc.setDrawColor(200, 200, 200);
+    doc.rect(qrX, qrY, qrSize, qrSize, 'S');
+    doc.setFontSize(6);
+    doc.setTextColor(150, 150, 150);
+    doc.text('QR', qrX + qrSize / 2, qrY + qrSize / 2, { align: 'center' });
+  }
+
+  // "Scan for check-in" label under QR
+  doc.setTextColor(148, 163, 184);
+  doc.setFontSize(5);
+  doc.text('Scan for check-in', qrX + qrSize / 2, qrY + qrSize + 3, { align: 'center' });
 
   // Dashed divider
   const dividerY = nameEndY + 10;
@@ -109,16 +136,7 @@ function drawInvitationCard(doc: jsPDF, data: InvitationCardData): void {
   doc.setTextColor(100, 116, 139);
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.text('Register using your unique link:', rightX, dividerY + 24);
-
-  // Registration URL
-  doc.setTextColor(3, 105, 161); // Sky blue for links
-  doc.setFontSize(7);
-  const shortUrl =
-    data.registrationUrl.length > 55
-      ? data.registrationUrl.substring(0, 52) + '...'
-      : data.registrationUrl;
-  doc.text(shortUrl, rightX, dividerY + 30);
+  doc.text('Present this card at the event for check-in', rightX, dividerY + 24);
 
   // Token reference (bottom right)
   doc.setTextColor(148, 163, 184);
@@ -131,148 +149,30 @@ function drawInvitationCard(doc: jsPDF, data: InvitationCardData): void {
   );
 }
 
-export function generateInvitationCard(data: InvitationCardData): jsPDF {
+export async function generateInvitationCard(data: InvitationCardData): Promise<jsPDF> {
   const doc = new jsPDF({
     orientation: 'landscape',
     unit: 'mm',
     format: [148, 105], // A6 landscape
   });
 
-  drawInvitationCard(doc, data);
+  await drawInvitationCard(doc, data);
   return doc;
 }
 
-export function generateBulkInvitationCards(invitations: InvitationCardData[]): jsPDF {
+export async function generateBulkInvitationCards(invitations: InvitationCardData[]): Promise<jsPDF> {
   const doc = new jsPDF({
     orientation: 'landscape',
     unit: 'mm',
     format: [148, 105],
   });
 
-  invitations.forEach((invitation, index) => {
-    if (index > 0) {
+  for (let i = 0; i < invitations.length; i++) {
+    if (i > 0) {
       doc.addPage([148, 105], 'landscape');
     }
-    drawInvitationCard(doc, invitation);
-  });
-
-  return doc;
-}
-
-export function generatePinSheet(data: PinSheetData): jsPDF {
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-  });
-
-  const pageWidth = 210;
-  const pageHeight = 297;
-  const margin = 15;
-  let currentY = margin;
-
-  // Header
-  doc.setFillColor(59, 130, 246);
-  doc.rect(0, 0, pageWidth, 30, 'F');
-
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
-  doc.text('PIN CODE SHEET', pageWidth / 2, 15, { align: 'center' });
-
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`${data.campaignName} - ${data.slotInfo}`, pageWidth / 2, 24, { align: 'center' });
-
-  currentY = 40;
-
-  // Instructions
-  doc.setTextColor(71, 85, 105);
-  doc.setFontSize(10);
-  doc.text('Instructions:', margin, currentY);
-  currentY += 6;
-
-  doc.setFontSize(9);
-  doc.text('1. Each attendee receives ONE PIN code from this sheet', margin + 5, currentY);
-  currentY += 5;
-  doc.text('2. The PIN code is linked to their NRIC upon first check-in', margin + 5, currentY);
-  currentY += 5;
-  doc.text('3. The same PIN + NRIC combination is used for check-out', margin + 5, currentY);
-  currentY += 10;
-
-  // URLs
-  doc.setFillColor(241, 245, 249);
-  doc.roundedRect(margin, currentY, pageWidth - margin * 2, 20, 2, 2, 'F');
-  currentY += 7;
-
-  doc.setTextColor(30, 41, 59);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Check-in URL:', margin + 5, currentY);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(59, 130, 246);
-  doc.text(data.checkinUrl, margin + 35, currentY);
-  currentY += 7;
-
-  doc.setTextColor(30, 41, 59);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Check-out URL:', margin + 5, currentY);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(59, 130, 246);
-  doc.text(data.checkoutUrl, margin + 35, currentY);
-  currentY += 15;
-
-  // PIN codes grid
-  doc.setTextColor(30, 41, 59);
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.text('PIN Codes:', margin, currentY);
-  currentY += 8;
-
-  const cols = 5;
-  const cellWidth = (pageWidth - margin * 2) / cols;
-  const cellHeight = 15;
-
-  data.pinCodes.forEach((pin, index) => {
-    const col = index % cols;
-    const row = Math.floor(index / cols);
-    const x = margin + col * cellWidth;
-    const y = currentY + row * cellHeight;
-
-    // Check if we need a new page
-    if (y + cellHeight > pageHeight - margin) {
-      doc.addPage();
-      currentY = margin;
-      return;
-    }
-
-    // Cell background
-    doc.setFillColor(index % 2 === 0 ? 248 : 241, 250, index % 2 === 0 ? 252 : 249);
-    doc.rect(x, y, cellWidth - 2, cellHeight - 2, 'F');
-
-    // Cell border
-    doc.setDrawColor(226, 232, 240);
-    doc.rect(x, y, cellWidth - 2, cellHeight - 2, 'S');
-
-    // Index number
-    doc.setTextColor(148, 163, 184);
-    doc.setFontSize(7);
-    doc.text(`#${index + 1}`, x + 2, y + 4);
-
-    // PIN code
-    doc.setTextColor(30, 41, 59);
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text(pin, x + (cellWidth - 2) / 2, y + 10, { align: 'center' });
-  });
-
-  // Footer
-  const lastPageY = pageHeight - 10;
-  doc.setTextColor(148, 163, 184);
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Generated: ${new Date().toLocaleString()}`, margin, lastPageY);
-  doc.text(`Total PINs: ${data.pinCodes.length}`, pageWidth - margin, lastPageY, { align: 'right' });
+    await drawInvitationCard(doc, invitations[i]);
+  }
 
   return doc;
 }

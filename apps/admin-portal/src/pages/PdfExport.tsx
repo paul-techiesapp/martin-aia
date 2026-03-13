@@ -123,12 +123,13 @@ export function PdfExport() {
         startTime: format(parseISO(reg.slot.start_at), 'HH:mm'),
         endTime: format(parseISO(reg.slot.end_at), 'HH:mm'),
         uniqueToken: reg.agent_link?.link_code ?? reg.id,
+        registrationId: reg.id,
         registrationUrl: reg.agent_link
           ? `${publicPagesUrl}/public/register/${reg.agent_link.link_code}`
           : '',
       }));
 
-      const doc = generateBulkInvitationCards(invitationData);
+      const doc = await generateBulkInvitationCards(invitationData);
       doc.save(`invitation-cards-${selectedCampaignData?.name || 'campaign'}.pdf`);
     } catch (error) {
       console.error('Error generating invitation cards:', error);

@@ -8,6 +8,7 @@ import {
   BadgeCheck,
   BarChart3,
   FileText,
+  ScanLine,
   LogOut,
   Menu,
   X,
@@ -21,6 +22,7 @@ const navigation = [
   { name: 'Tiers', href: '/tiers', icon: BadgeCheck },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
   { name: 'PDF Export', href: '/pdf-export', icon: FileText },
+  { name: 'Check-In', href: '/check-in', icon: ScanLine },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {

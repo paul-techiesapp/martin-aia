@@ -17,8 +17,9 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  Logo,
 } from '@agent-system/shared-ui';
-import { CheckCircle, LogIn } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { InvitationStatus } from '@agent-system/shared-types';
 
@@ -220,9 +221,7 @@ export function CheckIn() {
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-40" />
       <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
         <CardHeader className="text-center pt-8">
-          <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-sky-500 to-sky-700 flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <LogIn className="h-7 w-7 text-white" />
-          </div>
+          <Logo size="lg" showText={false} className="mx-auto mb-4" />
           <CardTitle className="text-2xl font-bold text-slate-900">Event Check-In</CardTitle>
           <CardDescription className="text-slate-500">
             Enter your PIN code and NRIC to check in

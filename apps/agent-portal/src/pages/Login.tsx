@@ -43,7 +43,7 @@ export function Login() {
           <Logo size="lg" showText={false} className="mx-auto mb-4" />
           <CardTitle className="text-2xl">RACC Portal</CardTitle>
           <CardDescription>
-            Sign in to manage your invitations and rewards
+            Sign in to manage your links and rewards
           </CardDescription>
         </CardHeader>
         <CardContent>

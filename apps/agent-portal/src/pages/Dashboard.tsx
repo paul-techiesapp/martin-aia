@@ -9,26 +9,22 @@ import {
   StatCardGrid,
   Skeleton,
 } from '@agent-system/shared-ui';
-import { Calendar, Send, Award, ArrowRight, Users, CheckSquare, UserCheck } from 'lucide-react';
+import { Calendar, Award, ArrowRight, Users, UserCheck, CheckCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { useMyInvitations } from '../hooks/useInvitations';
+import { useRegistrationStats, usePartnerRegistrationStats } from '../hooks/useRegistrations';
 import { useActiveCampaigns } from '../hooks/useCampaigns';
 import { useMyPartners } from '../hooks/usePartners';
-import { useAvailableInvitations, useMyClaimedInvitations } from '../hooks/usePartnerInvitations';
-import { InvitationStatus } from '@agent-system/shared-types';
 
 function AgentDashboard() {
   const { agent } = useAuth();
-  const { data: invitations, isLoading: invitationsLoading } = useMyInvitations(agent?.id);
+  const { data: stats, isLoading: statsLoading } = useRegistrationStats(agent?.id);
   const { data: campaigns, isLoading: campaignsLoading } = useActiveCampaigns();
   const { data: partners, isLoading: partnersLoading } = useMyPartners(agent?.id);
 
-  const pendingInvitations = invitations?.filter(i => i.status === InvitationStatus.PENDING).length ?? 0;
-  const completedInvitations = invitations?.filter(i => i.status === InvitationStatus.COMPLETED).length ?? 0;
   const activeCampaigns = campaigns?.length ?? 0;
   const activePartners = partners?.filter(p => p.status === 'active').length ?? 0;
 
-  const isLoading = invitationsLoading || campaignsLoading || partnersLoading;
+  const isLoading = statsLoading || campaignsLoading || partnersLoading;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -45,15 +41,15 @@ function AgentDashboard() {
           value={activeCampaigns}
           icon={Calendar}
           iconColor="sky"
-          description="Available for invitations"
+          description="Available for links"
           loading={isLoading}
         />
         <StatCard
-          title="Pending Invitations"
-          value={pendingInvitations}
-          icon={Send}
+          title="Registered"
+          value={stats?.registered ?? 0}
+          icon={UserCheck}
           iconColor="amber"
-          description="Awaiting registration"
+          description="Signed up via your links"
           loading={isLoading}
         />
         <StatCard
@@ -61,15 +57,15 @@ function AgentDashboard() {
           value={activePartners}
           icon={Users}
           iconColor="violet"
-          description="Distributing invitations"
+          description="Sharing your links"
           loading={isLoading}
         />
         <StatCard
-          title="Rewards Earned"
-          value={completedInvitations}
+          title="Completed"
+          value={stats?.completed ?? 0}
           icon={Award}
           iconColor="emerald"
-          description={`$${(completedInvitations * (agent?.tier?.reward_amount ?? 0)).toFixed(2)}`}
+          description={`$${((stats?.completed ?? 0) * (agent?.tier?.reward_amount ?? 0)).toFixed(2)}`}
           loading={isLoading}
         />
       </StatCardGrid>
@@ -122,10 +118,10 @@ function AgentDashboard() {
               <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-1 transition-all" />
             </Link>
             <Link
-              to="/invitations"
+              to="/my-links"
               className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors group"
             >
-              <span className="text-sm font-medium text-slate-700">View My Invitations</span>
+              <span className="text-sm font-medium text-slate-700">View My Links</span>
               <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-1 transition-all" />
             </Link>
             <Link
@@ -144,14 +140,7 @@ function AgentDashboard() {
 
 function PartnerDashboard() {
   const { partner } = useAuth();
-  const { data: available, isLoading: availableLoading } = useAvailableInvitations(partner?.agent_id);
-  const { data: claimed, isLoading: claimedLoading } = useMyClaimedInvitations(partner?.id);
-
-  const pendingClaimed = claimed?.filter(i => i.status === InvitationStatus.PENDING).length ?? 0;
-  const registeredClaimed = claimed?.filter(i => i.status === InvitationStatus.REGISTERED).length ?? 0;
-  const completedClaimed = claimed?.filter(i => i.status === InvitationStatus.COMPLETED).length ?? 0;
-
-  const isLoading = availableLoading || claimedLoading;
+  const { data: stats, isLoading } = usePartnerRegistrationStats(partner?.id);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -162,34 +151,26 @@ function PartnerDashboard() {
         </p>
       </div>
 
-      <StatCardGrid columns={4}>
-        <StatCard
-          title="Available"
-          value={available?.length ?? 0}
-          icon={Send}
-          iconColor="amber"
-          description="Invitations to claim"
-          loading={isLoading}
-        />
-        <StatCard
-          title="Pending"
-          value={pendingClaimed}
-          icon={CheckSquare}
-          iconColor="sky"
-          description="Awaiting registration"
-          loading={isLoading}
-        />
+      <StatCardGrid columns={3}>
         <StatCard
           title="Registered"
-          value={registeredClaimed}
+          value={stats?.registered ?? 0}
           icon={UserCheck}
+          iconColor="sky"
+          description="Signed up via your links"
+          loading={isLoading}
+        />
+        <StatCard
+          title="Attended"
+          value={stats?.attended ?? 0}
+          icon={CheckCircle}
           iconColor="violet"
-          description="Ready for event"
+          description="Checked in at event"
           loading={isLoading}
         />
         <StatCard
           title="Completed"
-          value={completedClaimed}
+          value={stats?.completed ?? 0}
           icon={Award}
           iconColor="emerald"
           description="Full attendance"
@@ -204,17 +185,10 @@ function PartnerDashboard() {
         </CardHeader>
         <CardContent className="space-y-2">
           <Link
-            to="/available-invitations"
+            to="/partner-links"
             className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors group"
           >
-            <span className="text-sm font-medium text-slate-700">Browse Available Invitations</span>
-            <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-1 transition-all" />
-          </Link>
-          <Link
-            to="/my-invitations"
-            className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors group"
-          >
-            <span className="text-sm font-medium text-slate-700">View My Claimed Invitations</span>
+            <span className="text-sm font-medium text-slate-700">Get & Share My Links</span>
             <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-1 transition-all" />
           </Link>
         </CardContent>

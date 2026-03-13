@@ -24,16 +24,17 @@ export function usePartnerClaimCounts(agentId: string | undefined) {
     queryKey: ['partner-claim-counts', agentId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('invitations')
-        .select('claimed_by_partner_id')
+        .from('agent_links')
+        .select('partner_id')
         .eq('agent_id', agentId)
-        .not('claimed_by_partner_id', 'is', null);
+        .not('partner_id', 'is', null)
+        .eq('is_active', true);
 
       if (error) throw error;
 
       const counts: Record<string, number> = {};
-      data?.forEach(inv => {
-        const pid = inv.claimed_by_partner_id;
+      data?.forEach(link => {
+        const pid = link.partner_id;
         if (pid) counts[pid] = (counts[pid] || 0) + 1;
       });
       return counts;

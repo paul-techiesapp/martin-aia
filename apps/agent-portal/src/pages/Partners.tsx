@@ -88,10 +88,10 @@ export function Partners() {
   const handleDeactivate = async () => {
     if (!deactivateId) return;
     try {
-      const result = await deactivatePartner.mutateAsync(deactivateId);
+      await deactivatePartner.mutateAsync(deactivateId);
       toast({
         title: 'Partner deactivated',
-        description: `${result.released_invitations} pending invitation(s) released back to pool.`,
+        description: `Partner's active links have been deactivated.`,
       });
       setDeactivateId(null);
     } catch (err: any) {
@@ -266,7 +266,7 @@ export function Partners() {
           <AlertDialogHeader>
             <AlertDialogTitle>Deactivate Partner?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will prevent the partner from logging in. Any unclaimed pending invitations will be released back to your pool. Registered invitations will remain attributed.
+              This will prevent the partner from logging in. Their active links will be deactivated. Existing registrations will remain attributed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

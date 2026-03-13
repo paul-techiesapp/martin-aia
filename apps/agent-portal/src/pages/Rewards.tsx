@@ -18,13 +18,36 @@ import {
 } from '@agent-system/shared-ui';
 import { DollarSign, TrendingUp, Clock, CheckCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { useMyInvitations } from '../hooks/useInvitations';
-import { InvitationStatus } from '@agent-system/shared-types';
+import { useRegistrationStats } from '../hooks/useRegistrations';
 import { supabase } from '../lib/supabase';
+import { RegistrationStatus } from '@agent-system/shared-types';
 
 export function Rewards() {
   const { agent } = useAuth();
-  const { data: invitations, isLoading: invitationsLoading } = useMyInvitations(agent?.id);
+  const { data: stats, isLoading: statsLoading } = useRegistrationStats(agent?.id);
+
+  // Fetch completed registrations for the table
+  const { data: completedRegistrations, isLoading: registrationsLoading } = useQuery({
+    queryKey: ['completed-registrations', agent?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('registrations')
+        .select(`
+          *,
+          slot:slots(
+            *,
+            campaign:campaigns(*)
+          )
+        `)
+        .eq('agent_id', agent!.id)
+        .eq('status', RegistrationStatus.COMPLETED)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!agent?.id,
+  });
 
   // Fetch actual rewards from database
   const { data: rewardsData, isLoading: rewardsLoading } = useQuery({
@@ -51,16 +74,15 @@ export function Rewards() {
     enabled: !!agent?.id,
   });
 
-  // Calculate from completed invitations as fallback
-  const completedInvitations = invitations?.filter(i => i.status === InvitationStatus.COMPLETED) ?? [];
   const rewardAmount = agent?.tier?.reward_amount ?? 0;
+  const completedCount = stats?.completed ?? 0;
 
-  // Use database rewards if available, otherwise calculate from invitations
-  const totalEarned = rewardsData?.total || (completedInvitations.length * rewardAmount);
-  const pendingRewards = rewardsData?.pending || (completedInvitations.length * rewardAmount);
+  // Use database rewards if available, otherwise calculate from completed registrations
+  const totalEarned = rewardsData?.total || (completedCount * rewardAmount);
+  const pendingRewards = rewardsData?.pending || (completedCount * rewardAmount);
   const confirmedRewards = rewardsData?.confirmed || 0;
 
-  const isLoading = invitationsLoading || rewardsLoading;
+  const isLoading = statsLoading || rewardsLoading || registrationsLoading;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -75,7 +97,7 @@ export function Rewards() {
           value={`$${totalEarned.toFixed(2)}`}
           icon={DollarSign}
           iconColor="emerald"
-          description={`${completedInvitations.length} completed attendances`}
+          description={`${completedCount} completed attendances`}
           loading={isLoading}
         />
         <StatCard
@@ -114,7 +136,7 @@ export function Rewards() {
         <CardContent>
           {isLoading ? (
             <TableSkeleton rows={5} columns={5} />
-          ) : completedInvitations.length === 0 ? (
+          ) : !completedRegistrations || completedRegistrations.length === 0 ? (
             <p className="text-slate-500">
               No completed attendances yet. Rewards are earned when your invitees complete full attendance (check-in and check-out).
             </p>
@@ -123,21 +145,21 @@ export function Rewards() {
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead>Event</TableHead>
-                  <TableHead>Invitee</TableHead>
+                  <TableHead>Registrant</TableHead>
                   <TableHead>Capacity</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {completedInvitations.map((invitation) => (
-                  <TableRow key={invitation.id} className="hover:bg-slate-50/50 transition-colors">
+                {completedRegistrations.map((reg) => (
+                  <TableRow key={reg.id} className="hover:bg-slate-50/50 transition-colors">
                     <TableCell className="font-medium">
-                      {invitation.slot?.campaign?.name ?? '-'}
+                      {reg.slot?.campaign?.name ?? '-'}
                     </TableCell>
-                    <TableCell className="text-slate-600">{invitation.invitee_name}</TableCell>
+                    <TableCell className="text-slate-600">{reg.invitee_name}</TableCell>
                     <TableCell className="capitalize text-slate-600">
-                      {invitation.capacity_type.replace('_', ' ')}
+                      {reg.capacity_type.replace('_', ' ')}
                     </TableCell>
                     <TableCell className="text-right font-semibold text-emerald-600">
                       ${rewardAmount.toFixed(2)}
@@ -161,8 +183,8 @@ export function Rewards() {
           <div className="flex items-start gap-4">
             <div className="h-8 w-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 text-sm font-bold flex-shrink-0">1</div>
             <div>
-              <p className="font-medium text-slate-900">Invite New Members</p>
-              <p className="text-sm text-slate-500">Generate invitation links and share them with potential attendees.</p>
+              <p className="font-medium text-slate-900">Share Your Link</p>
+              <p className="text-sm text-slate-500">Get your shareable link and share it with potential attendees.</p>
             </div>
           </div>
           <div className="flex items-start gap-4">

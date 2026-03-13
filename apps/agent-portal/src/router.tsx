@@ -9,11 +9,10 @@ import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Campaigns } from './pages/Campaigns';
-import { Invitations } from './pages/Invitations';
+import { MyLinks } from './pages/MyLinks';
 import { Rewards } from './pages/Rewards';
 import { Partners } from './pages/Partners';
-import { AvailableInvitations } from './pages/AvailableInvitations';
-import { MyClaimedInvitations } from './pages/MyClaimedInvitations';
+import { PartnerLinks } from './pages/PartnerLinks';
 import { supabase } from './lib/supabase';
 
 const isAuthenticated = async () => {
@@ -64,10 +63,10 @@ const campaignsRoute = createRoute({
   component: Campaigns,
 });
 
-const invitationsRoute = createRoute({
+const myLinksRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/invitations',
-  component: Invitations,
+  path: '/my-links',
+  component: MyLinks,
 });
 
 const rewardsRoute = createRoute({
@@ -83,16 +82,10 @@ const partnersRoute = createRoute({
 });
 
 // Partner routes
-const availableInvitationsRoute = createRoute({
+const partnerLinksRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/available-invitations',
-  component: AvailableInvitations,
-});
-
-const myClaimedInvitationsRoute = createRoute({
-  getParentRoute: () => authenticatedRoute,
-  path: '/my-invitations',
-  component: MyClaimedInvitations,
+  path: '/partner-links',
+  component: PartnerLinks,
 });
 
 const routeTree = rootRoute.addChildren([
@@ -100,11 +93,10 @@ const routeTree = rootRoute.addChildren([
   authenticatedRoute.addChildren([
     indexRoute,
     campaignsRoute,
-    invitationsRoute,
+    myLinksRoute,
     rewardsRoute,
     partnersRoute,
-    availableInvitationsRoute,
-    myClaimedInvitationsRoute,
+    partnerLinksRoute,
   ]),
 ]);
 

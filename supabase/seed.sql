@@ -142,3 +142,37 @@ INSERT INTO agents (
   'f669fbc3-94ea-46ed-bfc5-a24e669ec337',
   'active'
 );
+
+-- Create a sample campaign
+INSERT INTO campaigns (id, name, start_date, end_date, venue, registration_type, status)
+VALUES (
+  'aaaa1111-1111-1111-1111-111111111111',
+  'March 2026 Recruitment Drive',
+  '2026-03-01',
+  '2026-03-31',
+  'Marina Bay Sands Convention Centre',
+  'business_opportunity',
+  'active'
+);
+
+-- Create a sample slot for the campaign
+INSERT INTO slots (id, campaign_id, start_at, end_at, checkin_window_minutes, checkout_window_minutes, is_active)
+VALUES (
+  'bbbb2222-2222-2222-2222-222222222222',
+  'aaaa1111-1111-1111-1111-111111111111',
+  '2026-03-15 10:00:00+08',
+  '2026-03-15 13:00:00+08',
+  30,
+  30,
+  true
+);
+
+-- Create an agent_link for the test agent on the sample slot
+INSERT INTO agent_links (id, agent_id, slot_id, link_code, is_active)
+VALUES (
+  'cccc3333-3333-3333-3333-333333333333',
+  'ca1b78e3-ae85-41ee-912a-d9a7cd70a345',
+  'bbbb2222-2222-2222-2222-222222222222',
+  'dddd4444-4444-4444-4444-444444444444',
+  true
+);

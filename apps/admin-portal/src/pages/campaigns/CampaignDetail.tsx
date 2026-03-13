@@ -34,7 +34,7 @@ import {
   Checkbox,
 } from '@agent-system/shared-ui';
 import { format, parseISO, eachDayOfInterval, getDay } from 'date-fns';
-import { ArrowLeft, Plus, Trash2, Power, PowerOff, Mail, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Power, PowerOff, Mail, CalendarPlus, Monitor } from 'lucide-react';
 import { useCampaign, useUpdateCampaignStatus } from '../../hooks/useCampaigns';
 import { useEmailReminders } from '../../hooks/useEmailReminders';
 import { useSlots, useCreateSlot, useDeleteSlot, useToggleSlotActive } from '../../hooks/useSlots';
@@ -102,6 +102,15 @@ function SlotRow({
         </TableCell>
         <TableCell className="text-right">
           <div className="flex items-center justify-end gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => window.open(`/venue-display/${slot.id}`, '_blank')}
+              title="Open venue display with QR codes"
+            >
+              <Monitor className="h-4 w-4 text-sky-500" />
+            </Button>
             <Button
               variant="ghost"
               size="sm"

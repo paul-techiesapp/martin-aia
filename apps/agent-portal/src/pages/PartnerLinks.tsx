@@ -10,6 +10,10 @@ import {
   StatCardGrid,
   Skeleton,
   InvitationCard,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
   useToast,
 } from '@agent-system/shared-ui';
 import { Link2, Copy, Check, Calendar, MapPin, UserCheck, CheckCircle, Users } from 'lucide-react';
@@ -256,30 +260,41 @@ export function PartnerLinks() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {links.map((link) => (
-                <InvitationCard
-                  key={link.id}
-                  eventName={link.slot?.campaign?.name ?? 'Unknown Event'}
-                  venue={link.slot?.campaign?.venue ?? '-'}
-                  date={link.slot ? parseISO(link.slot.start_at) : new Date()}
-                  startTime={link.slot ? format(parseISO(link.slot.start_at), 'HH:mm') : '-'}
-                  actions={
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleCopyLink(link.link_code, link.id)}
-                    >
-                      {copiedLinkId === link.id ? (
-                        <><Check className="h-4 w-4 mr-1 text-emerald-600" /> Copied!</>
-                      ) : (
-                        <><Copy className="h-4 w-4 mr-1" /> Copy Link</>
-                      )}
-                    </Button>
-                  }
-                />
-              ))}
-            </div>
+            <TooltipProvider>
+              <div className="space-y-3">
+                {links.map((link) => (
+                  <InvitationCard
+                    key={link.id}
+                    eventName={link.slot?.campaign?.name ?? 'Unknown Event'}
+                    venue={link.slot?.campaign?.venue ?? '-'}
+                    date={link.slot ? parseISO(link.slot.start_at) : new Date()}
+                    startTime={link.slot ? format(parseISO(link.slot.start_at), 'HH:mm') : '-'}
+                    actions={
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => handleCopyLink(link.link_code, link.id)}
+                            aria-label="Copy registration link"
+                          >
+                            {copiedLinkId === link.id ? (
+                              <Check className="h-4 w-4 text-emerald-600" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {copiedLinkId === link.id ? 'Link copied!' : 'Copy registration link'}
+                        </TooltipContent>
+                      </Tooltip>
+                    }
+                  />
+                ))}
+              </div>
+            </TooltipProvider>
           </CardContent>
         </Card>
       )}

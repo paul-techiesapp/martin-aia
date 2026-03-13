@@ -18,6 +18,7 @@ This spec supersedes or modifies the following items from the [parent spec](2026
 | Edge Function named `send-whatsapp-otp` | **Renamed** to `send-checkout-otp` (canonical name) |
 | Edge Function named `verify-otp` | **Renamed** to `verify-checkout-otp` (canonical name) |
 | `otp_codes` includes `updated_at` column | **Removed.** OTP records are write-once (insert → mark used). No updates needed. |
+| Migration step 3: Create `otp_codes` before `invitations` rename | **Reordered.** `otp_codes` creation moves to after `registrations` rename (FK dependency on `registrations`). |
 
 ## Decisions Made
 
@@ -148,6 +149,9 @@ All other schema changes (agent_links, invitations → registrations, attendance
 6. **Invalidate previous OTPs:** `UPDATE otp_codes SET expires_at = NOW() WHERE registration_id = $1 AND is_used = false AND expires_at > NOW()`
 7. **Generate OTP:** 6 cryptographically random digits
 8. **Insert OTP record:** `INSERT INTO otp_codes (registration_id, slot_id, phone, code, expires_at) VALUES ($1, $2, $3, $4, NOW() + INTERVAL '5 minutes')`
+
+> **Note on transaction boundaries:** Steps 6-8 are NOT wrapped in a DB transaction because step 10 is an external network call. There is a brief window (milliseconds) between step 6 (invalidation) and step 8 (insert) where no valid OTP exists. This is acceptable — a concurrent verify during this window returns "invalid OTP" and the user retries. Do NOT hold a DB transaction open across the API call.
+
 9. **Normalize phone:** Strip `+`, `-`, spaces from registration's `invitee_phone`
 10. **Call OneWaySMS API:** `GET` with template message `*T2374|{code}`
 11. **Check response:** HTTP 200 + body > 0 = success
@@ -186,14 +190,15 @@ All other schema changes (agent_links, invitations → registrations, attendance
 **Flow:**
 
 1. **Look up registration** by `slot_id` + identifier (same logic as send)
-2. **Validate not already checked out:** `SELECT checkout_time FROM attendance WHERE registration_id = $1`. If `checkout_time IS NOT NULL` → 400 `already_checked_out`
-3. **Find valid OTP with row lock:** `SELECT * FROM otp_codes WHERE registration_id = $1 AND code = $2 AND is_used = false AND expires_at > NOW() FOR UPDATE`
-4. **Not found** → 400 "Invalid or expired OTP"
-5. **Atomic checkout (steps 5-7 in a single transaction):**
+2. **Validate status:** Registration must be `'attended'`. If not → 400 `not_checked_in`
+3. **Validate not already checked out:** `SELECT checkout_time FROM attendance WHERE registration_id = $1`. If no row found → 400 `not_checked_in`. If `checkout_time IS NOT NULL` → 400 `already_checked_out`
+4. **Find valid OTP with row lock:** `SELECT * FROM otp_codes WHERE registration_id = $1 AND code = $2 AND is_used = false AND expires_at > NOW() FOR UPDATE`
+5. **Not found** → 400 "Invalid or expired OTP"
+6. **Atomic checkout (in a single transaction):**
    - **Mark OTP as used:** `UPDATE otp_codes SET is_used = true WHERE id = $1`
    - **Update attendance:** `UPDATE attendance SET checkout_time = NOW(), is_full_attendance = true WHERE registration_id = $1`
    - **Update registration status:** `UPDATE registrations SET status = 'completed' WHERE id = $1`
-6. **Return:**
+7. **Return:**
 ```json
 {
   "success": true

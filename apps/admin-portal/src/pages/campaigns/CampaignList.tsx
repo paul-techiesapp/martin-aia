@@ -164,7 +164,7 @@ export function CampaignList() {
                     <TableCell className="font-medium">{campaign.name}</TableCell>
                     <TableCell className="text-slate-600">{campaign.venue}</TableCell>
                     <TableCell className="capitalize text-slate-600">
-                      {campaign.invitation_type.replace('_', ' ')}
+                      {campaign.registration_type?.replace('_', ' ')}
                     </TableCell>
                     <TableCell className="text-slate-600">
                       {new Date(campaign.start_date).toLocaleDateString()} -

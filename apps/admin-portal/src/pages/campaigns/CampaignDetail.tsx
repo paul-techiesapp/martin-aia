@@ -421,7 +421,7 @@ export function CampaignDetail() {
           </CardHeader>
           <CardContent>
             <p className="font-semibold capitalize text-slate-900">
-              {campaign.invitation_type.replace('_', ' ')}
+              {campaign.registration_type?.replace('_', ' ')}
             </p>
           </CardContent>
         </Card>

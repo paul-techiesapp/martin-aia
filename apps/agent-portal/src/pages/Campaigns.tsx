@@ -117,7 +117,7 @@ export function Campaigns() {
                   {new Date(campaign.start_date).toLocaleDateString()} - {new Date(campaign.end_date).toLocaleDateString()}
                 </div>
                 <div className="mt-2 text-sm capitalize text-slate-500">
-                  Type: {campaign.invitation_type.replace('_', ' ')}
+                  Type: {campaign.registration_type?.replace('_', ' ')}
                 </div>
               </CardContent>
             </Card>

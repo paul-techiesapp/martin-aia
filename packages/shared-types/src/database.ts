@@ -15,7 +15,7 @@ export interface Campaign {
   start_date: string;
   end_date: string;
   venue: string;
-  invitation_type: InvitationType;
+  registration_type: InvitationType;
   status: CampaignStatus;
   created_at: string;
   updated_at: string;

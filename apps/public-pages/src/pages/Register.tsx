@@ -50,7 +50,7 @@ interface AgentLinkDetails {
     campaign: {
       name: string;
       venue: string;
-      invitation_type: string;
+      registration_type: string;
     };
   };
 }
@@ -97,7 +97,7 @@ export function Register() {
           campaign:campaigns(
             name,
             venue,
-            invitation_type
+            registration_type
           )
         )
       `)

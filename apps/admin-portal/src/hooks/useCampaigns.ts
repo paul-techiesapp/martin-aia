@@ -161,7 +161,7 @@ export function useDuplicateCampaign() {
         .insert({
           name: newName,
           venue: source.venue,
-          invitation_type: source.invitation_type,
+          registration_type: source.registration_type,
           start_date: newStartDate,
           end_date: newEndDate,
           status: CampaignStatus.DRAFT,

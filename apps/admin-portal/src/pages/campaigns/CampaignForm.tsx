@@ -35,7 +35,7 @@ const campaignSchema = z.object({
   venue: z.string().min(1, 'Venue is required'),
   start_date: z.string().min(1, 'Start date is required'),
   end_date: z.string().min(1, 'End date is required'),
-  invitation_type: z.nativeEnum(InvitationType),
+  registration_type: z.nativeEnum(InvitationType),
   status: z.nativeEnum(CampaignStatus),
 });
 
@@ -57,7 +57,7 @@ export function CampaignForm() {
       venue: '',
       start_date: '',
       end_date: '',
-      invitation_type: InvitationType.BUSINESS_OPPORTUNITY,
+      registration_type: InvitationType.BUSINESS_OPPORTUNITY,
       status: CampaignStatus.DRAFT,
     },
   });
@@ -69,7 +69,7 @@ export function CampaignForm() {
         venue: campaign.venue,
         start_date: campaign.start_date,
         end_date: campaign.end_date,
-        invitation_type: campaign.invitation_type,
+        registration_type: campaign.registration_type,
         status: campaign.status,
       });
     }
@@ -193,7 +193,7 @@ export function CampaignForm() {
 
               <FormField
                 control={form.control}
-                name="invitation_type"
+                name="registration_type"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Invitation Type</FormLabel>

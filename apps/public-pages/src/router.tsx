@@ -15,7 +15,7 @@ const rootRoute = createRootRoute({
 
 const registerRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/public/register/$token',
+  path: '/public/register/$linkCode',
   component: Register,
 });
 

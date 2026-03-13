@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearch } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,40 +17,53 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  Tabs,
+  TabsList,
+  TabsTrigger,
   Logo,
 } from '@agent-system/shared-ui';
 import { CheckCircle, MessageSquare, ArrowRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { InvitationStatus } from '@agent-system/shared-types';
 
-// Step 1: NRIC schema
-const nricSchema = z.object({
-  nric: z.string().min(9, 'NRIC must be at least 9 characters'),
+// Step 1: Identifier schema
+const identifierNricSchema = z.object({
+  identifier: z.string().min(9, 'NRIC must be at least 9 characters'),
 });
 
-// Step 2: PIN schema
-const pinSchema = z.object({
-  pin_code: z.string().length(6, 'PIN code must be 6 digits'),
+const identifierPhoneSchema = z.object({
+  identifier: z.string().min(8, 'Phone number must be at least 8 characters'),
 });
 
-type NricFormData = z.infer<typeof nricSchema>;
-type PinFormData = z.infer<typeof pinSchema>;
+// Step 2: OTP schema
+const otpSchema = z.object({
+  otp_code: z.string().length(6, 'OTP must be 6 digits'),
+});
+
+type IdentifierFormData = z.infer<typeof identifierNricSchema>;
+type OtpFormData = z.infer<typeof otpSchema>;
 
 export function CheckOut() {
   const search = useSearch({ strict: false }) as { slot?: string; ts?: string; sig?: string };
   const slotId = search.slot;
 
   const [step, setStep] = useState<1 | 2>(1);
+  const [identifyBy, setIdentifyBy] = useState<'nric' | 'phone'>('nric');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [attendeeName, setAttendeeName] = useState('');
   const [maskedPhone, setMaskedPhone] = useState('');
-  const [nric, setNric] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [sendCount, setSendCount] = useState(0);
 
-  // QR verification states (preserved from Task #4)
+  // Countdown timers
+  const [otpExpirySeconds, setOtpExpirySeconds] = useState(0);
+  const [resendCooldownSeconds, setResendCooldownSeconds] = useState(0);
+  const otpExpiryRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const resendCooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // QR verification states
   const [isVerifying, setIsVerifying] = useState(false);
   const [isQrValid, setIsQrValid] = useState<boolean | null>(null);
   const [qrError, setQrError] = useState<string | null>(null);
@@ -84,42 +97,115 @@ export function CheckOut() {
       });
   }, [hasQrToken, slotId]);
 
-  const nricForm = useForm<NricFormData>({
-    resolver: zodResolver(nricSchema),
-    defaultValues: { nric: '' },
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (otpExpiryRef.current) clearInterval(otpExpiryRef.current);
+      if (resendCooldownRef.current) clearInterval(resendCooldownRef.current);
+    };
+  }, []);
+
+  const startOtpExpiryTimer = useCallback(() => {
+    if (otpExpiryRef.current) clearInterval(otpExpiryRef.current);
+    setOtpExpirySeconds(300); // 5 minutes
+    otpExpiryRef.current = setInterval(() => {
+      setOtpExpirySeconds((prev) => {
+        if (prev <= 1) {
+          if (otpExpiryRef.current) clearInterval(otpExpiryRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, []);
+
+  const startResendCooldown = useCallback(() => {
+    if (resendCooldownRef.current) clearInterval(resendCooldownRef.current);
+    setResendCooldownSeconds(60);
+    resendCooldownRef.current = setInterval(() => {
+      setResendCooldownSeconds((prev) => {
+        if (prev <= 1) {
+          if (resendCooldownRef.current) clearInterval(resendCooldownRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, []);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const identifierForm = useForm<IdentifierFormData>({
+    resolver: zodResolver(identifyBy === 'nric' ? identifierNricSchema : identifierPhoneSchema),
+    defaultValues: { identifier: '' },
   });
 
-  const pinForm = useForm<PinFormData>({
-    resolver: zodResolver(pinSchema),
-    defaultValues: { pin_code: '' },
+  const otpForm = useForm<OtpFormData>({
+    resolver: zodResolver(otpSchema),
+    defaultValues: { otp_code: '' },
   });
 
-  // Step 1: Send PIN via WhatsApp
-  const handleSendPin = async (formData: NricFormData) => {
+  // Reset form when switching identifier type
+  useEffect(() => {
+    identifierForm.reset({ identifier: '' });
+    setError(null);
+  }, [identifyBy]);
+
+  // Step 1: Send OTP
+  const handleSendOtp = async (formData: IdentifierFormData) => {
     setIsSending(true);
     setError(null);
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('send-whatsapp-pin', {
-        body: { slot_id: slotId, nric: formData.nric },
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/send-checkout-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          slot_id: slotId,
+          identifier: formData.identifier,
+        }),
       });
 
-      if (fnError) {
-        const errorBody = typeof fnError.context === 'object' ? fnError.context : null;
-        setError(errorBody?.error || fnError.message || 'Failed to send PIN. Please try again.');
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.error === 'rate_limit_exceeded') {
+          setError('Too many OTP requests. Please wait before trying again.');
+        } else if (data.error === 'cooldown_active') {
+          setError('Please wait before requesting another OTP.');
+          if (data.retry_after) {
+            setResendCooldownSeconds(data.retry_after);
+            startResendCooldown();
+          }
+        } else if (data.error === 'registration_not_found') {
+          setError('No checked-in attendee found. Please check in first.');
+        } else if (data.error === 'not_checked_in') {
+          setError('You have not checked in yet. Please check in first.');
+        } else if (data.error === 'already_checked_out') {
+          setAttendeeName('');
+          setIsSuccess(true);
+          setIsSending(false);
+          return;
+        } else {
+          setError(data.message || 'Failed to send OTP. Please try again.');
+        }
         setIsSending(false);
         return;
       }
 
-      if (!data?.success) {
-        setError(data?.error || 'Failed to send PIN. Please try again.');
-        setIsSending(false);
-        return;
-      }
-
-      setNric(formData.nric);
+      setIdentifier(formData.identifier);
       setMaskedPhone(data.masked_phone);
       setSendCount((prev) => prev + 1);
+      startOtpExpiryTimer();
+      startResendCooldown();
       setStep(2);
     } catch {
       setError('Failed to connect to server. Please try again.');
@@ -127,122 +213,103 @@ export function CheckOut() {
     setIsSending(false);
   };
 
-  // Resend PIN
-  const handleResendPin = async () => {
-    if (sendCount >= 3) return;
+  // Resend OTP
+  const handleResendOtp = async () => {
+    if (sendCount >= 3 || resendCooldownSeconds > 0) return;
     setIsSending(true);
     setError(null);
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('send-whatsapp-pin', {
-        body: { slot_id: slotId, nric },
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/send-checkout-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          slot_id: slotId,
+          identifier,
+        }),
       });
 
-      if (fnError) {
-        const errorBody = typeof fnError.context === 'object' ? fnError.context : null;
-        setError(errorBody?.error || fnError.message || 'Failed to resend PIN.');
-        setIsSending(false);
-        return;
-      }
+      const data = await response.json();
 
-      if (!data?.success) {
-        setError(data?.error || 'Failed to resend PIN.');
+      if (!response.ok) {
+        if (data.error === 'cooldown_active') {
+          setError('Please wait before requesting another OTP.');
+          if (data.retry_after) {
+            setResendCooldownSeconds(data.retry_after);
+          }
+        } else if (data.error === 'rate_limit_exceeded') {
+          setError('Maximum OTP attempts reached. Please try again later.');
+        } else {
+          setError(data.message || 'Failed to resend OTP.');
+        }
         setIsSending(false);
         return;
       }
 
       setSendCount((prev) => prev + 1);
       setMaskedPhone(data.masked_phone);
+      startOtpExpiryTimer();
+      startResendCooldown();
+      setError(null);
     } catch {
       setError('Failed to connect to server.');
     }
     setIsSending(false);
   };
 
-  // Step 2: Complete checkout with PIN
-  const handleCheckout = async (formData: PinFormData) => {
+  // Step 2: Verify OTP and complete checkout
+  const handleVerifyOtp = async (formData: OtpFormData) => {
     setIsSubmitting(true);
     setError(null);
 
-    // 1. Find the PIN code
-    const { data: pinCode, error: pinError } = await supabase
-      .from('pin_codes')
-      .select('id, slot_id, linked_nric')
-      .eq('code', formData.pin_code)
-      .eq('slot_id', slotId)
-      .single();
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/verify-checkout-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          slot_id: slotId,
+          identifier,
+          code: formData.otp_code,
+        }),
+      });
 
-    if (pinError || !pinCode) {
-      setError('Invalid PIN code for this slot');
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.error === 'invalid_otp') {
+          setError('Invalid or expired OTP. Please try again.');
+          setIsSubmitting(false);
+          return;
+        } else if (data.error === 'already_checked_out') {
+          // Treat as success
+          setIsSuccess(true);
+          setIsSubmitting(false);
+          return;
+        } else if (data.error === 'rate_limit_exceeded') {
+          setError('Too many attempts. Please request a new OTP.');
+          setIsSubmitting(false);
+          return;
+        } else {
+          setError(data.message || 'Failed to verify OTP. Please try again.');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      setIsSuccess(true);
       setIsSubmitting(false);
-      return;
-    }
-
-    // 2. Verify PIN is linked to this NRIC
-    if (pinCode.linked_nric !== nric) {
-      setError('This PIN code is not associated with this NRIC');
+    } catch {
+      setError('Failed to connect to server. Please try again.');
       setIsSubmitting(false);
-      return;
     }
-
-    // 3. Find the invitation
-    const { data: invitation, error: invError } = await supabase
-      .from('invitations')
-      .select('id, invitee_name, status')
-      .eq('invitee_nric', nric)
-      .eq('slot_id', slotId)
-      .eq('status', InvitationStatus.ATTENDED)
-      .single();
-
-    if (invError || !invitation) {
-      setError('No check-in record found. Please check in first.');
-      setIsSubmitting(false);
-      return;
-    }
-
-    // 4. Find attendance record
-    const { data: attendance, error: attError } = await supabase
-      .from('attendance')
-      .select('id, checkout_time')
-      .eq('invitation_id', invitation.id)
-      .single();
-
-    if (attError || !attendance) {
-      setError('No attendance record found. Please check in first.');
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (attendance.checkout_time) {
-      setError('You have already checked out');
-      setIsSubmitting(false);
-      return;
-    }
-
-    // 5. Update attendance record
-    const { error: updateError } = await supabase
-      .from('attendance')
-      .update({
-        checkout_time: new Date().toISOString(),
-        is_full_attendance: true,
-      })
-      .eq('id', attendance.id);
-
-    if (updateError) {
-      setError('Failed to record check-out. Please try again.');
-      setIsSubmitting(false);
-      return;
-    }
-
-    // 6. Update invitation status to completed
-    await supabase
-      .from('invitations')
-      .update({ status: InvitationStatus.COMPLETED })
-      .eq('id', invitation.id);
-
-    setAttendeeName(invitation.invitee_name);
-    setIsSuccess(true);
-    setIsSubmitting(false);
   };
 
   // QR verification guard screens
@@ -283,7 +350,9 @@ export function CheckOut() {
             </div>
             <div>
               <h2 className="text-2xl font-bold text-emerald-600">Check-Out Successful!</h2>
-              <p className="text-xl font-semibold text-slate-900 mt-2">{attendeeName}</p>
+              {attendeeName && (
+                <p className="text-xl font-semibold text-slate-900 mt-2">{attendeeName}</p>
+              )}
             </div>
             <p className="text-slate-500">
               Thank you for attending! Your full attendance has been recorded.
@@ -303,8 +372,8 @@ export function CheckOut() {
           <CardTitle className="text-2xl font-bold text-slate-900">Event Check-Out</CardTitle>
           <CardDescription className="text-slate-500">
             {step === 1
-              ? 'Enter your NRIC to receive your PIN via WhatsApp'
-              : 'Enter the PIN sent to your WhatsApp'}
+              ? `Enter your ${identifyBy === 'nric' ? 'NRIC' : 'phone number'} to receive an OTP via WhatsApp`
+              : 'Enter the OTP sent to your WhatsApp'}
           </CardDescription>
 
           {/* Step indicator */}
@@ -313,14 +382,14 @@ export function CheckOut() {
               <div className={`h-6 w-6 rounded-full flex items-center justify-center text-white text-xs ${step >= 1 ? 'bg-violet-600' : 'bg-slate-300'}`}>
                 {step > 1 ? <CheckCircle className="h-4 w-4" /> : '1'}
               </div>
-              NRIC
+              Identify
             </div>
             <div className="w-8 h-px bg-slate-300" />
             <div className={`flex items-center gap-1.5 text-xs font-medium ${step >= 2 ? 'text-violet-600' : 'text-slate-400'}`}>
               <div className={`h-6 w-6 rounded-full flex items-center justify-center text-white text-xs ${step >= 2 ? 'bg-violet-600' : 'bg-slate-300'}`}>
                 2
               </div>
-              PIN
+              OTP
             </div>
           </div>
         </CardHeader>
@@ -333,65 +402,101 @@ export function CheckOut() {
           )}
 
           {step === 1 ? (
-            <Form {...nricForm}>
-              <form onSubmit={nricForm.handleSubmit(handleSendPin)} className="space-y-4">
-                <FormField
-                  control={nricForm.control}
-                  name="nric"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-slate-700">NRIC Number</FormLabel>
-                      <FormControl>
-                        <Input placeholder="S1234567A" className="h-11" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <>
+              {/* Identifier toggle */}
+              <Tabs
+                value={identifyBy}
+                onValueChange={(val) => setIdentifyBy(val as 'nric' | 'phone')}
+                className="mb-4"
+              >
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="nric">Identify by NRIC</TabsTrigger>
+                  <TabsTrigger value="phone">Identify by Phone</TabsTrigger>
+                </TabsList>
+              </Tabs>
 
-                <p className="text-xs text-slate-500">
-                  Your PIN code will be sent to the WhatsApp number you registered with.
-                </p>
+              <Form {...identifierForm}>
+                <form onSubmit={identifierForm.handleSubmit(handleSendOtp)} className="space-y-4">
+                  <FormField
+                    control={identifierForm.control}
+                    name="identifier"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-slate-700">
+                          {identifyBy === 'nric' ? 'NRIC Number' : 'Phone Number'}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder={identifyBy === 'nric' ? 'S1234567A' : '+65 9123 4567'}
+                            className="h-11"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <Button
-                  type="submit"
-                  className="w-full h-11 bg-violet-600 hover:bg-violet-700 text-white font-medium mt-2"
-                  disabled={isSending}
-                >
-                  {isSending ? (
-                    'Sending...'
-                  ) : (
-                    <>
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      Send PIN to WhatsApp
-                    </>
-                  )}
-                </Button>
-              </form>
-            </Form>
+                  <p className="text-xs text-slate-500">
+                    An OTP will be sent to the WhatsApp number you registered with.
+                  </p>
+
+                  <Button
+                    type="submit"
+                    className="w-full h-11 bg-violet-600 hover:bg-violet-700 text-white font-medium mt-2"
+                    disabled={isSending}
+                  >
+                    {isSending ? (
+                      'Sending...'
+                    ) : (
+                      <>
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        Send OTP to WhatsApp
+                      </>
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            </>
           ) : (
             <>
               {/* WhatsApp confirmation banner */}
               <div className="p-3 mb-4 text-sm bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-2">
                 <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
                 <div>
-                  <p className="font-medium text-emerald-700">PIN sent to WhatsApp</p>
+                  <p className="font-medium text-emerald-700">OTP sent to WhatsApp</p>
                   <p className="text-emerald-600">{maskedPhone}</p>
                 </div>
               </div>
 
-              <Form {...pinForm}>
-                <form onSubmit={pinForm.handleSubmit(handleCheckout)} className="space-y-4">
+              {/* OTP expiry timer */}
+              {otpExpirySeconds > 0 && (
+                <div className="text-center mb-4">
+                  <p className="text-xs text-slate-500">
+                    OTP expires in <span className="font-mono font-medium text-slate-700">{formatTime(otpExpirySeconds)}</span>
+                  </p>
+                </div>
+              )}
+              {otpExpirySeconds === 0 && step === 2 && (
+                <div className="text-center mb-4">
+                  <p className="text-xs text-amber-600 font-medium">OTP has expired. Please request a new one.</p>
+                </div>
+              )}
+
+              <Form {...otpForm}>
+                <form onSubmit={otpForm.handleSubmit(handleVerifyOtp)} className="space-y-4">
                   <FormField
-                    control={pinForm.control}
-                    name="pin_code"
+                    control={otpForm.control}
+                    name="otp_code"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-slate-700">PIN Code</FormLabel>
+                        <FormLabel className="text-slate-700">OTP Code</FormLabel>
                         <FormControl>
                           <Input
                             placeholder="123456"
                             maxLength={6}
+                            inputMode="numeric"
+                            autoFocus
                             className="text-center text-2xl tracking-widest font-mono h-14 bg-slate-50 border-slate-200"
                             {...field}
                           />
@@ -404,10 +509,10 @@ export function CheckOut() {
                   <Button
                     type="submit"
                     className="w-full h-11 bg-amber-600 hover:bg-amber-700 text-white font-medium"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || otpExpirySeconds === 0}
                   >
                     {isSubmitting ? (
-                      'Checking out...'
+                      'Verifying...'
                     ) : (
                       <>
                         <ArrowRight className="h-4 w-4 mr-2" />
@@ -420,14 +525,16 @@ export function CheckOut() {
                     type="button"
                     variant="ghost"
                     className="w-full text-sm text-slate-500"
-                    disabled={isSending || sendCount >= 3}
-                    onClick={handleResendPin}
+                    disabled={isSending || sendCount >= 3 || resendCooldownSeconds > 0}
+                    onClick={handleResendOtp}
                   >
                     {isSending
                       ? 'Sending...'
                       : sendCount >= 3
                         ? 'Maximum attempts reached'
-                        : `Resend PIN (${3 - sendCount} remaining)`}
+                        : resendCooldownSeconds > 0
+                          ? `Resend OTP in ${resendCooldownSeconds}s`
+                          : `Resend OTP (${3 - sendCount} remaining)`}
                   </Button>
                 </form>
               </Form>

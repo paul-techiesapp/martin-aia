@@ -2,6 +2,7 @@ import {
   InvitationType,
   CampaignStatus,
   InvitationStatus,
+  RegistrationStatus,
   CapacityType,
   RoleType,
   AgentStatus,
@@ -57,6 +58,38 @@ export interface Agent {
   updated_at: string;
 }
 
+export interface AgentLink {
+  id: string;
+  agent_id: string;
+  slot_id: string;
+  partner_id: string | null;
+  link_code: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Registration {
+  id: string;
+  agent_link_id: string | null;
+  agent_id: string;
+  slot_id: string;
+  capacity_type: CapacityType;
+  status: RegistrationStatus;
+  invitee_name: string;
+  invitee_nric: string;
+  invitee_phone: string;
+  invitee_email: string | null;
+  invitee_occupation: string | null;
+  registered_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * @deprecated Use {@link Registration} instead.
+ * Kept temporarily for backwards compatibility during migration.
+ */
 export interface Invitation {
   id: string;
   agent_id: string;
@@ -75,6 +108,21 @@ export interface Invitation {
   updated_at: string;
 }
 
+export interface OtpCode {
+  id: string;
+  registration_id: string;
+  slot_id: string;
+  phone: string;
+  code: string;
+  expires_at: string;
+  is_used: boolean;
+  created_at: string;
+}
+
+/**
+ * @deprecated Use updated Attendance with registration_id instead.
+ * Kept temporarily so consumer apps compile until they migrate.
+ */
 export interface PinCode {
   id: string;
   slot_id: string;
@@ -87,8 +135,7 @@ export interface PinCode {
 
 export interface Attendance {
   id: string;
-  invitation_id: string;
-  pin_code_id: string;
+  registration_id: string;
   checkin_time: string;
   checkout_time: string | null;
   is_full_attendance: boolean;
@@ -116,12 +163,25 @@ export interface AgentWithTier extends Agent {
   tier: Tier;
 }
 
+export interface RegistrationWithRelations extends Registration {
+  agent: Agent;
+  slot: SlotWithCampaign;
+  agent_link?: AgentLink;
+}
+
+export interface AgentLinkWithRegistrations extends AgentLink {
+  registrations: Registration[];
+  registration_count: number;
+}
+
+/**
+ * @deprecated Use {@link RegistrationWithRelations} instead.
+ */
 export interface InvitationWithRelations extends Invitation {
   agent: Agent;
   slot: SlotWithCampaign;
 }
 
 export interface AttendanceWithRelations extends Attendance {
-  invitation: InvitationWithRelations;
-  pin_code: PinCode;
+  registration: RegistrationWithRelations;
 }

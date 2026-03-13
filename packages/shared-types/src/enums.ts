@@ -3,6 +3,9 @@ export enum InvitationType {
   JOB_OPPORTUNITY = 'job_opportunity',
 }
 
+/** @alias InvitationType — renamed for the registration-based model */
+export type RegistrationType = InvitationType;
+
 export enum CampaignStatus {
   DRAFT = 'draft',
   ACTIVE = 'active',
@@ -10,6 +13,17 @@ export enum CampaignStatus {
   COMPLETED = 'completed',
 }
 
+export enum RegistrationStatus {
+  REGISTERED = 'registered',
+  ATTENDED = 'attended',
+  COMPLETED = 'completed',
+  EXPIRED = 'expired',
+}
+
+/**
+ * @deprecated Use {@link RegistrationStatus} instead.
+ * Kept temporarily for backwards compatibility during migration.
+ */
 export enum InvitationStatus {
   PENDING = 'pending',
   REGISTERED = 'registered',

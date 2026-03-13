@@ -4,18 +4,13 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
   Button,
   Badge,
   getStatusVariant,
   StatCard,
   StatCardGrid,
-  TableSkeleton,
+  Skeleton,
+  InvitationCard,
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -89,87 +84,70 @@ export function Invitations() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <TableSkeleton rows={5} columns={6} />
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-[140px] w-full rounded-xl" />
+              ))}
+            </div>
           ) : invitations?.length === 0 ? (
             <p className="text-slate-500">No invitations yet. Browse events to create invitation links.</p>
           ) : (
             <TooltipProvider>
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead>Event</TableHead>
-                    <TableHead>Slot</TableHead>
-                    <TableHead>Capacity</TableHead>
-                    <TableHead>Invitee</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {invitations?.map((invitation) => (
-                    <TableRow key={invitation.id} className="hover:bg-slate-50/50 transition-colors">
-                      <TableCell className="font-medium">
-                        {invitation.slot?.campaign?.name ?? '-'}
-                      </TableCell>
-                      <TableCell className="text-slate-600">
-                        {invitation.slot
-                          ? `${format(parseISO(invitation.slot.start_at), 'd MMM yyyy, HH:mm')}`
-                          : '-'}
-                      </TableCell>
-                      <TableCell className="capitalize text-slate-600">
-                        {invitation.capacity_type.replace('_', ' ')}
-                      </TableCell>
-                      <TableCell>
-                        {invitation.invitee_name || (
-                          <span className="text-slate-400">Not registered</span>
+              <div className="space-y-3">
+                {invitations?.map((invitation) => (
+                  <InvitationCard
+                    key={invitation.id}
+                    eventName={invitation.slot?.campaign?.name ?? 'Unknown Event'}
+                    venue={invitation.slot?.campaign?.venue ?? '-'}
+                    date={invitation.slot ? parseISO(invitation.slot.start_at) : new Date()}
+                    startTime={invitation.slot ? format(parseISO(invitation.slot.start_at), 'HH:mm') : '-'}
+                    inviteeName={invitation.invitee_name}
+                    inviteeType={invitation.capacity_type}
+                    status={invitation.status}
+                    actions={
+                      <div className="flex items-center gap-1">
+                        {invitation.status === InvitationStatus.PENDING && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={() => handleCopy(invitation.unique_token, invitation.id)}
+                                aria-label="Copy invitation link"
+                              >
+                                {copiedId === invitation.id ? (
+                                  <Check className="h-4 w-4 text-emerald-600" />
+                                ) : (
+                                  <Copy className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {copiedId === invitation.id ? 'Link copied!' : 'Copy invitation link'}
+                            </TooltipContent>
+                          </Tooltip>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getStatusVariant(invitation.status)}>
-                          {invitation.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {invitation.status === InvitationStatus.PENDING && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0"
-                                  onClick={() => handleCopy(invitation.unique_token, invitation.id)}
-                                >
-                                  {copiedId === invitation.id ? (
-                                    <Check className="h-4 w-4 text-emerald-600" />
-                                  ) : (
-                                    <Copy className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                {copiedId === invitation.id ? 'Link copied!' : 'Copy invitation link'}
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                          {invitation.invitee_name && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                  <ExternalLink className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                View invitee details
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                        {invitation.invitee_name && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                aria-label="View invitee details"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>View invitee details</TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                    }
+                  />
+                ))}
+              </div>
             </TooltipProvider>
           )}
         </CardContent>

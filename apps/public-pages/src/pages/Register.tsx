@@ -25,7 +25,6 @@ import {
 } from '@agent-system/shared-ui';
 import { Calendar, MapPin, Clock, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { InvitationStatus } from '@agent-system/shared-types';
 import { TERMS_AND_CONDITIONS } from '../constants/terms';
 import { format, parseISO } from 'date-fns';
 
@@ -42,9 +41,9 @@ const registrationSchema = z.object({
 
 type RegistrationFormData = z.infer<typeof registrationSchema>;
 
-interface InvitationDetails {
+interface AgentLinkDetails {
   id: string;
-  status: string;
+  is_active: boolean;
   slot: {
     start_at: string;
     end_at: string;
@@ -57,8 +56,8 @@ interface InvitationDetails {
 }
 
 export function Register() {
-  const { token } = useParams({ strict: false });
-  const [invitation, setInvitation] = useState<InvitationDetails | null>(null);
+  const { linkCode } = useParams({ strict: false });
+  const [agentLink, setAgentLink] = useState<AgentLinkDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -78,20 +77,20 @@ export function Register() {
   });
 
   useEffect(() => {
-    if (token) {
-      fetchInvitation(token);
+    if (linkCode) {
+      fetchAgentLink(linkCode);
     }
-  }, [token]);
+  }, [linkCode]);
 
-  const fetchInvitation = async (token: string) => {
+  const fetchAgentLink = async (code: string) => {
     setIsLoading(true);
     setError(null);
 
     const { data, error } = await supabase
-      .from('invitations')
+      .from('agent_links')
       .select(`
         id,
-        status,
+        is_active,
         slot:slots(
           start_at,
           end_at,
@@ -102,73 +101,53 @@ export function Register() {
           )
         )
       `)
-      .eq('unique_token', token)
+      .eq('link_code', code)
       .single();
 
     if (error || !data) {
-      setError('Invalid or expired invitation link');
+      setError('Invalid or expired registration link');
       setIsLoading(false);
       return;
     }
 
-    if (data.status !== InvitationStatus.PENDING) {
-      setError('This invitation has already been used or has expired');
+    if (!data.is_active) {
+      setError('This registration link is no longer active');
       setIsLoading(false);
       return;
     }
 
-    setInvitation(data as unknown as InvitationDetails);
+    setAgentLink(data as unknown as AgentLinkDetails);
     setIsLoading(false);
   };
 
   const onSubmit = async (formData: RegistrationFormData) => {
-    if (!invitation) return;
+    if (!agentLink) return;
 
     setIsSubmitting(true);
     setError(null);
 
-    // Check for duplicate NRIC or phone
-    const { data: existingNric } = await supabase
-      .from('invitations')
-      .select('id')
-      .eq('invitee_nric', formData.invitee_nric)
-      .neq('id', invitation.id)
-      .not('invitee_nric', 'is', null)
-      .limit(1);
+    const { error: rpcError } = await supabase.rpc('register_attendee', {
+      p_link_code: linkCode,
+      p_name: formData.invitee_name,
+      p_nric: formData.invitee_nric,
+      p_phone: formData.invitee_phone,
+      p_email: formData.invitee_email,
+      p_occupation: formData.invitee_occupation,
+    });
 
-    if (existingNric && existingNric.length > 0) {
-      setError('This NRIC has already been registered for another invitation');
-      setIsSubmitting(false);
-      return;
-    }
-
-    const { data: existingPhone } = await supabase
-      .from('invitations')
-      .select('id')
-      .eq('invitee_phone', formData.invitee_phone)
-      .neq('id', invitation.id)
-      .not('invitee_phone', 'is', null)
-      .limit(1);
-
-    if (existingPhone && existingPhone.length > 0) {
-      setError('This phone number has already been registered for another invitation');
-      setIsSubmitting(false);
-      return;
-    }
-
-    const { acceptedTerms, ...registrationData } = formData;
-
-    const { error: updateError } = await supabase
-      .from('invitations')
-      .update({
-        ...registrationData,
-        status: InvitationStatus.REGISTERED,
-        registered_at: new Date().toISOString(),
-      })
-      .eq('id', invitation.id);
-
-    if (updateError) {
-      setError('Failed to complete registration. Please try again.');
+    if (rpcError) {
+      // Handle specific RPC error codes
+      if (rpcError.code === 'P0001') {
+        setError('This registration link is no longer active');
+      } else if (rpcError.code === 'P0002') {
+        setError('Sorry, this event slot is full. No more registrations are available.');
+      } else if (rpcError.code === 'P0003') {
+        setError('This NRIC has already been registered for this event slot');
+      } else if (rpcError.code === 'P0004') {
+        setError('This phone number has already been registered for this event slot');
+      } else {
+        setError('Failed to complete registration. Please try again.');
+      }
       setIsSubmitting(false);
       return;
     }
@@ -198,7 +177,7 @@ export function Register() {
     );
   }
 
-  if (error && !invitation) {
+  if (error && !agentLink) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-sky-900 flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-40" />
@@ -230,12 +209,12 @@ export function Register() {
               </p>
             </div>
             <div className="bg-slate-50 p-4 rounded-xl text-left border border-slate-100">
-              <p className="font-semibold text-slate-900">{invitation?.slot.campaign.name}</p>
+              <p className="font-semibold text-slate-900">{agentLink?.slot.campaign.name}</p>
               <p className="text-sm text-slate-500 mt-1">
-                {invitation?.slot.start_at ? format(parseISO(invitation.slot.start_at), 'EEE d MMM yyyy, HH:mm') : ''} -{' '}
-                {invitation?.slot.end_at ? format(parseISO(invitation.slot.end_at), 'HH:mm') : ''}
+                {agentLink?.slot.start_at ? format(parseISO(agentLink.slot.start_at), 'EEE d MMM yyyy, HH:mm') : ''} -{' '}
+                {agentLink?.slot.end_at ? format(parseISO(agentLink.slot.end_at), 'HH:mm') : ''}
               </p>
-              <p className="text-sm text-slate-500">{invitation?.slot.campaign.venue}</p>
+              <p className="text-sm text-slate-500">{agentLink?.slot.campaign.venue}</p>
             </div>
           </CardContent>
         </Card>
@@ -261,18 +240,18 @@ export function Register() {
               <div className="h-8 w-8 rounded-lg bg-sky-100 flex items-center justify-center">
                 <Calendar className="h-4 w-4 text-sky-600" />
               </div>
-              <span className="font-semibold text-slate-900">{invitation?.slot.campaign.name}</span>
+              <span className="font-semibold text-slate-900">{agentLink?.slot.campaign.name}</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-slate-500 ml-10">
               <Clock className="h-4 w-4" />
               <span>
-                {invitation?.slot.start_at ? format(parseISO(invitation.slot.start_at), 'EEE d MMM yyyy, HH:mm') : ''} -{' '}
-                {invitation?.slot.end_at ? format(parseISO(invitation.slot.end_at), 'HH:mm') : ''}
+                {agentLink?.slot.start_at ? format(parseISO(agentLink.slot.start_at), 'EEE d MMM yyyy, HH:mm') : ''} -{' '}
+                {agentLink?.slot.end_at ? format(parseISO(agentLink.slot.end_at), 'HH:mm') : ''}
               </span>
             </div>
             <div className="flex items-center gap-2 text-sm text-slate-500 ml-10">
               <MapPin className="h-4 w-4" />
-              <span>{invitation?.slot.campaign.venue}</span>
+              <span>{agentLink?.slot.campaign.venue}</span>
             </div>
           </div>
 

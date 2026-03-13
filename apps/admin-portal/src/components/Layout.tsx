@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from '@tanstack/react-router';
-import { Button, cn } from '@agent-system/shared-ui';
+import { Button, cn, Logo } from '@agent-system/shared-ui';
 import {
   LayoutDashboard,
   Calendar,
@@ -49,10 +49,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:z-30 bg-slate-900 text-white">
         <div className="flex h-16 items-center gap-3 px-6 border-b border-slate-800">
-          <div className="h-9 w-9 rounded-xl bg-sky-600 flex items-center justify-center">
-            <span className="text-white font-bold text-lg">A</span>
-          </div>
-          <span className="font-semibold text-lg">Admin Portal</span>
+          <Logo size="md" showText={false} />
+          <span className="font-semibold text-lg">RACC Admin</span>
         </div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto scrollbar-thin">
           {navigation.map((item) => {
@@ -99,10 +97,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
       >
         <div className="flex h-16 items-center justify-between px-6 border-b border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-sky-600 flex items-center justify-center">
-              <span className="text-white font-bold text-lg">A</span>
-            </div>
-            <span className="font-semibold text-lg">Admin Portal</span>
+            <Logo size="md" showText={false} />
+            <span className="font-semibold text-lg">RACC Admin</span>
           </div>
           <button
             onClick={() => setIsMobileMenuOpen(false)}
@@ -172,7 +168,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
           {/* Mobile header content */}
           <div className="flex lg:hidden flex-1 items-center justify-center">
-            <span className="font-semibold text-slate-900">Admin Portal</span>
+            <span className="font-semibold text-slate-900">RACC Admin</span>
           </div>
         </header>
 

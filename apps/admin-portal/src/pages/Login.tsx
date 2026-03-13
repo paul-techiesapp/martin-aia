@@ -17,8 +17,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  Logo,
 } from '@agent-system/shared-ui';
-import { Shield } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 const loginSchema = z.object({
@@ -71,10 +71,8 @@ export function Login() {
 
       <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
         <CardHeader className="text-center pb-2">
-          <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-sky-500 to-sky-700 flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <Shield className="h-7 w-7 text-white" />
-          </div>
-          <CardTitle className="text-2xl font-bold text-slate-900">Admin Portal</CardTitle>
+          <Logo size="lg" showText={false} className="mx-auto mb-4" />
+          <CardTitle className="text-2xl font-bold text-slate-900">RACC Admin Portal</CardTitle>
           <CardDescription className="text-slate-500">
             Sign in to access the administration dashboard
           </CardDescription>

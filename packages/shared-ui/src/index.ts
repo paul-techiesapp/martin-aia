@@ -107,6 +107,8 @@ export {
   DropdownMenuSubTrigger,
   DropdownMenuRadioGroup,
 } from './components/ui/dropdown-menu';
+export { InvitationCard } from './components/ui/invitation-card';
+export type { InvitationCardProps } from './components/ui/invitation-card';
 export { Logo } from './components/logo';
 export type { LogoProps } from './components/logo';
 export {

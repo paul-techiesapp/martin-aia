@@ -67,8 +67,8 @@ import { Logo } from '@agent-system/shared-ui';
 - The mobile top bar displays "Admin Portal" as plain text. Update to "RACC Admin".
 
 **`Login.tsx`:**
-- **Current:** Gradient badge with Shield icon.
-- **New:** `<Logo size="lg" />` replaces the Shield icon badge.
+- **Current:** Gradient badge with Shield icon + "Admin Portal" heading.
+- **New:** `<Logo size="lg" />` replaces the Shield icon badge. Heading updated to "RACC Admin Portal".
 
 ### Agent Portal
 
@@ -77,8 +77,8 @@ import { Logo } from '@agent-system/shared-ui';
 - **New:** `<Logo size="md" />` + role-based text preserved ("RACC Unit Portal" or "RACC Partner Portal"). The existing `role` conditional logic must be kept — just prefix "RACC " to each variant.
 
 **`Login.tsx`:**
-- **Current:** Colored square with letter "A".
-- **New:** `<Logo size="lg" />` replaces the letter badge.
+- **Current:** Colored square with letter "A" + "Unit Portal" heading.
+- **New:** `<Logo size="lg" />` replaces the letter badge. Heading updated to "RACC Portal".
 
 ### Public Pages (Register, CheckIn, CheckOut)
 

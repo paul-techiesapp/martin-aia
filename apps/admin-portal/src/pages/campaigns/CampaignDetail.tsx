@@ -112,7 +112,7 @@ function SlotRow({
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0" aria-label="Actions"
               onClick={() => window.open(`/venue-display/${slot.id}`, '_blank')}
               title="Open venue display with QR codes"
             >
@@ -121,7 +121,7 @@ function SlotRow({
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0" aria-label="Actions"
               onClick={onOpenReminder}
               title="Send email reminders"
             >
@@ -130,7 +130,7 @@ function SlotRow({
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0" aria-label="Actions"
               onClick={onToggleCardType}
               title={slot.is_auto_card ? 'Switch to manual cards' : 'Switch to auto cards'}
             >
@@ -139,7 +139,7 @@ function SlotRow({
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0" aria-label="Actions"
               onClick={onToggleActive}
             >
               {slot.is_active ? (
@@ -151,7 +151,7 @@ function SlotRow({
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0" aria-label="Actions"
               onClick={onDelete}
             >
               <Trash2 className="h-4 w-4 text-red-500" />

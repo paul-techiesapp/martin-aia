@@ -63,7 +63,7 @@ export function Campaigns() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">Active Events</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Active Events</h1>
         <p className="text-slate-500 mt-1">Browse events and get your shareable links</p>
       </div>
 

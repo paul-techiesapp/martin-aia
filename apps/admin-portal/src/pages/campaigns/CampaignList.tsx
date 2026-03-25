@@ -123,7 +123,7 @@ export function CampaignList() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Events</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Events</h1>
           <p className="text-slate-500 mt-1">Manage recruitment events and time slots</p>
         </div>
         <Link to="/campaigns/new">
@@ -178,7 +178,7 @@ export function CampaignList() {
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
+                          <Button variant="ghost" className="h-8 w-8 p-0" aria-label="Actions">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>

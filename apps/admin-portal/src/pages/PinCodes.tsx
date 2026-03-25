@@ -114,7 +114,7 @@ export function PinCodes() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">PIN Codes</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">PIN Codes</h1>
         <p className="text-slate-500">Generate and manage attendance PIN codes</p>
       </div>
 

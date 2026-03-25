@@ -515,7 +515,7 @@ export function CheckOut() {
 
         <CardContent className="px-6 pb-8">
           {error && (
-            <div className="p-3 mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
+            <div role="alert" className="p-3 mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
               {error}
             </div>
           )}

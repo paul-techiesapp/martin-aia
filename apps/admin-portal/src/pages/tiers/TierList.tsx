@@ -115,7 +115,7 @@ export function TierList() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Tiers</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Tiers</h1>
           <p className="text-slate-500">Configure reward tiers and invitation limits</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -217,7 +217,7 @@ export function TierList() {
                     <TableCell>{tier.invitation_limit_per_slot} per slot</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(tier)}>
+                        <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(tier)} aria-label="Edit tier">
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
@@ -225,6 +225,7 @@ export function TierList() {
                           size="sm"
                           onClick={() => handleDelete(tier.id)}
                           disabled={deleteTier.isPending}
+                          aria-label="Delete tier"
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>

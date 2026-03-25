@@ -87,7 +87,7 @@ export function Rewards() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">Rewards</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Rewards</h1>
         <p className="text-slate-500 mt-1">Track your earnings from successful attendance</p>
       </div>
 
@@ -181,14 +181,14 @@ export function Rewards() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-start gap-4">
-            <div className="h-8 w-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 text-sm font-bold flex-shrink-0">1</div>
+            <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-sm font-bold flex-shrink-0">1</div>
             <div>
               <p className="font-medium text-slate-900">Share Your Link</p>
               <p className="text-sm text-slate-500">Get your shareable link and share it with potential attendees.</p>
             </div>
           </div>
           <div className="flex items-start gap-4">
-            <div className="h-8 w-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 text-sm font-bold flex-shrink-0">2</div>
+            <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-sm font-bold flex-shrink-0">2</div>
             <div>
               <p className="font-medium text-slate-900">They Register & Attend</p>
               <p className="text-sm text-slate-500">Invitees register via your link and attend the event with full check-in and check-out.</p>

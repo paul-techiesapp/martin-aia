@@ -151,6 +151,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <button
             onClick={() => setIsMobileMenuOpen(true)}
             className="lg:hidden p-2 -ml-2 rounded-md hover:bg-slate-100"
+            aria-label="Open menu"
           >
             <Menu className="h-5 w-5" />
           </button>

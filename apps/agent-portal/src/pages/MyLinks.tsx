@@ -84,7 +84,7 @@ export function MyLinks() {
     setTimeout(() => setCopiedLinkId(null), 2000);
   };
 
-  const handleDownloadCards = async (link: typeof links[number]) => {
+  const handleDownloadCards = async (link: NonNullable<typeof links>[number]) => {
     if (!link.slot) return;
     setDownloadingLinkId(link.id);
     try {

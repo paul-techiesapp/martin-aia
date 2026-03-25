@@ -16,7 +16,10 @@ import {
   TooltipTrigger,
   useToast,
 } from '@agent-system/shared-ui';
-import { Link2, Copy, Check, Calendar, MapPin, UserCheck, CheckCircle, Users } from 'lucide-react';
+import { Link2, Copy, Check, Calendar, MapPin, UserCheck, CheckCircle, Users, FileDown, Loader2 } from 'lucide-react';
+import { generateBulkInvitationCards } from '@agent-system/shared-ui';
+import type { InvitationCardData } from '@agent-system/shared-ui';
+import { supabase } from '../lib/supabase';
 import { format, parseISO } from 'date-fns';
 import { useAuth } from '../hooks/useAuth';
 import { useActiveCampaigns, useCampaignSlots } from '../hooks/useCampaigns';
@@ -45,6 +48,7 @@ export function PartnerLinks() {
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
   const [creatingSlotId, setCreatingSlotId] = useState<string | null>(null);
+  const [downloadingLinkId, setDownloadingLinkId] = useState<string | null>(null);
 
   const { data: slots } = useCampaignSlots(selectedCampaignId ?? '');
 
@@ -79,6 +83,47 @@ export function PartnerLinks() {
     setCopiedLinkId(linkId);
     toast({ title: 'Link copied!', description: 'Share this link with your invitees.' });
     setTimeout(() => setCopiedLinkId(null), 2000);
+  };
+
+  const handleDownloadCards = async (link: NonNullable<typeof links>[number]) => {
+    if (!link.slot) return;
+    setDownloadingLinkId(link.id);
+    try {
+      const { data: regs, error } = await supabase
+        .from('registrations')
+        .select('id, invitee_name')
+        .eq('agent_link_id', link.id)
+        .not('invitee_name', 'is', null);
+
+      if (error) throw error;
+      if (!regs || regs.length === 0) {
+        toast({ title: 'No registrations', description: 'No registered invitees for this link yet.', variant: 'error' });
+        return;
+      }
+
+      const publicPagesUrl = import.meta.env.VITE_PUBLIC_PAGES_URL || window.location.origin;
+      const invitationData: InvitationCardData[] = regs.map((reg) => ({
+        inviteeName: reg.invitee_name || 'Guest',
+        campaignName: link.slot.campaign.name,
+        venue: link.slot.campaign.venue,
+        dayOfWeek: format(parseISO(link.slot.start_at), 'EEE'),
+        slotDate: link.slot.start_at,
+        startTime: format(parseISO(link.slot.start_at), 'HH:mm'),
+        endTime: format(parseISO(link.slot.end_at), 'HH:mm'),
+        uniqueToken: link.link_code,
+        registrationId: reg.id,
+        registrationUrl: `${publicPagesUrl}/public/register/${link.link_code}`,
+        isAutoCard: true,
+      }));
+
+      const doc = await generateBulkInvitationCards(invitationData);
+      doc.save(`invitation-cards-${link.slot.campaign.name}.pdf`);
+      toast({ title: `${regs.length} card${regs.length > 1 ? 's' : ''} downloaded` });
+    } catch (err: any) {
+      toast({ title: 'Failed to generate cards', description: err.message, variant: 'error' });
+    } finally {
+      setDownloadingLinkId(null);
+    }
   };
 
   const isLoading = campaignsLoading || linksLoading || statsLoading;
@@ -270,26 +315,49 @@ export function PartnerLinks() {
                     date={link.slot ? parseISO(link.slot.start_at) : new Date()}
                     startTime={link.slot ? format(parseISO(link.slot.start_at), 'HH:mm') : '-'}
                     actions={
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            onClick={() => handleCopyLink(link.link_code, link.id)}
-                            aria-label="Copy registration link"
-                          >
-                            {copiedLinkId === link.id ? (
-                              <Check className="h-4 w-4 text-emerald-600" />
-                            ) : (
-                              <Copy className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {copiedLinkId === link.id ? 'Link copied!' : 'Copy registration link'}
-                        </TooltipContent>
-                      </Tooltip>
+                      <div className="flex items-center gap-1">
+                        {link.slot?.is_auto_card && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={() => handleDownloadCards(link)}
+                                disabled={downloadingLinkId === link.id}
+                                aria-label="Download invitation cards"
+                              >
+                                {downloadingLinkId === link.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <FileDown className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Download invitation cards</TooltipContent>
+                          </Tooltip>
+                        )}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => handleCopyLink(link.link_code, link.id)}
+                              aria-label="Copy registration link"
+                            >
+                              {copiedLinkId === link.id ? (
+                                <Check className="h-4 w-4 text-emerald-600" />
+                              ) : (
+                                <Copy className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {copiedLinkId === link.id ? 'Link copied!' : 'Copy registration link'}
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
                     }
                   />
                 ))}

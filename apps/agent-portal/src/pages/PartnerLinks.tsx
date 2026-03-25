@@ -279,7 +279,7 @@ export function PartnerLinks() {
                             size="sm"
                             onClick={() => handleGetLink(slot.id)}
                             disabled={creatingSlotId === slot.id}
-                            className="bg-slate-900 hover:bg-slate-800"
+                            className="bg-primary hover:bg-primary/90"
                           >
                             <Link2 className="h-4 w-4 mr-1" />
                             {creatingSlotId === slot.id ? 'Creating...' : 'Get My Link'}

@@ -106,7 +106,7 @@ export function Partners() {
           <h1 className="text-3xl font-bold text-slate-900">Partners</h1>
           <p className="text-slate-500 mt-1">Manage your recruitment partners</p>
         </div>
-        <Button onClick={() => setIsAddOpen(true)} className="bg-slate-900 hover:bg-slate-800">
+        <Button onClick={() => setIsAddOpen(true)} className="bg-primary hover:bg-primary/90">
           <UserPlus className="h-4 w-4 mr-2" />
           Add Partner
         </Button>
@@ -252,7 +252,7 @@ export function Partners() {
               <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={createPartner.isPending} className="bg-slate-900 hover:bg-slate-800">
+              <Button type="submit" disabled={createPartner.isPending} className="bg-primary hover:bg-primary/90">
                 {createPartner.isPending ? 'Creating...' : 'Create Partner'}
               </Button>
             </DialogFooter>

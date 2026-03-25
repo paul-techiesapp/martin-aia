@@ -64,7 +64,7 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
         <div
           ref={ref}
           className={cn(
-            "p-6 rounded-xl bg-white/80 backdrop-blur-sm border border-slate-200/50 shadow-sm",
+            "p-6 rounded-xl bg-white border border-slate-200/60 shadow-sm",
             className
           )}
         >
@@ -84,7 +84,7 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
       <div
         ref={ref}
         className={cn(
-          "p-6 rounded-xl bg-white/80 backdrop-blur-sm border border-slate-200/50 shadow-sm hover:shadow-md transition-all duration-200",
+          "group relative p-6 rounded-xl bg-white border border-slate-200/60 shadow-sm hover:shadow-lg hover:border-slate-300/80 transition-all duration-300",
           className
         )}
       >
@@ -95,7 +95,7 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
               {value}
             </p>
             {displaySubtitle && (
-              <p className="text-sm text-slate-500">{displaySubtitle}</p>
+              <p className="text-sm text-slate-500 mt-0.5">{displaySubtitle}</p>
             )}
             {trend && (
               <div className="flex items-center gap-1 mt-2">
@@ -117,7 +117,7 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
           {Icon && (
             <div
               className={cn(
-                "p-3 rounded-xl",
+                "p-3 rounded-xl transition-transform duration-300 group-hover:scale-110",
                 resolvedIconBgColor
               )}
             >

@@ -469,7 +469,7 @@ export function CampaignDetail() {
             </div>
             <Dialog open={isAddSlotOpen} onOpenChange={setIsAddSlotOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-slate-900 hover:bg-slate-800">
+                <Button className="bg-primary hover:bg-primary/90">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Slot
                 </Button>
@@ -667,7 +667,7 @@ export function CampaignDetail() {
                     <Button
                       onClick={handleAddSlot}
                       disabled={createSlot.isPending || !newSlot.date}
-                      className="bg-slate-900 hover:bg-slate-800"
+                      className="bg-primary hover:bg-primary/90"
                     >
                       {createSlot.isPending ? 'Creating...' : 'Create Slot'}
                     </Button>
@@ -675,7 +675,7 @@ export function CampaignDetail() {
                     <Button
                       onClick={handleBulkCreate}
                       disabled={createSlot.isPending || bulkSelected.size === 0}
-                      className="bg-slate-900 hover:bg-slate-800"
+                      className="bg-primary hover:bg-primary/90"
                     >
                       {createSlot.isPending ? 'Creating...' : `Create ${bulkSelected.size} Slots`}
                     </Button>

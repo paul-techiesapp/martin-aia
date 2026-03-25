@@ -67,7 +67,7 @@ export function Dashboard() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h1>
         <p className="text-slate-500 mt-1">Welcome to the Management System</p>
       </div>
 
@@ -138,24 +138,24 @@ export function Dashboard() {
           <CardContent className="space-y-2">
             <Link
               to="/campaigns/new"
-              className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-100 transition-colors group"
+              className="flex items-center justify-between p-3 rounded-lg hover:bg-indigo-50 transition-all duration-200 group cursor-pointer"
             >
-              <span className="text-sm font-medium text-slate-700">Create New Event</span>
-              <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
+              <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-700">Create New Event</span>
+              <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
             </Link>
             <Link
               to="/agents/new"
-              className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-100 transition-colors group"
+              className="flex items-center justify-between p-3 rounded-lg hover:bg-indigo-50 transition-all duration-200 group cursor-pointer"
             >
-              <span className="text-sm font-medium text-slate-700">Add New Unit</span>
-              <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
+              <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-700">Add New Unit</span>
+              <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
             </Link>
             <Link
               to="/reports"
-              className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-100 transition-colors group"
+              className="flex items-center justify-between p-3 rounded-lg hover:bg-indigo-50 transition-all duration-200 group cursor-pointer"
             >
-              <span className="text-sm font-medium text-slate-700">View Reports</span>
-              <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
+              <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-700">View Reports</span>
+              <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
             </Link>
           </CardContent>
         </Card>

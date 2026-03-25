@@ -32,11 +32,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <>
       <div className="flex h-16 items-center gap-3 px-6 border-b border-white/10">
         <Logo size="md" showText={false} />
-        <span className="font-semibold text-lg text-white">
-          {role === 'partner' ? 'RACC Partner Portal' : 'RACC Unit Portal'}
+        <span className="font-semibold text-lg text-white tracking-tight">
+          {role === 'partner' ? 'RACC Partner' : 'RACC Unit'}
         </span>
       </div>
-      <nav className="p-4 space-y-1">
+      <nav className="px-3 py-4 space-y-0.5">
         {navigation.map((item) => {
           const isActive = location.pathname === item.href ||
             (item.href !== '/' && location.pathname.startsWith(item.href));
@@ -48,11 +48,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
                 isActive
-                  ? 'bg-white/15 text-white shadow-sm'
-                  : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                  ? 'bg-white/12 text-white shadow-sm border-l-2 border-indigo-400 pl-[10px]'
+                  : 'text-slate-300 hover:bg-white/8 hover:text-white'
               )}
             >
-              <item.icon className="h-5 w-5" />
+              <item.icon className={cn("h-5 w-5", isActive && "text-indigo-300")} />
               {item.name}
             </Link>
           );
@@ -63,12 +63,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:w-64 lg:flex lg:flex-col bg-slate-900">
+      <div className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:w-64 lg:flex lg:flex-col bg-gradient-to-b from-indigo-950 via-[#1a1942] to-slate-900">
         <SidebarContent />
       </div>
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="w-64 p-0 bg-slate-900 border-r-0">
+        <SheetContent side="left" className="w-64 p-0 bg-gradient-to-b from-indigo-950 via-[#1a1942] to-slate-900 border-r-0">
           <SidebarContent />
         </SheetContent>
       </Sheet>

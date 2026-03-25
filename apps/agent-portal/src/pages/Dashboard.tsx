@@ -29,7 +29,7 @@ function AgentDashboard() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h1>
         <p className="text-slate-500 mt-1">
           Welcome back, {agent?.name}! Here's your overview.
         </p>
@@ -112,24 +112,24 @@ function AgentDashboard() {
           <CardContent className="space-y-2">
             <Link
               to="/campaigns"
-              className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors group"
+              className="flex items-center justify-between p-3 rounded-lg hover:bg-indigo-50 transition-all duration-200 group cursor-pointer"
             >
-              <span className="text-sm font-medium text-slate-700">Browse Active Events</span>
-              <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-1 transition-all" />
+              <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-700">Browse Active Events</span>
+              <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
             </Link>
             <Link
               to="/my-links"
-              className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors group"
+              className="flex items-center justify-between p-3 rounded-lg hover:bg-indigo-50 transition-all duration-200 group cursor-pointer"
             >
-              <span className="text-sm font-medium text-slate-700">View My Links</span>
-              <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-1 transition-all" />
+              <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-700">View My Links</span>
+              <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
             </Link>
             <Link
               to="/partners"
-              className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors group"
+              className="flex items-center justify-between p-3 rounded-lg hover:bg-indigo-50 transition-all duration-200 group cursor-pointer"
             >
-              <span className="text-sm font-medium text-slate-700">Manage Partners</span>
-              <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-1 transition-all" />
+              <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-700">Manage Partners</span>
+              <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
             </Link>
           </CardContent>
         </Card>

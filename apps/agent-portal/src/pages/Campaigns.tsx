@@ -95,8 +95,8 @@ export function Campaigns() {
               key={campaign.id}
               className={`glass-card cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-xl ${
                 selectedCampaignId === campaign.id
-                  ? 'ring-2 ring-sky-500 shadow-lg shadow-sky-500/10'
-                  : 'hover:border-sky-200'
+                  ? 'ring-2 ring-indigo-500 shadow-lg shadow-indigo-500/10'
+                  : 'hover:border-indigo-200'
               }`}
               onClick={() => setSelectedCampaignId(campaign.id)}
             >
@@ -184,7 +184,7 @@ export function Campaigns() {
                             size="sm"
                             onClick={() => handleGetLink(slot.id)}
                             disabled={creatingSlotId === slot.id}
-                            className="bg-slate-900 hover:bg-slate-800"
+                            className=""
                           >
                             <Link2 className="h-4 w-4 mr-1" />
                             {creatingSlotId === slot.id ? 'Creating...' : 'Get My Link'}

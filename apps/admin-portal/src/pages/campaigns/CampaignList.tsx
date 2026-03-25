@@ -127,7 +127,7 @@ export function CampaignList() {
           <p className="text-slate-500 mt-1">Manage recruitment events and time slots</p>
         </div>
         <Link to="/campaigns/new">
-          <Button className="bg-slate-900 hover:bg-slate-800">
+          <Button>
             <Plus className="h-4 w-4 mr-2" />
             New Event
           </Button>

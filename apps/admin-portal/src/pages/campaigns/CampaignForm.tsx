@@ -80,7 +80,7 @@ export function CampaignForm() {
       if (isEditing && campaignId) {
         await updateCampaign.mutateAsync({ id: campaignId, ...data });
       } else {
-        await createCampaign.mutateAsync(data);
+        await createCampaign.mutateAsync({ ...data, checkout_config: { fb_enabled: false, fb_url: '', video_enabled: false, video_url: '', rating_enabled: false } });
       }
       navigate({ to: '/campaigns' });
     } catch (error) {

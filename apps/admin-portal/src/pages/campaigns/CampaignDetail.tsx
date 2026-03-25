@@ -35,12 +35,12 @@ import {
 } from '@agent-system/shared-ui';
 import { format, parseISO, eachDayOfInterval, getDay } from 'date-fns';
 import { ArrowLeft, Plus, Trash2, Power, PowerOff, Mail, CalendarPlus, Monitor, FileText } from 'lucide-react';
-import { useCampaign, useUpdateCampaignStatus } from '../../hooks/useCampaigns';
+import { useCampaign, useUpdateCampaignStatus, useUpdateCampaign } from '../../hooks/useCampaigns';
 import { useEmailReminders } from '../../hooks/useEmailReminders';
 import { useSlots, useCreateSlot, useDeleteSlot, useToggleSlotActive, useUpdateSlot } from '../../hooks/useSlots';
 import { useRegistrationsBySlot } from '../../hooks/useRegistrations';
 import { CampaignStatus } from '@agent-system/shared-types';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { Slot } from '@agent-system/shared-types';
 
@@ -252,6 +252,44 @@ export function CampaignDetail() {
   const [bulkIsAutoCard, setBulkIsAutoCard] = useState(true);
   const [bulkPreview, setBulkPreview] = useState<Date[]>([]);
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
+
+  // Checkout config state
+  const updateCampaign = useUpdateCampaign();
+  const [checkoutConfig, setCheckoutConfig] = useState({
+    fb_enabled: false,
+    fb_url: '',
+    video_enabled: false,
+    video_url: '',
+    rating_enabled: false,
+  });
+  const [isCheckoutConfigDirty, setIsCheckoutConfigDirty] = useState(false);
+
+  useEffect(() => {
+    if (campaign?.checkout_config && typeof campaign.checkout_config === 'object') {
+      const cfg = campaign.checkout_config as unknown as Record<string, unknown>;
+      setCheckoutConfig({
+        fb_enabled: cfg.fb_enabled === true,
+        fb_url: (cfg.fb_url as string) ?? '',
+        video_enabled: cfg.video_enabled === true,
+        video_url: (cfg.video_url as string) ?? '',
+        rating_enabled: cfg.rating_enabled === true,
+      });
+    }
+  }, [campaign]);
+
+  const handleSaveCheckoutConfig = async () => {
+    if (!campaignId) return;
+    try {
+      await updateCampaign.mutateAsync({
+        id: campaignId,
+        checkout_config: checkoutConfig,
+      } as any);
+      setIsCheckoutConfigDirty(false);
+      toast({ title: 'Checkout configuration saved' });
+    } catch (err: any) {
+      toast({ title: 'Failed to save', description: err.message, variant: 'error' });
+    }
+  };
 
   const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -722,6 +760,96 @@ export function CampaignDetail() {
                 ))}
               </TableBody>
             </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Post-Checkout Content Configuration */}
+      <Card className="glass-card">
+        <CardHeader>
+          <CardTitle className="text-lg">Post-Checkout Content</CardTitle>
+          <CardDescription>
+            Configure what attendees see after successful check-out
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Facebook Follow Button */}
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="fb_enabled"
+                checked={checkoutConfig.fb_enabled}
+                onCheckedChange={(checked) => {
+                  setCheckoutConfig({ ...checkoutConfig, fb_enabled: checked === true });
+                  setIsCheckoutConfigDirty(true);
+                }}
+              />
+              <Label htmlFor="fb_enabled" className="font-semibold">Facebook Follow Button</Label>
+            </div>
+            {checkoutConfig.fb_enabled && (
+              <Input
+                placeholder="https://facebook.com/your-page"
+                value={checkoutConfig.fb_url}
+                onChange={(e) => {
+                  setCheckoutConfig({ ...checkoutConfig, fb_url: e.target.value });
+                  setIsCheckoutConfigDirty(true);
+                }}
+              />
+            )}
+          </div>
+
+          {/* Video / Photo */}
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="video_enabled"
+                checked={checkoutConfig.video_enabled}
+                onCheckedChange={(checked) => {
+                  setCheckoutConfig({ ...checkoutConfig, video_enabled: checked === true });
+                  setIsCheckoutConfigDirty(true);
+                }}
+              />
+              <Label htmlFor="video_enabled" className="font-semibold">Video / Photo</Label>
+            </div>
+            {checkoutConfig.video_enabled && (
+              <Input
+                placeholder="https://youtube.com/watch?v=..."
+                value={checkoutConfig.video_url}
+                onChange={(e) => {
+                  setCheckoutConfig({ ...checkoutConfig, video_url: e.target.value });
+                  setIsCheckoutConfigDirty(true);
+                }}
+              />
+            )}
+          </div>
+
+          {/* Experience Rating */}
+          <div className="space-y-1">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="rating_enabled"
+                checked={checkoutConfig.rating_enabled}
+                onCheckedChange={(checked) => {
+                  setCheckoutConfig({ ...checkoutConfig, rating_enabled: checked === true });
+                  setIsCheckoutConfigDirty(true);
+                }}
+              />
+              <Label htmlFor="rating_enabled" className="font-semibold">Experience Rating</Label>
+            </div>
+            <p className="text-xs text-muted-foreground ml-6">
+              Shows a 1-5 star rating after checkout. Ratings are stored per attendance record.
+            </p>
+          </div>
+
+          {/* Save Button */}
+          {isCheckoutConfigDirty && (
+            <Button
+              onClick={handleSaveCheckoutConfig}
+              disabled={updateCampaign.isPending}
+              className="bg-violet-600 hover:bg-violet-700"
+            >
+              {updateCampaign.isPending ? 'Saving...' : 'Save Configuration'}
+            </Button>
           )}
         </CardContent>
       </Card>

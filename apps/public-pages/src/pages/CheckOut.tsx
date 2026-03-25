@@ -22,7 +22,7 @@ import {
   TabsTrigger,
   Logo,
 } from '@agent-system/shared-ui';
-import { CheckCircle, MessageSquare, ArrowRight } from 'lucide-react';
+import { CheckCircle, MessageSquare, ArrowRight, Star } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 // Step 1: Dual identifier schema — NRIC always required + email or phone
@@ -69,6 +69,19 @@ export function CheckOut() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isQrValid, setIsQrValid] = useState<boolean | null>(null);
   const [qrError, setQrError] = useState<string | null>(null);
+
+  // Post-checkout content state
+  const [checkoutConfig, setCheckoutConfig] = useState<{
+    fb_enabled?: boolean;
+    fb_url?: string;
+    video_enabled?: boolean;
+    video_url?: string;
+    rating_enabled?: boolean;
+  } | null>(null);
+  const [attendanceId, setAttendanceId] = useState<string | null>(null);
+  const [selectedRating, setSelectedRating] = useState<number | null>(null);
+  const [ratingSubmitted, setRatingSubmitted] = useState(false);
+  const [isSubmittingRating, setIsSubmittingRating] = useState(false);
 
   const hasQrToken = !!(search.ts && search.sig);
 
@@ -197,6 +210,8 @@ export function CheckOut() {
           setError('You have not checked in yet. Please check in first.');
         } else if (data.error === 'already_checked_out') {
           setAttendeeName('');
+          setCheckoutConfig(data.checkout_config ?? null);
+          setAttendanceId(data.attendance_id ?? null);
           setIsSuccess(true);
           setIsSending(false);
           return;
@@ -301,7 +316,8 @@ export function CheckOut() {
           setIsSubmitting(false);
           return;
         } else if (data.error === 'already_checked_out') {
-          // Treat as success
+          setCheckoutConfig(data.checkout_config ?? null);
+          setAttendanceId(data.attendance_id ?? null);
           setIsSuccess(true);
           setIsSubmitting(false);
           return;
@@ -316,12 +332,40 @@ export function CheckOut() {
         }
       }
 
+      setCheckoutConfig(data.checkout_config ?? null);
+      setAttendanceId(data.attendance_id ?? null);
       setIsSuccess(true);
       setIsSubmitting(false);
     } catch {
       setError('Failed to connect to server. Please try again.');
       setIsSubmitting(false);
     }
+  };
+
+  // Submit star rating
+  const handleSubmitRating = async (rating: number) => {
+    if (!attendanceId || ratingSubmitted) return;
+    setSelectedRating(rating);
+    setIsSubmittingRating(true);
+
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/submit-checkout-rating`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ attendance_id: attendanceId, rating }),
+      });
+
+      if (response.ok) {
+        setRatingSubmitted(true);
+      }
+    } catch {
+      // Silently fail — rating is non-critical
+    }
+    setIsSubmittingRating(false);
   };
 
   // QR verification guard screens
@@ -350,25 +394,88 @@ export function CheckOut() {
     );
   }
 
-  // Success screen
+  // Success screen with configurable post-checkout content
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-sky-900 flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-40" />
         <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
-          <CardContent className="p-10 text-center space-y-6">
-            <div className="h-20 w-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
-              <CheckCircle className="h-10 w-10 text-emerald-600" />
-            </div>
-            <div>
+          <CardContent className="p-0">
+            {/* Success Header — always shown */}
+            <div className="p-8 text-center border-b border-slate-100">
+              <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="h-8 w-8 text-emerald-600" />
+              </div>
               <h2 className="text-2xl font-bold text-emerald-600">Check-Out Successful!</h2>
               {attendeeName && (
                 <p className="text-xl font-semibold text-slate-900 mt-2">{attendeeName}</p>
               )}
+              <p className="text-slate-500 mt-2">
+                Thank you for attending! Your full attendance has been recorded.
+              </p>
             </div>
-            <p className="text-slate-500">
-              Thank you for attending! Your full attendance has been recorded.
-            </p>
+
+            {/* Video/Photo Embed */}
+            {checkoutConfig?.video_enabled && checkoutConfig.video_url && (
+              <div className="p-6 border-b border-slate-100">
+                <div className="rounded-xl overflow-hidden bg-black aspect-video">
+                  <iframe
+                    src={checkoutConfig.video_url.replace('watch?v=', 'embed/')}
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title="Event video"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Star Rating */}
+            {checkoutConfig?.rating_enabled && attendanceId && (
+              <div className="p-6 border-b border-slate-100 text-center">
+                <p className="text-sm font-semibold text-slate-700 mb-3">
+                  {ratingSubmitted ? 'Thank you for your feedback!' : 'How was your experience?'}
+                </p>
+                <div className="flex gap-2 justify-center">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      onClick={() => !ratingSubmitted && handleSubmitRating(star)}
+                      disabled={ratingSubmitted || isSubmittingRating}
+                      className="transition-transform hover:scale-110 disabled:cursor-default"
+                    >
+                      <Star
+                        className={`h-9 w-9 ${
+                          selectedRating && star <= selectedRating
+                            ? 'fill-amber-400 text-amber-400'
+                            : 'fill-none text-slate-300'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+                {!ratingSubmitted && (
+                  <p className="text-xs text-slate-400 mt-2">Tap a star to rate</p>
+                )}
+              </div>
+            )}
+
+            {/* Facebook Follow Button */}
+            {checkoutConfig?.fb_enabled && checkoutConfig.fb_url && (
+              <div className="p-6">
+                <a
+                  href={checkoutConfig.fb_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2.5 w-full bg-[#1877f2] hover:bg-[#166fe5] text-white font-semibold py-3 px-5 rounded-xl transition-colors"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                  </svg>
+                  Follow us on Facebook
+                </a>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -73,8 +73,19 @@ Deno.serve(async (req) => {
     }
 
     if (attendance.checkout_time) {
+      // Fetch checkout_config for the thank you page
+      const { data: slotData } = await supabase
+        .from('slots')
+        .select('campaign_id, campaigns(checkout_config)')
+        .eq('id', slot_id)
+        .single();
+
       return new Response(
-        JSON.stringify({ error: 'already_checked_out' }),
+        JSON.stringify({
+          error: 'already_checked_out',
+          attendance_id: attendance.id,
+          checkout_config: slotData?.campaigns?.checkout_config ?? {},
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -105,8 +116,28 @@ Deno.serve(async (req) => {
     // - Updates attendance: checkout_time + is_full_attendance
     // - Updates registration status to 'completed'
 
+    // Fetch attendance_id for rating submission
+    const { data: updatedAttendance } = await supabase
+      .from('attendance')
+      .select('id')
+      .eq('registration_id', registration.id)
+      .single();
+
+    // Fetch checkout_config from campaign via slot
+    const { data: slotData } = await supabase
+      .from('slots')
+      .select('campaign_id, campaigns(checkout_config)')
+      .eq('id', slot_id)
+      .single();
+
+    const checkout_config = slotData?.campaigns?.checkout_config ?? {};
+
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({
+        success: true,
+        attendance_id: updatedAttendance?.id ?? null,
+        checkout_config,
+      }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err) {

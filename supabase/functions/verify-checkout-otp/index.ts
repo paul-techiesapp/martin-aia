@@ -17,36 +17,36 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { slot_id, identifier, code } = await req.json();
-    if (!slot_id || !identifier || !code) {
+    const { slot_id, nric, identifier, code } = await req.json();
+    if (!slot_id || !nric || !identifier || !code) {
       return new Response(
         JSON.stringify({ error: 'missing_fields' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // 1. Look up registration
-    let { data: registration } = await supabase
+    // 1. Look up registration by NRIC
+    const { data: registration } = await supabase
       .from('registrations')
-      .select('id, status')
+      .select('id, status, invitee_email, invitee_phone')
       .eq('slot_id', slot_id)
-      .eq('invitee_nric', identifier)
+      .eq('invitee_nric', nric)
       .single();
-
-    if (!registration) {
-      const result = await supabase
-        .from('registrations')
-        .select('id, status')
-        .eq('slot_id', slot_id)
-        .eq('invitee_phone', identifier)
-        .single();
-      registration = result.data;
-    }
 
     if (!registration) {
       return new Response(
         JSON.stringify({ error: 'registration_not_found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // 1b. Cross-check second identifier
+    const emailMatch = registration.invitee_email && registration.invitee_email.toLowerCase() === identifier.toLowerCase();
+    const phoneMatch = registration.invitee_phone && registration.invitee_phone === identifier;
+    if (!emailMatch && !phoneMatch) {
+      return new Response(
+        JSON.stringify({ error: 'identifier_mismatch', message: 'The email/phone does not match the registration for this NRIC.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 

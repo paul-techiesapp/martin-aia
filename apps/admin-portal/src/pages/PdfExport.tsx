@@ -15,7 +15,7 @@ import {
 } from '@agent-system/shared-ui';
 import { FileDown, FileText, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { generateBulkInvitationCards } from '../utils/pdfGenerator';
+import { generateBulkInvitationCards } from '@agent-system/shared-ui';
 import { format, parseISO } from 'date-fns';
 
 interface Campaign {

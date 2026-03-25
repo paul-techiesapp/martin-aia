@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
 
-interface InvitationCardData {
+export interface InvitationCardData {
   inviteeName: string;
   campaignName: string;
   venue: string;
@@ -12,6 +12,7 @@ interface InvitationCardData {
   uniqueToken: string;
   registrationId: string;
   registrationUrl: string;
+  isAutoCard: boolean;
 }
 
 /**
@@ -44,8 +45,11 @@ async function drawInvitationCard(doc: jsPDF, data: InvitationCardData): Promise
   doc.setFillColor(248, 250, 252);
   doc.rect(0, 0, pageW, pageH, 'F');
 
-  // --- Left Panel (solid navy — jsPDF can't render gradients) ---
-  doc.setFillColor(15, 23, 42);
+  // --- Left Panel (color based on auto/manual card type) ---
+  const panelColor = data.isAutoCard
+    ? { r: 15, g: 23, b: 42 }    // Navy #0f172a (auto)
+    : { r: 127, g: 29, b: 29 };  // Burgundy #7f1d1d (manual)
+  doc.setFillColor(panelColor.r, panelColor.g, panelColor.b);
   doc.rect(0, 0, leftW, pageH, 'F');
 
   // RACC Agency label (gold)

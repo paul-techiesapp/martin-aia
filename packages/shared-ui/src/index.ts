@@ -121,6 +121,10 @@ export {
 export type { SidebarItem, AppSidebarProps, SidebarLayoutProps } from './components/ui/app-sidebar';
 export type { StatCardProps, StatCardGridProps } from './components/ui/stat-card';
 
+// PDF Generation
+export { generateInvitationCard, generateBulkInvitationCards, formatSlotDate, formatTime } from './utils/pdfGenerator';
+export type { InvitationCardData } from './utils/pdfGenerator';
+
 // Design System
 export * from './lib/design-tokens';
 

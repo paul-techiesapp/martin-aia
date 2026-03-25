@@ -9,6 +9,14 @@ import {
   RewardStatus,
 } from './enums';
 
+export interface CheckoutConfig {
+  fb_enabled: boolean;
+  fb_url: string;
+  video_enabled: boolean;
+  video_url: string;
+  rating_enabled: boolean;
+}
+
 export interface Campaign {
   id: string;
   name: string;
@@ -19,6 +27,7 @@ export interface Campaign {
   status: CampaignStatus;
   created_at: string;
   updated_at: string;
+  checkout_config: CheckoutConfig;
 }
 
 export interface Slot {
@@ -140,6 +149,7 @@ export interface Attendance {
   checkin_time: string;
   checkout_time: string | null;
   is_full_attendance: boolean;
+  checkout_rating: number | null;
   created_at: string;
   updated_at: string;
 }

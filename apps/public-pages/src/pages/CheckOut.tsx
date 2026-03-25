@@ -25,12 +25,14 @@ import {
 import { CheckCircle, MessageSquare, ArrowRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
-// Step 1: Identifier schema
-const identifierNricSchema = z.object({
-  identifier: z.string().min(9, 'NRIC must be at least 9 characters'),
+// Step 1: Dual identifier schema — NRIC always required + email or phone
+const emailIdentifierSchema = z.object({
+  nric: z.string().min(9, 'NRIC must be at least 9 characters'),
+  identifier: z.string().email('Please enter a valid email address'),
 });
 
-const identifierPhoneSchema = z.object({
+const phoneIdentifierSchema = z.object({
+  nric: z.string().min(9, 'NRIC must be at least 9 characters'),
   identifier: z.string().min(8, 'Phone number must be at least 8 characters'),
 });
 
@@ -39,7 +41,7 @@ const otpSchema = z.object({
   otp_code: z.string().length(6, 'OTP must be 6 digits'),
 });
 
-type IdentifierFormData = z.infer<typeof identifierNricSchema>;
+type IdentifierFormData = z.infer<typeof emailIdentifierSchema>;
 type OtpFormData = z.infer<typeof otpSchema>;
 
 export function CheckOut() {
@@ -47,7 +49,7 @@ export function CheckOut() {
   const slotId = search.slot;
 
   const [step, setStep] = useState<1 | 2>(1);
-  const [identifyBy, setIdentifyBy] = useState<'nric' | 'phone'>('nric');
+  const [identifyBy, setIdentifyBy] = useState<'email' | 'phone'>('email');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -140,8 +142,8 @@ export function CheckOut() {
   };
 
   const identifierForm = useForm<IdentifierFormData>({
-    resolver: zodResolver(identifyBy === 'nric' ? identifierNricSchema : identifierPhoneSchema),
-    defaultValues: { identifier: '' },
+    resolver: zodResolver(identifyBy === 'email' ? emailIdentifierSchema : phoneIdentifierSchema),
+    defaultValues: { nric: '', identifier: '' },
   });
 
   const otpForm = useForm<OtpFormData>({
@@ -151,7 +153,8 @@ export function CheckOut() {
 
   // Reset form when switching identifier type
   useEffect(() => {
-    identifierForm.reset({ identifier: '' });
+    const currentNric = identifierForm.getValues('nric');
+    identifierForm.reset({ nric: currentNric, identifier: '' });
     setError(null);
   }, [identifyBy]);
 
@@ -170,6 +173,7 @@ export function CheckOut() {
         },
         body: JSON.stringify({
           slot_id: slotId,
+          nric: formData.nric,
           identifier: formData.identifier,
         }),
       });
@@ -185,6 +189,8 @@ export function CheckOut() {
             setResendCooldownSeconds(data.retry_after);
             startResendCooldown();
           }
+        } else if (data.error === 'identifier_mismatch') {
+          setError('The email/phone does not match the registration for this NRIC.');
         } else if (data.error === 'registration_not_found') {
           setError('No checked-in attendee found. Please check in first.');
         } else if (data.error === 'not_checked_in') {
@@ -229,6 +235,7 @@ export function CheckOut() {
         },
         body: JSON.stringify({
           slot_id: slotId,
+          nric: identifierForm.getValues('nric'),
           identifier,
         }),
       });
@@ -276,6 +283,7 @@ export function CheckOut() {
         },
         body: JSON.stringify({
           slot_id: slotId,
+          nric: identifierForm.getValues('nric'),
           identifier,
           code: formData.otp_code,
         }),
@@ -286,6 +294,10 @@ export function CheckOut() {
       if (!response.ok) {
         if (data.error === 'invalid_otp') {
           setError('Invalid or expired OTP. Please try again.');
+          setIsSubmitting(false);
+          return;
+        } else if (data.error === 'identifier_mismatch') {
+          setError('The email/phone does not match the registration for this NRIC.');
           setIsSubmitting(false);
           return;
         } else if (data.error === 'already_checked_out') {
@@ -372,7 +384,7 @@ export function CheckOut() {
           <CardTitle className="text-2xl font-bold text-slate-900">Event Check-Out</CardTitle>
           <CardDescription className="text-slate-500">
             {step === 1
-              ? `Enter your ${identifyBy === 'nric' ? 'NRIC' : 'phone number'} to receive an OTP via WhatsApp`
+              ? 'Enter your NRIC and email or phone to receive an OTP'
               : 'Enter the OTP sent to your WhatsApp'}
           </CardDescription>
 
@@ -403,31 +415,46 @@ export function CheckOut() {
 
           {step === 1 ? (
             <>
-              {/* Identifier toggle */}
-              <Tabs
-                value={identifyBy}
-                onValueChange={(val) => setIdentifyBy(val as 'nric' | 'phone')}
-                className="mb-4"
-              >
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="nric">Identify by NRIC</TabsTrigger>
-                  <TabsTrigger value="phone">Identify by Phone</TabsTrigger>
-                </TabsList>
-              </Tabs>
-
               <Form {...identifierForm}>
                 <form onSubmit={identifierForm.handleSubmit(handleSendOtp)} className="space-y-4">
+                  {/* NRIC — always required */}
+                  <FormField
+                    control={identifierForm.control}
+                    name="nric"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-slate-700">NRIC Number</FormLabel>
+                        <FormControl>
+                          <Input placeholder="S1234567A" className="h-11" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Second identifier toggle */}
+                  <Tabs
+                    value={identifyBy}
+                    onValueChange={(val) => setIdentifyBy(val as 'email' | 'phone')}
+                    className="mb-0"
+                  >
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="email">Email</TabsTrigger>
+                      <TabsTrigger value="phone">Phone</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+
                   <FormField
                     control={identifierForm.control}
                     name="identifier"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-slate-700">
-                          {identifyBy === 'nric' ? 'NRIC Number' : 'Phone Number'}
+                          {identifyBy === 'email' ? 'Email Address' : 'Phone Number'}
                         </FormLabel>
                         <FormControl>
                           <Input
-                            placeholder={identifyBy === 'nric' ? 'S1234567A' : '+65 9123 4567'}
+                            placeholder={identifyBy === 'email' ? 'john@example.com' : '+65 9123 4567'}
                             className="h-11"
                             {...field}
                           />
@@ -438,7 +465,7 @@ export function CheckOut() {
                   />
 
                   <p className="text-xs text-slate-500">
-                    An OTP will be sent to the WhatsApp number you registered with.
+                    OTP will be sent via WhatsApp to your registered phone number.
                   </p>
 
                   <Button

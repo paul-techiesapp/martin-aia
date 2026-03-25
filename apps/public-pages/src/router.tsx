@@ -5,7 +5,6 @@ import {
   Outlet,
 } from '@tanstack/react-router';
 import { Register } from './pages/Register';
-import { CheckIn } from './pages/CheckIn';
 import { CheckOut } from './pages/CheckOut';
 import { Display } from './pages/Display';
 
@@ -17,12 +16,6 @@ const registerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/public/register/$linkCode',
   component: Register,
-});
-
-const checkinRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/public/checkin',
-  component: CheckIn,
 });
 
 const checkoutRoute = createRoute({
@@ -55,7 +48,6 @@ const displayRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   indexRoute,
   registerRoute,
-  checkinRoute,
   checkoutRoute,
   displayRoute,
 ]);

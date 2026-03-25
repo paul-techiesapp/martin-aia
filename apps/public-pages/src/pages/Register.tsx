@@ -145,6 +145,8 @@ export function Register() {
         setError('This NRIC has already been registered for this event slot');
       } else if (rpcError.code === 'P0004') {
         setError('This phone number has already been registered for this event slot');
+      } else if (rpcError.code === 'P0005') {
+        setError('This person has already completed an event and cannot register again.');
       } else {
         setError('Failed to complete registration. Please try again.');
       }

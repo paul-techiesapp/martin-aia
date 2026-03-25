@@ -29,6 +29,7 @@ export interface Slot {
   checkin_window_minutes: number;
   checkout_window_minutes: number;
   is_active: boolean;
+  is_auto_card: boolean;
   created_at: string;
   updated_at: string;
 }

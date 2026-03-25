@@ -331,7 +331,7 @@ export function MyLinks() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-8 w-8 p-0" aria-label="Actions"
+                                className="h-8 w-8 p-0"
                                 onClick={() => handleDownloadCards(link)}
                                 disabled={downloadingLinkId === link.id}
                                 aria-label="Download invitation cards"
@@ -351,7 +351,7 @@ export function MyLinks() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-8 w-8 p-0" aria-label="Actions"
+                              className="h-8 w-8 p-0"
                               onClick={() => handleCopyLink(link.link_code, link.id)}
                               aria-label="Copy registration link"
                             >

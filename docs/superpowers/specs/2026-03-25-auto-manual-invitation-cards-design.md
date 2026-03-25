@@ -142,7 +142,7 @@ Also update the `AgentLinkWithSlotCampaign` TypeScript interface in the hooks fi
 - For auto slots (`is_auto_card = true`): add a PDF download button next to the copy-link button in `InvitationCard` actions
 - For manual slots (`is_auto_card = false`): only show copy-link button (current behavior)
 - Clicking download fetches all registrations for that agent link, builds `InvitationCardData[]`, and calls `generateBulkInvitationCards` to produce a multi-page PDF
-- Registration data needed: `invitee_name`, `invitee_nric`, `invitee_phone` from `registrations` table where `agent_link_id` matches
+- Registration data needed: `id`, `invitee_name` from `registrations` table where `agent_link_id` matches
 
 ### 8. Agent Portal — PartnerLinks.tsx
 

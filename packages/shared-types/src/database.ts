@@ -27,7 +27,7 @@ export interface Campaign {
   status: CampaignStatus;
   created_at: string;
   updated_at: string;
-  checkout_config: CheckoutConfig;
+  checkout_config?: CheckoutConfig;
 }
 
 export interface Slot {

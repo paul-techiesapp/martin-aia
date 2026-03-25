@@ -34,10 +34,10 @@ import {
   Checkbox,
 } from '@agent-system/shared-ui';
 import { format, parseISO, eachDayOfInterval, getDay } from 'date-fns';
-import { ArrowLeft, Plus, Trash2, Power, PowerOff, Mail, CalendarPlus, Monitor } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Power, PowerOff, Mail, CalendarPlus, Monitor, FileText } from 'lucide-react';
 import { useCampaign, useUpdateCampaignStatus } from '../../hooks/useCampaigns';
 import { useEmailReminders } from '../../hooks/useEmailReminders';
-import { useSlots, useCreateSlot, useDeleteSlot, useToggleSlotActive } from '../../hooks/useSlots';
+import { useSlots, useCreateSlot, useDeleteSlot, useToggleSlotActive, useUpdateSlot } from '../../hooks/useSlots';
 import { useRegistrationsBySlot } from '../../hooks/useRegistrations';
 import { CampaignStatus } from '@agent-system/shared-types';
 import { useState } from 'react';
@@ -60,6 +60,7 @@ function SlotRow({
   onToggleExpand,
   onOpenReminder,
   onToggleActive,
+  onToggleCardType,
   onDelete,
 }: {
   slot: Slot;
@@ -67,6 +68,7 @@ function SlotRow({
   onToggleExpand: () => void;
   onOpenReminder: () => void;
   onToggleActive: () => void;
+  onToggleCardType: () => void;
   onDelete: () => void;
 }) {
   const { data: registrations, isLoading: isLoadingRegistrations } = useRegistrationsBySlot(slot.id);
@@ -96,9 +98,14 @@ function SlotRow({
           </Button>
         </TableCell>
         <TableCell>
-          <Badge variant={slot.is_active ? 'active' : 'inactive'}>
-            {slot.is_active ? 'Active' : 'Inactive'}
-          </Badge>
+          <div className="flex items-center gap-1">
+            <Badge variant={slot.is_active ? 'active' : 'inactive'}>
+              {slot.is_active ? 'Active' : 'Inactive'}
+            </Badge>
+            <Badge variant={slot.is_auto_card ? 'info' : 'warning'}>
+              {slot.is_auto_card ? 'Auto' : 'Manual'}
+            </Badge>
+          </div>
         </TableCell>
         <TableCell className="text-right">
           <div className="flex items-center justify-end gap-1">
@@ -119,6 +126,15 @@ function SlotRow({
               title="Send email reminders"
             >
               <Mail className="h-4 w-4 text-indigo-500" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={onToggleCardType}
+              title={slot.is_auto_card ? 'Switch to manual cards' : 'Switch to auto cards'}
+            >
+              <FileText className="h-4 w-4 text-amber-500" />
             </Button>
             <Button
               variant="ghost"
@@ -210,6 +226,7 @@ export function CampaignDetail() {
   const createSlot = useCreateSlot();
   const deleteSlot = useDeleteSlot();
   const toggleSlotActive = useToggleSlotActive();
+  const updateSlot = useUpdateSlot();
 
   const sendReminders = useEmailReminders();
   const [reminderSlot, setReminderSlot] = useState<{ id: string; label: string; count: number } | null>(null);
@@ -223,6 +240,7 @@ export function CampaignDetail() {
     end_time: '13:00',
     checkin_window_minutes: 30,
     checkout_window_minutes: 30,
+    is_auto_card: true,
   });
 
   const [isBulkMode, setIsBulkMode] = useState(false);
@@ -231,6 +249,7 @@ export function CampaignDetail() {
   const [bulkEndTime, setBulkEndTime] = useState('13:00');
   const [bulkCheckinWindow, setBulkCheckinWindow] = useState(30);
   const [bulkCheckoutWindow, setBulkCheckoutWindow] = useState(30);
+  const [bulkIsAutoCard, setBulkIsAutoCard] = useState(true);
   const [bulkPreview, setBulkPreview] = useState<Date[]>([]);
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
 
@@ -246,6 +265,7 @@ export function CampaignDetail() {
       checkin_window_minutes: newSlot.checkin_window_minutes,
       checkout_window_minutes: newSlot.checkout_window_minutes,
       is_active: true,
+      is_auto_card: newSlot.is_auto_card,
     });
     setIsAddSlotOpen(false);
     setNewSlot({
@@ -254,6 +274,7 @@ export function CampaignDetail() {
       end_time: '13:00',
       checkin_window_minutes: 30,
       checkout_window_minutes: 30,
+      is_auto_card: true,
     });
   };
 
@@ -278,6 +299,7 @@ export function CampaignDetail() {
         checkin_window_minutes: bulkCheckinWindow,
         checkout_window_minutes: bulkCheckoutWindow,
         is_active: true,
+        is_auto_card: bulkIsAutoCard,
       });
     }
     setIsAddSlotOpen(false);
@@ -532,6 +554,23 @@ export function CampaignDetail() {
                         />
                       </div>
                     </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="is_auto_card"
+                        checked={newSlot.is_auto_card}
+                        onCheckedChange={(checked) =>
+                          setNewSlot({ ...newSlot, is_auto_card: checked === true })
+                        }
+                      />
+                      <div className="grid gap-0.5 leading-none">
+                        <Label htmlFor="is_auto_card">Auto Card Distribution</Label>
+                        <p className="text-xs text-muted-foreground">
+                          {newSlot.is_auto_card
+                            ? 'Agents can download invitation cards from their portal'
+                            : 'Only admin can print invitation cards'}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   /* Bulk generation mode */
@@ -572,6 +611,21 @@ export function CampaignDetail() {
                       <div>
                         <Label>Check-out Window (mins)</Label>
                         <Input type="number" value={bulkCheckoutWindow} onChange={(e) => setBulkCheckoutWindow(parseInt(e.target.value))} />
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="bulk_is_auto_card"
+                        checked={bulkIsAutoCard}
+                        onCheckedChange={(checked) => setBulkIsAutoCard(checked === true)}
+                      />
+                      <div className="grid gap-0.5 leading-none">
+                        <Label htmlFor="bulk_is_auto_card">Auto Card Distribution</Label>
+                        <p className="text-xs text-muted-foreground">
+                          {bulkIsAutoCard
+                            ? 'Agents can download invitation cards from their portal'
+                            : 'Only admin can print invitation cards'}
+                        </p>
                       </div>
                     </div>
 
@@ -662,6 +716,7 @@ export function CampaignDetail() {
                     onToggleExpand={() => setExpandedSlotId(expandedSlotId === slot.id ? null : slot.id)}
                     onOpenReminder={() => handleOpenReminderDialog(slot)}
                     onToggleActive={() => toggleSlotActive.mutate({ id: slot.id, is_active: !slot.is_active })}
+                    onToggleCardType={() => updateSlot.mutate({ id: slot.id, is_auto_card: !slot.is_auto_card })}
                     onDelete={() => handleDeleteSlot(slot.id)}
                   />
                 ))}

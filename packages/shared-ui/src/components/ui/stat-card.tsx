@@ -64,17 +64,17 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
         <div
           ref={ref}
           className={cn(
-            "p-6 rounded-xl bg-white border border-slate-200/60 shadow-sm",
+            "p-4 rounded-lg bg-white border border-slate-200/60 shadow-sm",
             className
           )}
         >
           <div className="flex items-start justify-between">
-            <div className="space-y-3 flex-1">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-8 w-20" />
-              {displaySubtitle && <Skeleton className="h-3 w-32" />}
+            <div className="space-y-2 flex-1">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-6 w-16" />
+              {displaySubtitle && <Skeleton className="h-3 w-28" />}
             </div>
-            <Skeleton variant="circular" className="h-12 w-12" />
+            <Skeleton variant="circular" className="size-10" />
           </div>
         </div>
       );
@@ -84,24 +84,24 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
       <div
         ref={ref}
         className={cn(
-          "group relative p-6 rounded-xl bg-white border border-slate-200/60 shadow-sm hover:shadow-lg hover:border-slate-300/80 transition-all duration-300",
+          "group relative p-4 rounded-lg bg-white border border-slate-200/60 shadow-sm hover:shadow-md hover:border-slate-300/80 transition-all duration-200",
           className
         )}
       >
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <p className="text-sm font-medium text-slate-500">{title}</p>
-            <p className="text-3xl font-bold text-slate-900 tracking-tight">
+            <p className="text-xs font-medium text-muted-foreground">{title}</p>
+            <p className="text-2xl font-semibold text-foreground tracking-tight">
               {value}
             </p>
             {displaySubtitle && (
-              <p className="text-sm text-slate-500 mt-0.5">{displaySubtitle}</p>
+              <p className="text-xs text-muted-foreground">{displaySubtitle}</p>
             )}
             {trend && (
-              <div className="flex items-center gap-1 mt-2">
+              <div className="flex items-center gap-1 mt-1">
                 <span
                   className={cn(
-                    "text-sm font-medium",
+                    "text-xs font-medium",
                     trend.isPositive ? "text-emerald-600" : "text-red-600"
                   )}
                 >
@@ -109,7 +109,7 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
                   {trend.value}%
                 </span>
                 {trend.label && (
-                  <span className="text-sm text-slate-500">{trend.label}</span>
+                  <span className="text-xs text-muted-foreground">{trend.label}</span>
                 )}
               </div>
             )}
@@ -117,11 +117,11 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
           {Icon && (
             <div
               className={cn(
-                "p-3 rounded-xl transition-transform duration-300 group-hover:scale-110",
+                "p-2 rounded-lg transition-transform duration-200 group-hover:scale-105",
                 resolvedIconBgColor
               )}
             >
-              <Icon className={cn("h-6 w-6", resolvedIconColor)} />
+              <Icon className={cn("size-4", resolvedIconColor)} />
             </div>
           )}
         </div>
@@ -151,7 +151,7 @@ const StatCardGrid: React.FC<StatCardGridProps> = ({
   };
 
   return (
-    <div className={cn("grid gap-4", gridCols[columns], className)}>
+    <div className={cn("grid gap-3", gridCols[columns], className)}>
       {children}
     </div>
   );

@@ -17,6 +17,9 @@ import { FileDown, FileText, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { generateBulkInvitationCards } from '@agent-system/shared-ui';
 import { format, parseISO } from 'date-fns';
+import { useSystemSettings } from '../hooks/useSystemSettings';
+import { getEffectiveTemplate, DEFAULT_CARD_TEMPLATE, DEFAULT_COMPANY_BRANDING } from '@agent-system/shared-types';
+import type { CardTemplate } from '@agent-system/shared-types';
 
 interface Campaign {
   id: string;
@@ -44,6 +47,7 @@ interface Registration {
     campaign: {
       name: string;
       venue: string;
+      card_template_overrides: Record<string, unknown> | null;
     };
   };
 }
@@ -52,6 +56,7 @@ export function PdfExport() {
   const [selectedCampaign, setSelectedCampaign] = useState<string>('');
   const [selectedSlot, setSelectedSlot] = useState<string>('');
   const [isGeneratingInvitations, setIsGeneratingInvitations] = useState(false);
+  const { data: systemSettings } = useSystemSettings();
 
   // Fetch campaigns
   const { data: campaigns = [] } = useQuery({
@@ -97,7 +102,7 @@ export function PdfExport() {
             start_at,
             end_at,
             is_auto_card,
-            campaign:campaigns(name, venue)
+            campaign:campaigns(name, venue, card_template_overrides)
           )
         `)
         .eq('slot_id', selectedSlot)
@@ -132,7 +137,13 @@ export function PdfExport() {
         isAutoCard: reg.slot.is_auto_card,
       }));
 
-      const doc = await generateBulkInvitationCards(invitationData);
+      const branding = systemSettings?.company_branding ?? DEFAULT_COMPANY_BRANDING;
+      const campaignOverrides = registrations[0]?.slot?.campaign?.card_template_overrides as Partial<CardTemplate> | null;
+      const template = getEffectiveTemplate(
+        systemSettings?.card_template ?? DEFAULT_CARD_TEMPLATE,
+        campaignOverrides
+      );
+      const doc = await generateBulkInvitationCards(invitationData, template, branding);
       doc.save(`invitation-cards-${selectedCampaignData?.name || 'campaign'}.pdf`);
     } catch (error) {
       console.error('Error generating invitation cards:', error);

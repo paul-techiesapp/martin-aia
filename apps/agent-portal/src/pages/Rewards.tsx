@@ -94,7 +94,7 @@ export function Rewards() {
       <StatCardGrid columns={4}>
         <StatCard
           title="Total Earned"
-          value={`$${totalEarned.toFixed(2)}`}
+          value={`RM${totalEarned.toFixed(2)}`}
           icon={DollarSign}
           iconColor="emerald"
           description={`${completedCount} completed attendances`}
@@ -102,7 +102,7 @@ export function Rewards() {
         />
         <StatCard
           title="Pending"
-          value={`$${pendingRewards.toFixed(2)}`}
+          value={`RM${pendingRewards.toFixed(2)}`}
           icon={Clock}
           iconColor="amber"
           description="Awaiting confirmation"
@@ -110,7 +110,7 @@ export function Rewards() {
         />
         <StatCard
           title="Confirmed"
-          value={`$${confirmedRewards.toFixed(2)}`}
+          value={`RM${confirmedRewards.toFixed(2)}`}
           icon={CheckCircle}
           iconColor="sky"
           description="Ready for payout"
@@ -118,7 +118,7 @@ export function Rewards() {
         />
         <StatCard
           title="Rate"
-          value={`$${rewardAmount.toFixed(2)}`}
+          value={`RM${rewardAmount.toFixed(2)}`}
           icon={TrendingUp}
           iconColor="violet"
           description={`Per attendance (${agent?.tier?.name || 'N/A'})`}
@@ -162,7 +162,7 @@ export function Rewards() {
                       {reg.capacity_type.replace('_', ' ')}
                     </TableCell>
                     <TableCell className="text-right font-semibold text-emerald-600">
-                      ${rewardAmount.toFixed(2)}
+                      RM{rewardAmount.toFixed(2)}
                     </TableCell>
                     <TableCell>
                       <Badge variant="pending">Pending</Badge>
@@ -198,7 +198,7 @@ export function Rewards() {
             <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-sm font-bold flex-shrink-0">3</div>
             <div>
               <p className="font-medium text-slate-900">Earn Rewards</p>
-              <p className="text-sm text-slate-500">For each successful full attendance, you earn ${rewardAmount.toFixed(2)} based on your tier.</p>
+              <p className="text-sm text-slate-500">For each successful full attendance, you earn RM{rewardAmount.toFixed(2)} based on your tier.</p>
             </div>
           </div>
         </CardContent>

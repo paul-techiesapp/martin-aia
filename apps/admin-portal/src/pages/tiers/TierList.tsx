@@ -157,7 +157,7 @@ export function TierList() {
                 </Select>
               </div>
               <div>
-                <Label>Reward Amount ($)</Label>
+                <Label>Reward Amount (RM)</Label>
                 <Input
                   type="number"
                   value={formData.reward_amount}
@@ -213,7 +213,7 @@ export function TierList() {
                   <TableRow key={tier.id} className="hover:bg-slate-50/50 transition-colors">
                     <TableCell className="font-medium">{tier.name}</TableCell>
                     <TableCell className="capitalize">{tier.role_type.replace('_', ' ')}</TableCell>
-                    <TableCell>${tier.reward_amount.toFixed(2)}</TableCell>
+                    <TableCell>RM{tier.reward_amount.toFixed(2)}</TableCell>
                     <TableCell>{tier.invitation_limit_per_slot} per slot</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">

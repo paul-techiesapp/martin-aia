@@ -236,7 +236,7 @@ export function AgentForm() {
                         ) : (
                           tiers?.map((tier) => (
                             <SelectItem key={tier.id} value={tier.id}>
-                              {tier.name} - ${tier.reward_amount}/attendance
+                              {tier.name} - RM{tier.reward_amount}/attendance
                             </SelectItem>
                           ))
                         )}

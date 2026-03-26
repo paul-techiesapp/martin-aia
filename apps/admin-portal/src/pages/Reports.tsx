@@ -211,8 +211,8 @@ export function Reports() {
       ['Total Attendance', reportStats.totalAttendance],
       ['Full Attendance', reportStats.fullAttendance],
       ['Attendance Rate', `${reportStats.attendanceRate}%`],
-      ['Total Rewards', `$${reportStats.totalRewardsAmount}`],
-      ['Pending Rewards', `$${reportStats.pendingRewardsAmount}`],
+      ['Total Rewards', `RM${reportStats.totalRewardsAmount}`],
+      ['Pending Rewards', `RM${reportStats.pendingRewardsAmount}`],
     ].map(row => row.join(',')).join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -297,7 +297,7 @@ export function Reports() {
         />
         <StatCard
           title="Rewards Pending"
-          value={`$${reportStats?.pendingRewardsAmount || 0}`}
+          value={`RM${reportStats?.pendingRewardsAmount || 0}`}
           subtitle={`${reportStats?.totalAgents || 0} units`}
           icon={DollarSign}
           iconColor="text-amber-600"
@@ -467,7 +467,7 @@ export function Reports() {
                 </TableRow>
                 <TableRow className="hover:bg-slate-50/50 transition-colors">
                   <TableCell className="font-medium">Total Rewards</TableCell>
-                  <TableCell className="text-right text-slate-600">${reportStats?.totalRewardsAmount || 0}</TableCell>
+                  <TableCell className="text-right text-slate-600">RM{reportStats?.totalRewardsAmount || 0}</TableCell>
                 </TableRow>
               </TableBody>
             </Table>

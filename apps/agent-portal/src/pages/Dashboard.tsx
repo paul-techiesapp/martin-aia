@@ -65,7 +65,7 @@ function AgentDashboard() {
           value={stats?.completed ?? 0}
           icon={Award}
           iconColor="emerald"
-          description={`$${((stats?.completed ?? 0) * (agent?.tier?.reward_amount ?? 0)).toFixed(2)}`}
+          description={`RM${((stats?.completed ?? 0) * (agent?.tier?.reward_amount ?? 0)).toFixed(2)}`}
           loading={isLoading}
         />
       </StatCardGrid>
@@ -91,7 +91,7 @@ function AgentDashboard() {
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-slate-100">
                   <span className="text-slate-500">Reward per Attendance</span>
-                  <span className="font-semibold text-emerald-600">${agent.tier.reward_amount.toFixed(2)}</span>
+                  <span className="font-semibold text-emerald-600">RM{agent.tier.reward_amount.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center py-2">
                   <span className="text-slate-500">Invitation Limit per Slot</span>

@@ -18,6 +18,8 @@ import { Reports } from './pages/Reports';
 import { PdfExport } from './pages/PdfExport';
 import { VenueDisplay } from './pages/VenueDisplay';
 import { CheckInScanner } from './pages/CheckInScanner';
+import { Settings } from './pages/Settings';
+import { CardTemplateEditor } from './pages/CardTemplateEditor';
 
 // Root route
 const rootRoute = createRootRoute({
@@ -123,6 +125,18 @@ const checkInScannerRoute = createRoute({
   component: CheckInScanner,
 });
 
+const settingsRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/settings',
+  component: Settings,
+});
+
+const cardTemplateRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/settings/card-template',
+  component: CardTemplateEditor,
+});
+
 const venueDisplayRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/venue-display/$slotId',
@@ -149,6 +163,8 @@ const routeTree = rootRoute.addChildren([
     reportsRoute,
     pdfExportRoute,
     checkInScannerRoute,
+    settingsRoute,
+    cardTemplateRoute,
   ]),
 ]);
 

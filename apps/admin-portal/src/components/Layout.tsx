@@ -9,6 +9,7 @@ import {
   BarChart3,
   FileText,
   ScanLine,
+  Settings as SettingsIcon,
   LogOut,
   Menu,
   X,
@@ -23,6 +24,7 @@ const navigation = [
   { name: 'Reports', href: '/reports', icon: BarChart3 },
   { name: 'PDF Export', href: '/pdf-export', icon: FileText },
   { name: 'Check-In', href: '/check-in', icon: ScanLine },
+  { name: 'Settings', href: '/settings', icon: SettingsIcon },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {

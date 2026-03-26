@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
 import type { CardTemplate, CompanyBranding } from '@agent-system/shared-types';
+import { loadFont } from './fonts';
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -50,6 +51,8 @@ async function drawInvitationCard(
   const pageW = 148;
   const pageH = 105;
   const leftW = 40;
+
+  loadFont(doc, template.fontFamily);
 
   const slotDate = new Date(data.slotDate);
   const dayNum = slotDate.getDate().toString();

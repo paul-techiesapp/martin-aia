@@ -125,6 +125,9 @@ export type { StatCardProps, StatCardGridProps } from './components/ui/stat-card
 export { generateInvitationCard, generateBulkInvitationCards, formatSlotDate, formatTime } from './utils/pdfGenerator';
 export type { InvitationCardData } from './utils/pdfGenerator';
 
+// Font Utilities
+export { CURATED_FONTS, loadFont, getFontDisplayName } from './utils/fonts';
+
 // Design System
 export * from './lib/design-tokens';
 

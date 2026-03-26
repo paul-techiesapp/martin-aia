@@ -120,7 +120,7 @@ export function Dashboard() {
       </StatCardGrid>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <Card className="glass-card">
+        <Card>
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
             <CardDescription>Latest check-ins and registrations</CardDescription>
@@ -130,7 +130,7 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="glass-card">
+        <Card>
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
             <CardDescription>Frequently used tasks</CardDescription>

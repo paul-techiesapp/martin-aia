@@ -126,7 +126,7 @@ export function Rewards() {
         />
       </StatCardGrid>
 
-      <Card className="glass-card">
+      <Card>
         <CardHeader>
           <CardTitle>Reward History</CardTitle>
           <CardDescription>
@@ -154,7 +154,7 @@ export function Rewards() {
               </TableHeader>
               <TableBody>
                 {completedRegistrations.map((reg) => (
-                  <TableRow key={reg.id} className="hover:bg-slate-50/50 transition-colors">
+                  <TableRow key={reg.id}>
                     <TableCell className="font-medium">
                       {reg.slot?.campaign?.name ?? '-'}
                     </TableCell>
@@ -177,27 +177,27 @@ export function Rewards() {
         </CardContent>
       </Card>
 
-      <Card className="glass-card">
+      <Card>
         <CardHeader>
           <CardTitle>How Rewards Work</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-start gap-4">
-            <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-sm font-bold flex-shrink-0">1</div>
+            <div className="size-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-bold flex-shrink-0">1</div>
             <div>
               <p className="font-medium text-foreground">Share Your Link</p>
               <p className="text-sm text-muted-foreground">Get your shareable link and share it with potential attendees.</p>
             </div>
           </div>
           <div className="flex items-start gap-4">
-            <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-sm font-bold flex-shrink-0">2</div>
+            <div className="size-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-bold flex-shrink-0">2</div>
             <div>
               <p className="font-medium text-foreground">They Register & Attend</p>
               <p className="text-sm text-muted-foreground">Invitees register via your link and attend the event with full check-in and check-out.</p>
             </div>
           </div>
           <div className="flex items-start gap-4">
-            <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-sm font-bold flex-shrink-0">3</div>
+            <div className="size-7 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-sm font-bold flex-shrink-0">3</div>
             <div>
               <p className="font-medium text-foreground">Earn Rewards</p>
               <p className="text-sm text-muted-foreground">For each successful full attendance, you earn RM{rewardAmount.toFixed(2)} based on your tier.</p>

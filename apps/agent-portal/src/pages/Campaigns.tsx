@@ -70,7 +70,7 @@ export function Campaigns() {
       {isLoading ? (
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
-            <Card key={i} className="glass-card">
+            <Card key={i}>
               <CardHeader>
                 <Skeleton className="h-6 w-3/4" />
                 <Skeleton className="h-4 w-1/2 mt-2" />
@@ -83,8 +83,8 @@ export function Campaigns() {
           ))}
         </div>
       ) : campaigns?.length === 0 ? (
-        <Card className="glass-card">
-          <CardContent className="p-6">
+        <Card>
+          <CardContent className="py-4">
             <p className="text-muted-foreground text-center">No active events available</p>
           </CardContent>
         </Card>
@@ -119,7 +119,7 @@ export function Campaigns() {
       )}
 
       {selectedCampaignId && slots && (
-        <Card className="glass-card">
+        <Card>
           <CardHeader>
             <CardTitle>Available Slots</CardTitle>
             <CardDescription>Get your shareable link for each slot</CardDescription>

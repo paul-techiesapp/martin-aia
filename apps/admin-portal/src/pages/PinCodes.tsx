@@ -119,7 +119,7 @@ export function PinCodes() {
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <Card className="glass-card">
+        <Card>
           <CardHeader>
             <CardTitle>Select Slot</CardTitle>
           </CardHeader>
@@ -165,7 +165,7 @@ export function PinCodes() {
         </Card>
 
         {selectedSlotId && (
-          <Card className="glass-card">
+          <Card>
             <CardHeader>
               <CardTitle>QR Codes for Venue</CardTitle>
               <CardDescription>Display for attendees to scan</CardDescription>
@@ -230,7 +230,7 @@ export function PinCodes() {
       </div>
 
       {selectedSlotId && (
-        <Card className="glass-card">
+        <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -273,7 +273,7 @@ export function PinCodes() {
       )}
 
       {selectedSlotId && (
-        <Card className="glass-card">
+        <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -345,7 +345,7 @@ export function PinCodes() {
                 </TableHeader>
                 <TableBody>
                   {pinCodes?.map((pin) => (
-                    <TableRow key={pin.id} className="hover:bg-slate-50/50 transition-colors">
+                    <TableRow key={pin.id}>
                       <TableCell className="font-mono text-lg">{pin.code}</TableCell>
                       <TableCell>
                         {pin.is_used ? (

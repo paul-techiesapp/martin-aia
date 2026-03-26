@@ -111,8 +111,8 @@ export function CampaignList() {
 
   if (error) {
     return (
-      <Card className="glass-card">
-        <CardContent className="p-6">
+      <Card>
+        <CardContent className="py-4">
           <p className="text-red-600">Error loading events: {error.message}</p>
         </CardContent>
       </Card>
@@ -128,13 +128,13 @@ export function CampaignList() {
         </div>
         <Link to="/campaigns/new">
           <Button>
-            <Plus className="h-4 w-4 mr-1.5" />
+            <Plus className="size-4 mr-1.5" />
             New Event
           </Button>
         </Link>
       </div>
 
-      <Card className="glass-card">
+      <Card>
         <CardHeader>
           <CardTitle>All Events</CardTitle>
           <CardDescription>
@@ -161,7 +161,7 @@ export function CampaignList() {
               </TableHeader>
               <TableBody>
                 {campaigns?.map((campaign) => (
-                  <TableRow key={campaign.id} className="hover:bg-slate-50/50 transition-colors">
+                  <TableRow key={campaign.id}>
                     <TableCell className="font-medium">{campaign.name}</TableCell>
                     <TableCell className="text-muted-foreground">{campaign.venue}</TableCell>
                     <TableCell className="capitalize text-muted-foreground">
@@ -179,7 +179,7 @@ export function CampaignList() {
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0" aria-label="Actions">
+                          <Button variant="ghost" className="size-8 p-0" aria-label="Actions">
                             <MoreHorizontal className="size-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -303,7 +303,7 @@ export function CampaignList() {
               >
                 {duplicateCampaign.isPending ? (
                   <>
-                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-1.5 size-4 animate-spin" />
                     Duplicating...
                   </>
                 ) : (

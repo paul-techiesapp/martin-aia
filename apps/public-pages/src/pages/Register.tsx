@@ -162,7 +162,7 @@ export function Register() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-40" />
-        <Card className="w-full max-w-lg bg-white/95 backdrop-blur-sm shadow-2xl border-0">
+        <Card className="w-full max-w-lg bg-card backdrop-blur-sm shadow-2xl border-0">
           <CardHeader className="text-center pt-8">
             <Skeleton className="h-12 w-12 rounded-full mx-auto mb-4" />
             <Skeleton className="h-8 w-48 mx-auto mb-2" />
@@ -183,9 +183,9 @@ export function Register() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-40" />
-        <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
-          <CardContent className="p-8 text-center">
-            <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+        <Card className="w-full max-w-md bg-card backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
+          <CardContent className="p-6 text-center">
+            <div className="size-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl">!</span>
             </div>
             <p className="text-red-600 font-medium">{error}</p>
@@ -199,18 +199,18 @@ export function Register() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-40" />
-        <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
-          <CardContent className="p-10 text-center space-y-6">
-            <div className="h-20 w-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
-              <CheckCircle className="h-10 w-10 text-emerald-600" />
+        <Card className="w-full max-w-md bg-card backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
+          <CardContent className="p-6 text-center space-y-4">
+            <div className="size-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
+              <CheckCircle className="size-10 text-emerald-600" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-foreground">Registration Complete!</h2>
+              <h2 className="text-xl font-semibold text-foreground">Registration Complete!</h2>
               <p className="text-muted-foreground">
                 You have successfully registered for the event. Please arrive on time with your NRIC for verification.
               </p>
             </div>
-            <div className="bg-slate-50 p-4 rounded-xl text-left border border-slate-100">
+            <div className="bg-muted p-4 rounded-xl text-left border">
               <p className="font-semibold text-foreground">{agentLink?.slot.campaign.name}</p>
               <p className="text-sm text-muted-foreground">
                 {agentLink?.slot.start_at ? format(parseISO(agentLink.slot.start_at), 'EEE d MMM yyyy, HH:mm') : ''} -{' '}
@@ -227,17 +227,17 @@ export function Register() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-40" />
-      <Card className="w-full max-w-lg bg-white/95 backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
+      <Card className="w-full max-w-lg bg-card backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
         <CardHeader className="text-center pt-8">
           <Logo size="lg" showText={false} className="mx-auto mb-4" />
-          <CardTitle className="text-2xl font-bold text-foreground">Event Registration</CardTitle>
+          <CardTitle className="text-xl font-semibold text-foreground">Event Registration</CardTitle>
           <CardDescription className="text-muted-foreground">
             Complete your registration for the event
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 px-6 pb-8">
           {/* Event Details */}
-          <div className="bg-slate-50 p-4 rounded-xl space-y-2 border border-slate-100">
+          <div className="bg-muted p-4 rounded-xl space-y-2 border">
             <div className="flex items-center gap-2">
               <div className="size-8 rounded-lg bg-sky-100 flex items-center justify-center">
                 <CalendarDays className="size-4 text-sky-600" />
@@ -258,7 +258,7 @@ export function Register() {
           </div>
 
           {error && (
-            <div role="alert" className="p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
+            <div role="alert" className="p-3 text-sm text-red-700 bg-red-50 border-red-200 rounded-lg">
               {error}
             </div>
           )}
@@ -339,9 +339,9 @@ export function Register() {
               />
 
               {/* Terms & Conditions */}
-              <div className="border-t border-slate-200 pt-4 mt-2">
+              <div className="border-t pt-4 mt-2">
                 <FormLabel className="text-foreground">Terms & Conditions</FormLabel>
-                <ScrollArea className="h-[160px] mt-2 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <ScrollArea className="h-[160px] mt-2 rounded-lg border bg-muted p-4">
                   <div className="space-y-3 text-xs text-muted-foreground leading-relaxed pr-4">
                     {TERMS_AND_CONDITIONS.map((section, index) => (
                       <div key={index}>

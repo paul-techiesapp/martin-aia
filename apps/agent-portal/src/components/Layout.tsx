@@ -62,7 +62,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       <div className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:w-64 lg:flex lg:flex-col bg-gradient-to-b from-indigo-950 via-[#1a1942] to-slate-900">
         <SidebarContent />
       </div>
@@ -74,19 +74,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </Sheet>
 
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-40 h-16 bg-white/80 backdrop-blur-md border-b border-slate-200/60 shadow-sm">
+        <header className="sticky top-0 z-40 h-16 bg-background/80 backdrop-blur-md border-b border-border shadow-sm">
           <div className="flex h-16 items-center justify-between px-4 lg:px-6">
             <div className="flex items-center gap-4">
               <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="sm" className="lg:hidden h-9 w-9 p-0">
+                  <Button variant="ghost" size="sm" className="lg:hidden size-9 p-0">
                     <Menu className="size-5" />
                   </Button>
                 </SheetTrigger>
               </Sheet>
               {displayName && (
-                <p className="text-sm text-slate-500">
-                  Welcome, <span className="font-medium text-slate-900">{displayName}</span>
+                <p className="text-sm text-muted-foreground">
+                  Welcome, <span className="font-medium text-foreground">{displayName}</span>
                   {subtitle && (
                     <>{' '}· <span className="text-sky-600 font-medium">{subtitle}</span></>
                   )}
@@ -97,7 +97,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               variant="ghost"
               size="sm"
               onClick={signOut}
-              className="text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+              className="text-muted-foreground hover:text-foreground hover:bg-muted"
             >
               <LogOut className="size-4 mr-2" />
               Sign Out

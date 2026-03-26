@@ -109,7 +109,7 @@ export function CampaignForm() {
         </div>
       </div>
 
-      <Card className="max-w-2xl glass-card">
+      <Card className="max-w-2xl">
         <CardHeader>
           <CardTitle>Event Details</CardTitle>
           <CardDescription>

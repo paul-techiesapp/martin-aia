@@ -39,7 +39,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       {/* Mobile menu overlay */}
       {isMobileMenuOpen && (
         <div
@@ -148,11 +148,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Main content */}
       <div className="lg:pl-64">
         {/* Header */}
-        <header className="sticky top-0 z-30 flex items-center h-16 px-4 bg-white/80 backdrop-blur-sm border-b border-slate-200">
+        <header className="sticky top-0 z-30 flex items-center h-16 px-4 bg-white/80 backdrop-blur-sm border-b border">
           {/* Mobile menu button */}
           <button
             onClick={() => setIsMobileMenuOpen(true)}
-            className="lg:hidden p-2 -ml-2 rounded-md hover:bg-slate-100"
+            className="lg:hidden p-2 -ml-2 rounded-md hover:bg-muted"
             aria-label="Open menu"
           >
             <Menu className="size-5" />
@@ -161,7 +161,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {/* Desktop header content */}
           <div className="hidden lg:flex flex-1 items-center justify-end">
             <div className="flex items-center gap-4">
-              <span className="text-sm text-slate-500">{user?.email}</span>
+              <span className="text-sm text-muted-foreground">{user?.email}</span>
               <Button variant="ghost" size="sm" onClick={handleLogout}>
                 <LogOut className="size-4 mr-2" />
                 Logout
@@ -171,7 +171,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
           {/* Mobile header content */}
           <div className="flex lg:hidden flex-1 items-center justify-center">
-            <span className="font-semibold text-slate-900">RACC Admin</span>
+            <span className="font-semibold text-foreground">RACC Admin</span>
           </div>
         </header>
 

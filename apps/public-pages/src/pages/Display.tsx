@@ -201,7 +201,7 @@ export function Display() {
           </p>
 
           <div className="mt-4 inline-flex items-center gap-2 bg-slate-900 px-4 py-2 rounded-full">
-            <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: themeColor }} />
+            <span className="size-2 rounded-full animate-pulse" style={{ backgroundColor: themeColor }} />
             <span className="text-sm text-slate-400">
               Refreshes in <strong className="text-white">{countdown}s</strong>
             </span>

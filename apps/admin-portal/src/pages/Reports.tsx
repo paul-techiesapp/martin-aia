@@ -308,7 +308,7 @@ export function Reports() {
 
       {/* Charts */}
       <div className="grid gap-3 md:grid-cols-2">
-        <Card className="glass-card">
+        <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -316,7 +316,7 @@ export function Reports() {
                 <CardDescription>Sent vs. registered vs. attended</CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={() => handleExport('invitations')}>
-                <Download className="h-4 w-4 mr-1.5" />
+                <Download className="size-4 mr-1.5" />
                 Export
               </Button>
             </div>
@@ -343,7 +343,7 @@ export function Reports() {
           </CardContent>
         </Card>
 
-        <Card className="glass-card">
+        <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -386,7 +386,7 @@ export function Reports() {
 
       {/* Tables */}
       <div className="grid gap-3 md:grid-cols-2">
-        <Card className="glass-card">
+        <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -394,7 +394,7 @@ export function Reports() {
                 <CardDescription>Ranked by attendance conversion</CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={() => handleExport('agents')}>
-                <Download className="h-4 w-4 mr-1.5" />
+                <Download className="size-4 mr-1.5" />
                 Export
               </Button>
             </div>
@@ -412,13 +412,13 @@ export function Reports() {
               <TableBody>
                 {(topAgents || []).length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-slate-500">
+                    <TableCell colSpan={4} className="text-center text-muted-foreground">
                       No unit data available
                     </TableCell>
                   </TableRow>
                 ) : (
                   topAgents?.map((agent) => (
-                    <TableRow key={agent.name} className="hover:bg-slate-50/50 transition-colors">
+                    <TableRow key={agent.name} >
                       <TableCell className="font-medium">{agent.name}</TableCell>
                       <TableCell className="text-right text-muted-foreground">{agent.invitations}</TableCell>
                       <TableCell className="text-right text-muted-foreground">{agent.attendance}</TableCell>
@@ -431,7 +431,7 @@ export function Reports() {
           </CardContent>
         </Card>
 
-        <Card className="glass-card">
+        <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -439,7 +439,7 @@ export function Reports() {
                 <CardDescription>Key metrics at a glance</CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={() => handleExport('summary')}>
-                <Download className="h-4 w-4 mr-1.5" />
+                <Download className="size-4 mr-1.5" />
                 Export
               </Button>
             </div>
@@ -453,19 +453,19 @@ export function Reports() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                <TableRow className="hover:bg-slate-50/50 transition-colors">
+                <TableRow >
                   <TableCell className="font-medium">Total Events</TableCell>
                   <TableCell className="text-right text-muted-foreground">{reportStats?.totalCampaigns || 0}</TableCell>
                 </TableRow>
-                <TableRow className="hover:bg-slate-50/50 transition-colors">
+                <TableRow >
                   <TableCell className="font-medium">Active Events</TableCell>
                   <TableCell className="text-right text-muted-foreground">{reportStats?.activeCampaigns || 0}</TableCell>
                 </TableRow>
-                <TableRow className="hover:bg-slate-50/50 transition-colors">
+                <TableRow >
                   <TableCell className="font-medium">Total Units</TableCell>
                   <TableCell className="text-right text-muted-foreground">{reportStats?.totalAgents || 0}</TableCell>
                 </TableRow>
-                <TableRow className="hover:bg-slate-50/50 transition-colors">
+                <TableRow >
                   <TableCell className="font-medium">Total Rewards</TableCell>
                   <TableCell className="text-right text-muted-foreground">RM{reportStats?.totalRewardsAmount || 0}</TableCell>
                 </TableRow>

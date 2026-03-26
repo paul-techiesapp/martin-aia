@@ -51,8 +51,8 @@ export function AgentList() {
 
   if (error) {
     return (
-      <Card className="glass-card">
-        <CardContent className="p-6">
+      <Card>
+        <CardContent className="py-4">
           <p className="text-red-600">Error loading units: {error.message}</p>
         </CardContent>
       </Card>
@@ -74,7 +74,7 @@ export function AgentList() {
         </Link>
       </div>
 
-      <Card className="glass-card">
+      <Card>
         <CardHeader>
           <CardTitle>All Units</CardTitle>
           <CardDescription>
@@ -102,7 +102,7 @@ export function AgentList() {
               </TableHeader>
               <TableBody>
                 {agents?.map((agent) => (
-                  <TableRow key={agent.id} className="hover:bg-slate-50/50 transition-colors">
+                  <TableRow key={agent.id}>
                     <TableCell className="font-medium">{agent.name}</TableCell>
                     <TableCell className="text-muted-foreground">{agent.agent_code}</TableCell>
                     <TableCell className="text-muted-foreground">{agent.email}</TableCell>

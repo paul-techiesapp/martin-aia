@@ -172,7 +172,7 @@ export function MyLinks() {
         {campaignsLoading ? (
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (
-              <Card key={i} className="glass-card">
+              <Card key={i}>
                 <CardHeader>
                   <Skeleton className="h-6 w-3/4" />
                   <Skeleton className="h-4 w-1/2 mt-2" />
@@ -184,8 +184,8 @@ export function MyLinks() {
             ))}
           </div>
         ) : campaigns?.length === 0 ? (
-          <Card className="glass-card">
-            <CardContent className="p-6">
+          <Card>
+            <CardContent className="py-4">
               <p className="text-muted-foreground text-center">No active events available</p>
             </CardContent>
           </Card>
@@ -224,7 +224,7 @@ export function MyLinks() {
 
       {/* Slots for Selected Campaign */}
       {selectedCampaignId && slots && (
-        <Card className="glass-card">
+        <Card>
           <CardHeader>
             <CardTitle>Event Slots</CardTitle>
             <CardDescription>Get your shareable link for each slot</CardDescription>
@@ -241,10 +241,10 @@ export function MyLinks() {
                   return (
                     <div
                       key={slot.id}
-                      className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
+                      className={`flex items-center justify-between p-4 rounded-lg border ${
                         selectedSlotId === slot.id
-                          ? 'border-sky-200 bg-sky-50/50'
-                          : 'border-slate-200 hover:border-slate-300'
+                          ? 'border-primary/30 bg-primary/5'
+                          : 'hover:bg-muted/50'
                       }`}
                     >
                       <div
@@ -288,7 +288,6 @@ export function MyLinks() {
                             size="sm"
                             onClick={() => handleGetLink(slot.id)}
                             disabled={creatingSlotId === slot.id}
-                            className="bg-primary hover:bg-primary/90"
                           >
                             <Link2 className="size-4 mr-1" />
                             {creatingSlotId === slot.id ? 'Creating...' : 'Get My Link'}
@@ -306,7 +305,7 @@ export function MyLinks() {
 
       {/* My Active Links as InvitationCards */}
       {links && links.length > 0 && (
-        <Card className="glass-card">
+        <Card>
           <CardHeader>
             <CardTitle>My Active Links</CardTitle>
             <CardDescription>
@@ -380,7 +379,7 @@ export function MyLinks() {
 
       {/* Registrations Table for Selected Slot */}
       {selectedSlotId && (
-        <Card className="glass-card">
+        <Card>
           <CardHeader>
             <CardTitle>Registrations</CardTitle>
             <CardDescription>
@@ -404,7 +403,7 @@ export function MyLinks() {
                 </TableHeader>
                 <TableBody>
                   {slotRegistrations.map((reg) => (
-                    <TableRow key={reg.id} className="hover:bg-slate-50/50 transition-colors">
+                    <TableRow key={reg.id}>
                       <TableCell className="font-medium">{reg.invitee_name}</TableCell>
                       <TableCell className="text-muted-foreground">{reg.invitee_phone}</TableCell>
                       <TableCell>

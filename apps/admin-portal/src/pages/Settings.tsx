@@ -141,7 +141,7 @@ export function Settings() {
             />
             {logoUrl ? (
               <div className="flex items-center gap-4">
-                <div className="w-20 h-20 border rounded-lg flex items-center justify-center bg-muted overflow-hidden">
+                <div className="size-20 border rounded-lg flex items-center justify-center bg-muted overflow-hidden">
                   <img
                     src={logoUrl}
                     alt="Company logo"

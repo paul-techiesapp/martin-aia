@@ -106,7 +106,7 @@ export function Partners() {
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Partners</h1>
           <p className="text-sm text-muted-foreground">Manage your recruitment partners and track their activity</p>
         </div>
-        <Button onClick={() => setIsAddOpen(true)} className="bg-primary hover:bg-primary/90">
+        <Button onClick={() => setIsAddOpen(true)}>
           <UserPlus className="size-4 mr-1.5" />
           Add Partner
         </Button>
@@ -131,7 +131,7 @@ export function Partners() {
         />
       </StatCardGrid>
 
-      <Card className="glass-card">
+      <Card>
         <CardHeader>
           <CardTitle>All Partners</CardTitle>
           <CardDescription>{totalCount} partners total</CardDescription>
@@ -156,7 +156,7 @@ export function Partners() {
               </TableHeader>
               <TableBody>
                 {partners?.map((p) => (
-                  <TableRow key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                  <TableRow key={p.id}>
                     <TableCell className="font-medium">{p.name}</TableCell>
                     <TableCell className="text-muted-foreground">{p.email}</TableCell>
                     <TableCell className="text-muted-foreground">{p.phone}</TableCell>
@@ -254,7 +254,7 @@ export function Partners() {
               <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={createPartner.isPending} className="bg-primary hover:bg-primary/90">
+              <Button type="submit" disabled={createPartner.isPending}>
                 {createPartner.isPending ? 'Creating...' : 'Create Partner'}
               </Button>
             </DialogFooter>

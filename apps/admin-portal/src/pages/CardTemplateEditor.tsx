@@ -367,7 +367,7 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
           type="color"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-10 h-10 rounded border cursor-pointer"
+          className="size-10 rounded border cursor-pointer"
         />
         <Input
           value={value}

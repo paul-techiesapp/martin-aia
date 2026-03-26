@@ -372,8 +372,8 @@ export function CheckOut() {
   if (isVerifying) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm shadow-2xl border-0">
-          <CardContent className="p-10 text-center">
+        <Card className="w-full max-w-md bg-card backdrop-blur-sm shadow-2xl border-0">
+          <CardContent className="p-6 text-center">
             <p className="text-muted-foreground">Verifying QR code...</p>
           </CardContent>
         </Card>
@@ -384,8 +384,8 @@ export function CheckOut() {
   if (isQrValid === false) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm shadow-2xl border-0">
-          <CardContent className="p-10 text-center space-y-4">
+        <Card className="w-full max-w-md bg-card backdrop-blur-sm shadow-2xl border-0">
+          <CardContent className="p-6 text-center space-y-4">
             <p className="text-red-600 font-medium">{qrError}</p>
             <p className="text-muted-foreground text-sm">Please scan the current QR code at the venue.</p>
           </CardContent>
@@ -399,14 +399,14 @@ export function CheckOut() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-sky-900 flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-40" />
-        <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
+        <Card className="w-full max-w-md bg-card backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
           <CardContent className="p-0">
             {/* Success Header — always shown */}
-            <div className="p-8 text-center border-b border-slate-100">
-              <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+            <div className="p-8 text-center border-b">
+              <div className="size-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="size-8 text-emerald-600" />
               </div>
-              <h2 className="text-2xl font-bold text-emerald-600">Check-Out Successful!</h2>
+              <h2 className="text-xl font-semibold text-emerald-600">Check-Out Successful!</h2>
               {attendeeName && (
                 <p className="text-xl font-semibold text-foreground">{attendeeName}</p>
               )}
@@ -417,7 +417,7 @@ export function CheckOut() {
 
             {/* Video/Photo Embed */}
             {checkoutConfig?.video_enabled && checkoutConfig.video_url && (
-              <div className="p-6 border-b border-slate-100">
+              <div className="p-6 border-b">
                 <div className="rounded-xl overflow-hidden bg-black aspect-video">
                   <iframe
                     src={checkoutConfig.video_url.replace('watch?v=', 'embed/')}
@@ -432,7 +432,7 @@ export function CheckOut() {
 
             {/* Star Rating */}
             {checkoutConfig?.rating_enabled && attendanceId && (
-              <div className="p-6 border-b border-slate-100 text-center">
+              <div className="p-6 border-b text-center">
                 <p className="text-sm font-semibold text-foreground mb-3">
                   {ratingSubmitted ? 'Thank you for your feedback!' : 'How was your experience?'}
                 </p>
@@ -445,10 +445,10 @@ export function CheckOut() {
                       className="transition-transform hover:scale-110 disabled:cursor-default"
                     >
                       <Star
-                        className={`h-9 w-9 ${
+                        className={`size-9 ${
                           selectedRating && star <= selectedRating
                             ? 'fill-amber-400 text-amber-400'
-                            : 'fill-none text-slate-300'
+                            : 'fill-none text-muted-foreground/50'
                         }`}
                       />
                     </button>
@@ -485,10 +485,10 @@ export function CheckOut() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-40" />
-      <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
+      <Card className="w-full max-w-md bg-card backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
         <CardHeader className="text-center pt-8">
           <Logo size="lg" showText={false} className="mx-auto mb-4" />
-          <CardTitle className="text-2xl font-bold text-foreground">Event Check-Out</CardTitle>
+          <CardTitle className="text-xl font-semibold text-foreground">Event Check-Out</CardTitle>
           <CardDescription className="text-muted-foreground">
             {step === 1
               ? 'Enter your NRIC and email or phone to receive an OTP'
@@ -498,14 +498,14 @@ export function CheckOut() {
           {/* Step indicator */}
           <div className="flex items-center justify-center gap-2 mt-4">
             <div className={`flex items-center gap-1.5 text-xs font-medium ${step >= 1 ? 'text-violet-600' : 'text-muted-foreground'}`}>
-              <div className={`h-6 w-6 rounded-full flex items-center justify-center text-white text-xs ${step >= 1 ? 'bg-violet-600' : 'bg-slate-300'}`}>
+              <div className={`size-6 rounded-full flex items-center justify-center text-white text-xs ${step >= 1 ? 'bg-violet-600' : 'bg-muted-foreground/30'}`}>
                 {step > 1 ? <CheckCircle className="size-4" /> : '1'}
               </div>
               Identify
             </div>
-            <div className="w-8 h-px bg-slate-300" />
+            <div className="w-8 h-px bg-muted-foreground/30" />
             <div className={`flex items-center gap-1.5 text-xs font-medium ${step >= 2 ? 'text-violet-600' : 'text-muted-foreground'}`}>
-              <div className={`h-6 w-6 rounded-full flex items-center justify-center text-white text-xs ${step >= 2 ? 'bg-violet-600' : 'bg-slate-300'}`}>
+              <div className={`size-6 rounded-full flex items-center justify-center text-white text-xs ${step >= 2 ? 'bg-violet-600' : 'bg-muted-foreground/30'}`}>
                 2
               </div>
               OTP
@@ -631,7 +631,7 @@ export function CheckOut() {
                             maxLength={6}
                             inputMode="numeric"
                             autoFocus
-                            className="text-center text-2xl tracking-widest font-mono h-14 bg-slate-50 border-slate-200"
+                            className="text-center text-2xl tracking-widest font-mono h-14 bg-muted border"
                             {...field}
                           />
                         </FormControl>

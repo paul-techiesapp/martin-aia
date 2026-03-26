@@ -40,11 +40,11 @@ export function Login() {
     <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-40" />
 
-      <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
+      <Card className="w-full max-w-md bg-card backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
         <CardHeader className="text-center pb-2">
           <Logo size="lg" showText={false} className="mx-auto mb-4" />
-          <CardTitle className="text-2xl font-bold text-slate-900">RACC Portal</CardTitle>
-          <CardDescription className="text-slate-500">
+          <CardTitle className="text-2xl font-bold text-foreground">RACC Portal</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Sign in to manage your links and rewards
           </CardDescription>
         </CardHeader>
@@ -56,7 +56,7 @@ export function Login() {
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-slate-700">Email</Label>
+              <Label htmlFor="email" className="text-foreground">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -68,7 +68,7 @@ export function Login() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-slate-700">Password</Label>
+              <Label htmlFor="password" className="text-foreground">Password</Label>
               <Input
                 id="password"
                 type="password"

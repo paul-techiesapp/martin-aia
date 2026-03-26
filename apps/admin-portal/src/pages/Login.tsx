@@ -72,8 +72,8 @@ export function Login() {
       <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
         <CardHeader className="text-center pb-2">
           <Logo size="lg" showText={false} className="mx-auto mb-4" />
-          <CardTitle className="text-2xl font-bold text-slate-900">RACC Admin Portal</CardTitle>
-          <CardDescription className="text-slate-500">
+          <CardTitle className="text-2xl font-bold text-foreground">RACC Admin Portal</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Sign in to access the administration dashboard
           </CardDescription>
         </CardHeader>

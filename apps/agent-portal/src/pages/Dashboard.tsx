@@ -71,7 +71,7 @@ function AgentDashboard() {
       </StatCardGrid>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <Card className="glass-card">
+        <Card>
           <CardHeader>
             <CardTitle>Your Tier</CardTitle>
             <CardDescription>Current reward structure</CardDescription>
@@ -85,11 +85,11 @@ function AgentDashboard() {
               </div>
             ) : agent?.tier ? (
               <div className="space-y-3">
-                <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                <div className="flex justify-between items-center py-2 border-b">
                   <span className="text-muted-foreground">Tier Name</span>
                   <span className="font-semibold text-foreground">{agent.tier.name}</span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                <div className="flex justify-between items-center py-2 border-b">
                   <span className="text-muted-foreground">Reward per Attendance</span>
                   <span className="font-semibold text-emerald-600">RM{agent.tier.reward_amount.toFixed(2)}</span>
                 </div>
@@ -104,7 +104,7 @@ function AgentDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="glass-card">
+        <Card>
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
             <CardDescription>Common tasks</CardDescription>
@@ -112,24 +112,24 @@ function AgentDashboard() {
           <CardContent className="space-y-2">
             <Link
               to="/campaigns"
-              className="flex items-center justify-between p-2.5 rounded-lg hover:bg-indigo-50 transition-all duration-200 group cursor-pointer"
+              className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted transition-all duration-200 group cursor-pointer"
             >
-              <span className="text-sm font-medium text-foreground group-hover:text-indigo-700">Browse Active Events</span>
-              <ChevronRight className="size-4 text-muted-foreground group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
+              <span className="text-sm font-medium text-foreground group-hover:text-foreground">Browse Active Events</span>
+              <ChevronRight className="size-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all" />
             </Link>
             <Link
               to="/my-links"
-              className="flex items-center justify-between p-2.5 rounded-lg hover:bg-indigo-50 transition-all duration-200 group cursor-pointer"
+              className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted transition-all duration-200 group cursor-pointer"
             >
-              <span className="text-sm font-medium text-foreground group-hover:text-indigo-700">View My Links</span>
-              <ChevronRight className="size-4 text-muted-foreground group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
+              <span className="text-sm font-medium text-foreground group-hover:text-foreground">View My Links</span>
+              <ChevronRight className="size-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all" />
             </Link>
             <Link
               to="/partners"
-              className="flex items-center justify-between p-2.5 rounded-lg hover:bg-indigo-50 transition-all duration-200 group cursor-pointer"
+              className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted transition-all duration-200 group cursor-pointer"
             >
-              <span className="text-sm font-medium text-foreground group-hover:text-indigo-700">Manage Partners</span>
-              <ChevronRight className="size-4 text-muted-foreground group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
+              <span className="text-sm font-medium text-foreground group-hover:text-foreground">Manage Partners</span>
+              <ChevronRight className="size-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all" />
             </Link>
           </CardContent>
         </Card>
@@ -178,7 +178,7 @@ function PartnerDashboard() {
         />
       </StatCardGrid>
 
-      <Card className="glass-card">
+      <Card>
         <CardHeader>
           <CardTitle>Quick Actions</CardTitle>
           <CardDescription>Common tasks</CardDescription>
@@ -186,7 +186,7 @@ function PartnerDashboard() {
         <CardContent className="space-y-2">
           <Link
             to="/partner-links"
-            className="flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50 transition-colors group"
+            className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted transition-colors group"
           >
             <span className="text-sm font-medium text-foreground">Get & Share My Links</span>
             <ChevronRight className="size-4 text-muted-foreground group-hover:text-sky-600 group-hover:translate-x-1 transition-all" />

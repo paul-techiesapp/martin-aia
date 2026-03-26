@@ -77,7 +77,7 @@ function SlotRow({
 
   return (
     <>
-      <TableRow className="hover:bg-muted/50 transition-colors">
+      <TableRow>
         <TableCell className="font-medium">
           {format(parseISO(slot.start_at), 'd MMM yyyy')}
         </TableCell>
@@ -189,7 +189,7 @@ function SlotRow({
                   </TableHeader>
                   <TableBody>
                     {registrations.map((reg) => (
-                      <TableRow key={reg.id} className="hover:bg-background/50 transition-colors">
+                      <TableRow key={reg.id}>
                         <TableCell className="font-medium">{reg.invitee_name}</TableCell>
                         <TableCell className="text-muted-foreground font-mono text-sm">{reg.invitee_nric}</TableCell>
                         <TableCell className="text-muted-foreground">{reg.invitee_phone}</TableCell>
@@ -464,8 +464,8 @@ export function CampaignDetail() {
 
   if (!campaign) {
     return (
-      <Card className="glass-card">
-        <CardContent className="p-6">
+      <Card>
+        <CardContent className="py-4">
           <p className="text-muted-foreground">Event not found</p>
         </CardContent>
       </Card>
@@ -513,7 +513,7 @@ export function CampaignDetail() {
       </div>
 
       <div className="grid gap-3 md:grid-cols-3">
-        <Card className="glass-card">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Status
@@ -525,7 +525,7 @@ export function CampaignDetail() {
             </Badge>
           </CardContent>
         </Card>
-        <Card className="glass-card">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Dates
@@ -537,7 +537,7 @@ export function CampaignDetail() {
             </p>
           </CardContent>
         </Card>
-        <Card className="glass-card">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Type
@@ -551,7 +551,7 @@ export function CampaignDetail() {
         </Card>
       </div>
 
-      <Card className="glass-card">
+      <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -820,7 +820,7 @@ export function CampaignDetail() {
       </Card>
 
       {/* Post-Checkout Content Configuration */}
-      <Card className="glass-card">
+      <Card>
         <CardHeader>
           <CardTitle>Post-Checkout Content</CardTitle>
           <CardDescription>
@@ -910,7 +910,7 @@ export function CampaignDetail() {
       </Card>
 
       {/* Card Template Override */}
-      <Card className="glass-card">
+      <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>

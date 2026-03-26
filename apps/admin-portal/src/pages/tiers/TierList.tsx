@@ -103,8 +103,8 @@ export function TierList() {
 
   if (error) {
     return (
-      <Card className="glass-card">
-        <CardContent className="p-6">
+      <Card>
+        <CardContent className="py-4">
           <p className="text-destructive">Error loading tiers: {error.message}</p>
         </CardContent>
       </Card>
@@ -185,7 +185,7 @@ export function TierList() {
         </Dialog>
       </div>
 
-      <Card className="glass-card">
+      <Card>
         <CardHeader>
           <CardTitle>All Tiers</CardTitle>
           <CardDescription>
@@ -211,7 +211,7 @@ export function TierList() {
               </TableHeader>
               <TableBody>
                 {tiers?.map((tier) => (
-                  <TableRow key={tier.id} className="hover:bg-slate-50/50 transition-colors">
+                  <TableRow key={tier.id}>
                     <TableCell className="font-medium">{tier.name}</TableCell>
                     <TableCell className="capitalize text-muted-foreground">{tier.role_type.replace('_', ' ')}</TableCell>
                     <TableCell className="text-right font-medium">RM{tier.reward_amount.toFixed(2)}</TableCell>

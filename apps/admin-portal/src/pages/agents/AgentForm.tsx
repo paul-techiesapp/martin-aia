@@ -117,7 +117,7 @@ export function AgentForm() {
         </div>
       </div>
 
-      <Card className="max-w-2xl glass-card">
+      <Card className="max-w-2xl">
         <CardHeader>
           <CardTitle>Unit Details</CardTitle>
           <CardDescription>

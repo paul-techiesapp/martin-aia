@@ -123,7 +123,7 @@ export function CardTemplateEditor() {
       await updateTemplate.mutateAsync(formState);
       toast({ title: 'Template saved', description: 'Card template has been updated.' });
     } catch {
-      toast({ title: 'Error', description: 'Failed to save template.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Failed to save template.', variant: 'error' });
     }
   };
 
@@ -138,7 +138,7 @@ export function CardTemplateEditor() {
       const doc = await generateInvitationCard(effectiveData, formState, branding);
       doc.save('sample-invitation-card.pdf');
     } catch {
-      toast({ title: 'Error', description: 'Failed to generate PDF.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Failed to generate PDF.', variant: 'error' });
     }
   };
 

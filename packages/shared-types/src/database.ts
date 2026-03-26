@@ -17,6 +17,65 @@ export interface CheckoutConfig {
   rating_enabled: boolean;
 }
 
+export interface CompanyBranding {
+  companyName: string;
+  logoUrl: string | null;
+  logoWidth: number;
+}
+
+export interface CardTemplate {
+  autoCardColor: string;
+  manualCardColor: string;
+  panelTextColor: string;
+  accentColor: string;
+  fontFamily: string;
+  titleFontSize: number;
+  bodyFontSize: number;
+  subtitle: string;
+  instructionText: string;
+  visibleElements: string[];
+  elementOrder: string[];
+  qrColor: string;
+  qrSize: number;
+}
+
+export interface SystemSettings {
+  id: string;
+  company_branding: CompanyBranding;
+  card_template: CardTemplate;
+  updated_at: string;
+}
+
+export const DEFAULT_CARD_TEMPLATE: CardTemplate = {
+  autoCardColor: '#0f172a',
+  manualCardColor: '#7f1d1d',
+  panelTextColor: '#ffffff',
+  accentColor: '#daa520',
+  fontFamily: 'helvetica',
+  titleFontSize: 14,
+  bodyFontSize: 9,
+  subtitle: 'Event Invitation',
+  instructionText: 'Present this card at the event for check-in',
+  visibleElements: ['logo', 'subtitle', 'date', 'campaign', 'venue', 'qr', 'invitee', 'instruction', 'reference'],
+  elementOrder: ['campaign', 'venue', 'qr', 'invitee', 'instruction', 'reference'],
+  qrColor: '#0f172a',
+  qrSize: 25,
+};
+
+export const DEFAULT_COMPANY_BRANDING: CompanyBranding = {
+  companyName: 'RACC Agency',
+  logoUrl: null,
+  logoWidth: 20,
+};
+
+export function getEffectiveTemplate(
+  systemDefault: CardTemplate,
+  campaignOverrides?: Partial<CardTemplate> | null
+): CardTemplate {
+  if (!campaignOverrides) return systemDefault;
+  return { ...systemDefault, ...campaignOverrides };
+}
+
 export interface Campaign {
   id: string;
   name: string;
@@ -28,6 +87,7 @@ export interface Campaign {
   created_at: string;
   updated_at: string;
   checkout_config?: CheckoutConfig;
+  card_template_overrides?: Partial<CardTemplate> | null;
 }
 
 export interface Slot {

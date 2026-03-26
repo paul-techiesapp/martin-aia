@@ -114,8 +114,8 @@ export function PinCodes() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">PIN Codes</h1>
-        <p className="text-slate-500">Generate and manage attendance PIN codes</p>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">PIN Codes</h1>
+        <p className="text-muted-foreground">Generate and manage attendance PIN codes for event slots</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -174,7 +174,7 @@ export function PinCodes() {
               <Dialog open={qrMode === 'checkin'} onOpenChange={(open) => setQrMode(open ? 'checkin' : null)}>
                 <DialogTrigger asChild>
                   <Button className="flex-1">
-                    <QrCode className="h-4 w-4 mr-2" />
+                    <QrCode className="size-4 mr-2" />
                     Check-In QR
                   </Button>
                 </DialogTrigger>
@@ -201,7 +201,7 @@ export function PinCodes() {
               <Dialog open={qrMode === 'checkout'} onOpenChange={(open) => setQrMode(open ? 'checkout' : null)}>
                 <DialogTrigger asChild>
                   <Button variant="outline" className="flex-1">
-                    <QrCode className="h-4 w-4 mr-2" />
+                    <QrCode className="size-4 mr-2" />
                     Check-Out QR
                   </Button>
                 </DialogTrigger>
@@ -238,7 +238,7 @@ export function PinCodes() {
                 <CardDescription>Share these links with venue devices for rotating QR codes</CardDescription>
               </div>
               <Button onClick={handleGenerateDisplayToken}>
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="size-4 mr-2" />
                 Generate Link
               </Button>
             </div>
@@ -260,7 +260,7 @@ export function PinCodes() {
                           await supabase.from('display_tokens').delete().eq('id', dt.id);
                           setDisplayTokens((prev) => prev.filter((t) => t.id !== dt.id));
                         }}>
-                          <Trash2 className="h-4 w-4 text-red-500" />
+                          <Trash2 className="size-4 text-red-500" />
                         </Button>
                       </div>
                     </div>
@@ -286,7 +286,7 @@ export function PinCodes() {
                 <Dialog open={isGenerateOpen} onOpenChange={setIsGenerateOpen}>
                   <DialogTrigger asChild>
                     <Button>
-                      <Plus className="h-4 w-4 mr-2" />
+                      <Plus className="size-4 mr-2" />
                       Generate
                     </Button>
                   </DialogTrigger>
@@ -318,11 +318,11 @@ export function PinCodes() {
                   </DialogContent>
                 </Dialog>
                 <Button variant="outline" onClick={handlePrint}>
-                  <Printer className="h-4 w-4 mr-2" />
+                  <Printer className="size-4 mr-2" />
                   Print
                 </Button>
                 <Button variant="destructive" onClick={handleDeleteUnused}>
-                  <Trash2 className="h-4 w-4 mr-2" />
+                  <Trash2 className="size-4 mr-2" />
                   Delete Unused
                 </Button>
               </div>
@@ -334,9 +334,10 @@ export function PinCodes() {
             ) : pinCodes?.length === 0 ? (
               <p className="text-muted-foreground">No PIN codes generated yet.</p>
             ) : (
+              <div className="overflow-auto rounded-md border">
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="hover:bg-transparent">
                     <TableHead>PIN Code</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Linked NRIC</TableHead>
@@ -349,11 +350,11 @@ export function PinCodes() {
                       <TableCell>
                         {pin.is_used ? (
                           <span className="inline-flex items-center gap-1 text-green-600">
-                            <Check className="h-4 w-4" /> Used
+                            <Check className="size-4" /> Used
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 text-muted-foreground">
-                            <X className="h-4 w-4" /> Unused
+                            <X className="size-4" /> Unused
                           </span>
                         )}
                       </TableCell>
@@ -362,6 +363,7 @@ export function PinCodes() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             )}
           </CardContent>
         </Card>

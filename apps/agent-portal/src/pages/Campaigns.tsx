@@ -9,7 +9,7 @@ import {
   Skeleton,
   useToast,
 } from '@agent-system/shared-ui';
-import { Calendar, MapPin, Link2, Copy, Check } from 'lucide-react';
+import { CalendarDays, MapPin, Link2, Copy, Check } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useAuth } from '../hooks/useAuth';
 import { useActiveCampaigns, useCampaignSlots } from '../hooks/useCampaigns';
@@ -63,8 +63,8 @@ export function Campaigns() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Active Events</h1>
-        <p className="text-slate-500 mt-1">Browse events and get your shareable links</p>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Active Events</h1>
+        <p className="text-muted-foreground mt-1">Browse events and generate your shareable invitation links</p>
       </div>
 
       {isLoading ? (
@@ -85,7 +85,7 @@ export function Campaigns() {
       ) : campaigns?.length === 0 ? (
         <Card className="glass-card">
           <CardContent className="p-6">
-            <p className="text-slate-500 text-center">No active events available</p>
+            <p className="text-muted-foreground text-center">No active events available</p>
           </CardContent>
         </Card>
       ) : (
@@ -101,22 +101,22 @@ export function Campaigns() {
               onClick={() => setSelectedCampaignId(campaign.id)}
             >
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-slate-900">
+                <CardTitle className="flex items-center gap-2 text-foreground">
                   <div className="h-8 w-8 rounded-lg bg-sky-100 flex items-center justify-center">
-                    <Calendar className="h-4 w-4 text-sky-600" />
+                    <CalendarDays className="size-4 text-sky-600" />
                   </div>
                   {campaign.name}
                 </CardTitle>
-                <CardDescription className="flex items-center gap-1 text-slate-500">
-                  <MapPin className="h-4 w-4" />
+                <CardDescription className="flex items-center gap-1 text-muted-foreground">
+                  <MapPin className="size-4" />
                   {campaign.venue}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-sm text-slate-600">
+                <div className="text-sm text-muted-foreground">
                   {new Date(campaign.start_date).toLocaleDateString()} - {new Date(campaign.end_date).toLocaleDateString()}
                 </div>
-                <div className="mt-2 text-sm capitalize text-slate-500">
+                <div className="mt-2 text-sm capitalize text-muted-foreground">
                   Type: {campaign.registration_type?.replace('_', ' ')}
                 </div>
               </CardContent>
@@ -133,7 +133,7 @@ export function Campaigns() {
           </CardHeader>
           <CardContent>
             {slots.length === 0 ? (
-              <p className="text-slate-500">No slots available for this event</p>
+              <p className="text-muted-foreground">No slots available for this event</p>
             ) : (
               <div className="space-y-3">
                 {slots.map((slot: Slot) => {
@@ -147,10 +147,10 @@ export function Campaigns() {
                       className="flex items-center justify-between p-4 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors"
                     >
                       <div className="flex-1">
-                        <div className="font-medium text-slate-900">
+                        <div className="font-medium text-foreground">
                           {format(parseISO(slot.start_at), 'd MMM yyyy')}
                         </div>
-                        <div className="text-sm text-slate-500">
+                        <div className="text-sm text-muted-foreground">
                           {format(parseISO(slot.start_at), 'HH:mm')} - {format(parseISO(slot.end_at), 'HH:mm')}
                         </div>
                         {existingLink && (
@@ -171,11 +171,11 @@ export function Campaigns() {
                           >
                             {copiedSlotId === slot.id ? (
                               <>
-                                <Check className="h-4 w-4 mr-1 text-emerald-600" /> Copied!
+                                <Check className="size-4 mr-1 text-emerald-600" /> Copied!
                               </>
                             ) : (
                               <>
-                                <Copy className="h-4 w-4 mr-1" /> Copy Link
+                                <Copy className="size-4 mr-1" /> Copy Link
                               </>
                             )}
                           </Button>
@@ -186,7 +186,7 @@ export function Campaigns() {
                             disabled={creatingSlotId === slot.id}
                             className=""
                           >
-                            <Link2 className="h-4 w-4 mr-1" />
+                            <Link2 className="size-4 mr-1" />
                             {creatingSlotId === slot.id ? 'Creating...' : 'Get My Link'}
                           </Button>
                         )}

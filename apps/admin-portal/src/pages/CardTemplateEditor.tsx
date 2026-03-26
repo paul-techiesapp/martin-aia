@@ -151,7 +151,7 @@ export function CardTemplateEditor() {
       {/* Header */}
       <div className="flex items-center gap-4 p-6 border-b">
         <Link to="/settings" className="text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowLeft className="size-5" />
         </Link>
         <div>
           <h1 className="text-2xl font-bold">Card Template Editor</h1>
@@ -280,20 +280,20 @@ export function CardTemplateEditor() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 w-6 p-0"
+                          className="size-6 p-0"
                           onClick={() => moveElement(index, 'up')}
                           disabled={index === 0}
                         >
-                          <ArrowUp className="h-3 w-3" />
+                          <ArrowUp className="size-3" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 w-6 p-0"
+                          className="size-6 p-0"
                           onClick={() => moveElement(index, 'down')}
                           disabled={index === formState.elementOrder.length - 1}
                         >
-                          <ArrowDown className="h-3 w-3" />
+                          <ArrowDown className="size-3" />
                         </Button>
                       </div>
                     </div>
@@ -340,16 +340,16 @@ export function CardTemplateEditor() {
       {/* Bottom bar */}
       <div className="flex items-center justify-between p-4 border-t bg-background">
         <Button variant="outline" onClick={handleReset}>
-          <RotateCcw className="h-4 w-4 mr-2" />
+          <RotateCcw className="size-4 mr-2" />
           Reset to Defaults
         </Button>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleDownload}>
-            <Download className="h-4 w-4 mr-2" />
+            <Download className="size-4 mr-2" />
             Download Sample PDF
           </Button>
           <Button onClick={handleSave} disabled={updateTemplate.isPending}>
-            <Save className="h-4 w-4 mr-2" />
+            <Save className="size-4 mr-2" />
             {updateTemplate.isPending ? 'Saving...' : 'Save Template'}
           </Button>
         </div>

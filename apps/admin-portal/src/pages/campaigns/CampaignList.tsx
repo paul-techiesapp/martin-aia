@@ -40,7 +40,7 @@ import {
   DatePicker,
   useToast,
 } from '@agent-system/shared-ui';
-import { Plus, Edit, Trash2, Eye, Play, Pause, MoreHorizontal, Copy, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, Play, Pause, MoreHorizontal, Copy, Loader2 } from 'lucide-react';
 import { useCampaigns, useDeleteCampaign, useUpdateCampaignStatus, useDuplicateCampaign } from '../../hooks/useCampaigns';
 import { CampaignStatus } from '@agent-system/shared-types';
 import { format } from 'date-fns';
@@ -123,8 +123,8 @@ export function CampaignList() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Events</h1>
-          <p className="text-slate-500 mt-1">Manage recruitment events and time slots</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Events</h1>
+          <p className="text-muted-foreground mt-1">Manage recruitment events and their time slots</p>
         </div>
         <Link to="/campaigns/new">
           <Button>
@@ -145,8 +145,9 @@ export function CampaignList() {
           {isLoading ? (
             <TableSkeleton rows={5} columns={6} />
           ) : campaigns?.length === 0 ? (
-            <p className="text-slate-500">No events yet. Create your first event to get started.</p>
+            <p className="text-sm text-muted-foreground">No events yet. Create your first event to get started.</p>
           ) : (
+            <div className="overflow-auto rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
@@ -162,11 +163,11 @@ export function CampaignList() {
                 {campaigns?.map((campaign) => (
                   <TableRow key={campaign.id} className="hover:bg-slate-50/50 transition-colors">
                     <TableCell className="font-medium">{campaign.name}</TableCell>
-                    <TableCell className="text-slate-600">{campaign.venue}</TableCell>
-                    <TableCell className="capitalize text-slate-600">
+                    <TableCell className="text-muted-foreground">{campaign.venue}</TableCell>
+                    <TableCell className="capitalize text-muted-foreground">
                       {campaign.registration_type?.replace('_', ' ')}
                     </TableCell>
-                    <TableCell className="text-slate-600">
+                    <TableCell className="text-muted-foreground">
                       {new Date(campaign.start_date).toLocaleDateString()} -
                       {new Date(campaign.end_date).toLocaleDateString()}
                     </TableCell>
@@ -179,27 +180,27 @@ export function CampaignList() {
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" className="h-8 w-8 p-0" aria-label="Actions">
-                            <MoreHorizontal className="h-4 w-4" />
+                            <MoreHorizontal className="size-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
                             onClick={() => navigate({ to: '/campaigns/$campaignId', params: { campaignId: campaign.id } })}
                           >
-                            <Eye className="mr-2 h-4 w-4" />
+                            <Eye className="mr-2 size-4" />
                             View Details
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() => navigate({ to: '/campaigns/$campaignId/edit', params: { campaignId: campaign.id } })}
                           >
-                            <Edit className="mr-2 h-4 w-4" />
+                            <Pencil className="mr-2 size-4" />
                             Edit Event
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleOpenDuplicate(campaign.id, campaign.name)}
                           >
-                            <Copy className="mr-2 h-4 w-4" />
+                            <Copy className="mr-2 size-4" />
                             Duplicate Event
                           </DropdownMenuItem>
                           {(campaign.status === CampaignStatus.ACTIVE || campaign.status === CampaignStatus.PAUSED) && (
@@ -209,12 +210,12 @@ export function CampaignList() {
                             >
                               {campaign.status === CampaignStatus.ACTIVE ? (
                                 <>
-                                  <Pause className="mr-2 h-4 w-4" />
+                                  <Pause className="mr-2 size-4" />
                                   Pause Event
                                 </>
                               ) : (
                                 <>
-                                  <Play className="mr-2 h-4 w-4" />
+                                  <Play className="mr-2 size-4" />
                                   Resume Event
                                 </>
                               )}
@@ -226,7 +227,7 @@ export function CampaignList() {
                             onClick={() => handleDelete(campaign.id)}
                             disabled={deleteCampaign.isPending}
                           >
-                            <Trash2 className="mr-2 h-4 w-4" />
+                            <Trash2 className="mr-2 size-4" />
                             Delete Event
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -236,6 +237,7 @@ export function CampaignList() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
         <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>

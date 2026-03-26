@@ -30,7 +30,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@agent-system/shared-ui';
-import { Plus, Edit, Trash2, MoreHorizontal } from 'lucide-react';
+import { Plus, Pencil, Trash2, MoreHorizontal } from 'lucide-react';
 import { useAgents, useDeleteAgent } from '../../hooks/useAgents';
 
 export function AgentList() {
@@ -63,12 +63,12 @@ export function AgentList() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Units</h1>
-          <p className="text-slate-500 mt-1">Manage unit accounts and tier assignments</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Units</h1>
+          <p className="text-muted-foreground mt-1">Manage unit accounts and tier assignments</p>
         </div>
         <Link to="/agents/new">
           <Button>
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="size-4 mr-2" />
             New Unit
           </Button>
         </Link>
@@ -85,8 +85,9 @@ export function AgentList() {
           {isLoading ? (
             <TableSkeleton rows={5} columns={7} />
           ) : agents?.length === 0 ? (
-            <p className="text-slate-500">No units registered yet.</p>
+            <p className="text-sm text-muted-foreground">No units registered yet. Add your first unit to get started.</p>
           ) : (
+            <div className="overflow-auto rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
@@ -103,10 +104,10 @@ export function AgentList() {
                 {agents?.map((agent) => (
                   <TableRow key={agent.id} className="hover:bg-slate-50/50 transition-colors">
                     <TableCell className="font-medium">{agent.name}</TableCell>
-                    <TableCell className="text-slate-600">{agent.agent_code}</TableCell>
-                    <TableCell className="text-slate-600">{agent.email}</TableCell>
-                    <TableCell className="text-slate-600">{agent.phone}</TableCell>
-                    <TableCell className="text-slate-600">{agent.unit_name}</TableCell>
+                    <TableCell className="text-muted-foreground">{agent.agent_code}</TableCell>
+                    <TableCell className="text-muted-foreground">{agent.email}</TableCell>
+                    <TableCell className="text-muted-foreground">{agent.phone}</TableCell>
+                    <TableCell className="text-muted-foreground">{agent.unit_name}</TableCell>
                     <TableCell>
                       <Badge variant={getStatusVariant(agent.status)}>
                         {agent.status}
@@ -115,14 +116,14 @@ export function AgentList() {
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0" aria-label="Actions">
-                            <MoreHorizontal className="h-4 w-4" />
+                          <Button variant="ghost" className="size-8 p-0" aria-label="Actions">
+                            <MoreHorizontal className="size-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
                             <Link to="/agents/$agentId/edit" params={{ agentId: agent.id }}>
-                              <Edit className="mr-2 h-4 w-4" />
+                              <Pencil className="mr-2 size-4" />
                               Edit Unit
                             </Link>
                           </DropdownMenuItem>
@@ -132,7 +133,7 @@ export function AgentList() {
                             onClick={() => handleDelete(agent.id)}
                             disabled={deleteAgent.isPending}
                           >
-                            <Trash2 className="mr-2 h-4 w-4" />
+                            <Trash2 className="mr-2 size-4" />
                             Delete Unit
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -142,6 +143,7 @@ export function AgentList() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

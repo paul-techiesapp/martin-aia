@@ -164,7 +164,7 @@ export function CheckInScanner() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Camera className="h-5 w-5" />
+            <Camera className="size-5" />
             QR Scanner
           </CardTitle>
           <CardDescription>
@@ -176,7 +176,7 @@ export function CheckInScanner() {
           <div
             id="qr-reader"
             ref={containerRef}
-            className="w-full max-w-md mx-auto rounded-lg overflow-hidden bg-slate-100"
+            className="w-full max-w-md mx-auto rounded-lg overflow-hidden bg-muted"
             style={{ minHeight: isScanning ? 300 : 0 }}
           />
 
@@ -184,7 +184,7 @@ export function CheckInScanner() {
           {!isScanning && !result && (
             <div className="flex justify-center">
               <Button onClick={startScanner} size="lg" className="gap-2">
-                <Camera className="h-5 w-5" />
+                <Camera className="size-5" />
                 Start Scanner
               </Button>
             </div>
@@ -193,7 +193,7 @@ export function CheckInScanner() {
           {isScanning && (
             <div className="flex justify-center">
               <Button variant="outline" onClick={stopScanner} className="gap-2">
-                <CameraOff className="h-5 w-5" />
+                <CameraOff className="size-5" />
                 Stop Scanner
               </Button>
             </div>
@@ -213,9 +213,9 @@ export function CheckInScanner() {
             }`}>
               <div className="flex justify-center">
                 {result.success ? (
-                  <CheckCircle className="h-12 w-12 text-emerald-500" />
+                  <CheckCircle className="size-12 text-emerald-500" />
                 ) : (
-                  <XCircle className="h-12 w-12 text-red-500" />
+                  <XCircle className="size-12 text-red-500" />
                 )}
               </div>
               {result.name && (
@@ -229,7 +229,7 @@ export function CheckInScanner() {
               </Badge>
               <div className="pt-2">
                 <Button onClick={handleReset} className="gap-2">
-                  <RotateCcw className="h-4 w-4" />
+                  <RotateCcw className="size-4" />
                   Scan Next
                 </Button>
               </div>

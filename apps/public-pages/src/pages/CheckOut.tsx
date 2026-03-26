@@ -374,7 +374,7 @@ export function CheckOut() {
       <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 flex items-center justify-center p-4">
         <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm shadow-2xl border-0">
           <CardContent className="p-10 text-center">
-            <p className="text-slate-600">Verifying QR code...</p>
+            <p className="text-muted-foreground">Verifying QR code...</p>
           </CardContent>
         </Card>
       </div>
@@ -387,7 +387,7 @@ export function CheckOut() {
         <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm shadow-2xl border-0">
           <CardContent className="p-10 text-center space-y-4">
             <p className="text-red-600 font-medium">{qrError}</p>
-            <p className="text-slate-500 text-sm">Please scan the current QR code at the venue.</p>
+            <p className="text-muted-foreground text-sm">Please scan the current QR code at the venue.</p>
           </CardContent>
         </Card>
       </div>
@@ -404,13 +404,13 @@ export function CheckOut() {
             {/* Success Header — always shown */}
             <div className="p-8 text-center border-b border-slate-100">
               <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="h-8 w-8 text-emerald-600" />
+                <CheckCircle className="size-8 text-emerald-600" />
               </div>
               <h2 className="text-2xl font-bold text-emerald-600">Check-Out Successful!</h2>
               {attendeeName && (
-                <p className="text-xl font-semibold text-slate-900 mt-2">{attendeeName}</p>
+                <p className="text-xl font-semibold text-foreground mt-2">{attendeeName}</p>
               )}
-              <p className="text-slate-500 mt-2">
+              <p className="text-muted-foreground mt-2">
                 Thank you for attending! Your full attendance has been recorded.
               </p>
             </div>
@@ -433,7 +433,7 @@ export function CheckOut() {
             {/* Star Rating */}
             {checkoutConfig?.rating_enabled && attendanceId && (
               <div className="p-6 border-b border-slate-100 text-center">
-                <p className="text-sm font-semibold text-slate-700 mb-3">
+                <p className="text-sm font-semibold text-foreground mb-3">
                   {ratingSubmitted ? 'Thank you for your feedback!' : 'How was your experience?'}
                 </p>
                 <div className="flex gap-2 justify-center">
@@ -455,7 +455,7 @@ export function CheckOut() {
                   ))}
                 </div>
                 {!ratingSubmitted && (
-                  <p className="text-xs text-slate-400 mt-2">Tap a star to rate</p>
+                  <p className="text-xs text-muted-foreground mt-2">Tap a star to rate</p>
                 )}
               </div>
             )}
@@ -488,8 +488,8 @@ export function CheckOut() {
       <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
         <CardHeader className="text-center pt-8">
           <Logo size="lg" showText={false} className="mx-auto mb-4" />
-          <CardTitle className="text-2xl font-bold text-slate-900">Event Check-Out</CardTitle>
-          <CardDescription className="text-slate-500">
+          <CardTitle className="text-2xl font-bold text-foreground">Event Check-Out</CardTitle>
+          <CardDescription className="text-muted-foreground">
             {step === 1
               ? 'Enter your NRIC and email or phone to receive an OTP'
               : 'Enter the OTP sent to your WhatsApp'}
@@ -497,14 +497,14 @@ export function CheckOut() {
 
           {/* Step indicator */}
           <div className="flex items-center justify-center gap-2 mt-4">
-            <div className={`flex items-center gap-1.5 text-xs font-medium ${step >= 1 ? 'text-violet-600' : 'text-slate-400'}`}>
+            <div className={`flex items-center gap-1.5 text-xs font-medium ${step >= 1 ? 'text-violet-600' : 'text-muted-foreground'}`}>
               <div className={`h-6 w-6 rounded-full flex items-center justify-center text-white text-xs ${step >= 1 ? 'bg-violet-600' : 'bg-slate-300'}`}>
-                {step > 1 ? <CheckCircle className="h-4 w-4" /> : '1'}
+                {step > 1 ? <CheckCircle className="size-4" /> : '1'}
               </div>
               Identify
             </div>
             <div className="w-8 h-px bg-slate-300" />
-            <div className={`flex items-center gap-1.5 text-xs font-medium ${step >= 2 ? 'text-violet-600' : 'text-slate-400'}`}>
+            <div className={`flex items-center gap-1.5 text-xs font-medium ${step >= 2 ? 'text-violet-600' : 'text-muted-foreground'}`}>
               <div className={`h-6 w-6 rounded-full flex items-center justify-center text-white text-xs ${step >= 2 ? 'bg-violet-600' : 'bg-slate-300'}`}>
                 2
               </div>
@@ -530,7 +530,7 @@ export function CheckOut() {
                     name="nric"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-slate-700">NRIC Number</FormLabel>
+                        <FormLabel className="text-foreground">NRIC Number</FormLabel>
                         <FormControl>
                           <Input placeholder="S1234567A" className="h-11" {...field} />
                         </FormControl>
@@ -556,7 +556,7 @@ export function CheckOut() {
                     name="identifier"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-slate-700">
+                        <FormLabel className="text-foreground">
                           {identifyBy === 'email' ? 'Email Address' : 'Phone Number'}
                         </FormLabel>
                         <FormControl>
@@ -571,7 +571,7 @@ export function CheckOut() {
                     )}
                   />
 
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     OTP will be sent via WhatsApp to your registered phone number.
                   </p>
 
@@ -584,7 +584,7 @@ export function CheckOut() {
                       'Sending...'
                     ) : (
                       <>
-                        <MessageSquare className="h-4 w-4 mr-2" />
+                        <MessageSquare className="size-4 mr-2" />
                         Send OTP to WhatsApp
                       </>
                     )}
@@ -596,7 +596,7 @@ export function CheckOut() {
             <>
               {/* WhatsApp confirmation banner */}
               <div className="p-3 mb-4 text-sm bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+                <CheckCircle className="size-4 text-emerald-600 mt-0.5 shrink-0" />
                 <div>
                   <p className="font-medium text-emerald-700">OTP sent to WhatsApp</p>
                   <p className="text-emerald-600">{maskedPhone}</p>
@@ -606,8 +606,8 @@ export function CheckOut() {
               {/* OTP expiry timer */}
               {otpExpirySeconds > 0 && (
                 <div className="text-center mb-4">
-                  <p className="text-xs text-slate-500">
-                    OTP expires in <span className="font-mono font-medium text-slate-700">{formatTime(otpExpirySeconds)}</span>
+                  <p className="text-xs text-muted-foreground">
+                    OTP expires in <span className="font-mono font-medium text-foreground">{formatTime(otpExpirySeconds)}</span>
                   </p>
                 </div>
               )}
@@ -624,7 +624,7 @@ export function CheckOut() {
                     name="otp_code"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-slate-700">OTP Code</FormLabel>
+                        <FormLabel className="text-foreground">OTP Code</FormLabel>
                         <FormControl>
                           <Input
                             placeholder="123456"
@@ -649,7 +649,7 @@ export function CheckOut() {
                       'Verifying...'
                     ) : (
                       <>
-                        <ArrowRight className="h-4 w-4 mr-2" />
+                        <ArrowRight className="size-4 mr-2" />
                         Complete Check Out
                       </>
                     )}
@@ -658,7 +658,7 @@ export function CheckOut() {
                   <Button
                     type="button"
                     variant="ghost"
-                    className="w-full text-sm text-slate-500"
+                    className="w-full text-sm text-muted-foreground"
                     disabled={isSending || sendCount >= 3 || resendCooldownSeconds > 0}
                     onClick={handleResendOtp}
                   >

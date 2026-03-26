@@ -69,7 +69,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     : 'text-slate-300 hover:bg-white/8 hover:text-white'
                 )}
               >
-                <item.icon className={cn("h-5 w-5", isActive && "text-indigo-300")} />
+                <item.icon className={cn("size-5", isActive && "text-indigo-300")} />
                 {item.name}
               </Link>
             );
@@ -83,7 +83,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             onClick={handleLogout}
             className="w-full justify-start text-slate-300 hover:text-white hover:bg-white/8"
           >
-            <LogOut className="h-4 w-4 mr-2" />
+            <LogOut className="size-4 mr-2" />
             Logout
           </Button>
         </div>
@@ -106,7 +106,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             onClick={() => setIsMobileMenuOpen(false)}
             className="p-1 rounded-md hover:bg-white/10"
           >
-            <X className="h-5 w-5" />
+            <X className="size-5" />
           </button>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
@@ -125,7 +125,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     : 'text-slate-300 hover:bg-white/8 hover:text-white'
                 )}
               >
-                <item.icon className={cn("h-5 w-5", isActive && "text-indigo-300")} />
+                <item.icon className={cn("size-5", isActive && "text-indigo-300")} />
                 {item.name}
               </Link>
             );
@@ -139,7 +139,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             onClick={handleLogout}
             className="w-full justify-start text-slate-300 hover:text-white hover:bg-white/8"
           >
-            <LogOut className="h-4 w-4 mr-2" />
+            <LogOut className="size-4 mr-2" />
             Logout
           </Button>
         </div>
@@ -155,7 +155,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             className="lg:hidden p-2 -ml-2 rounded-md hover:bg-slate-100"
             aria-label="Open menu"
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="size-5" />
           </button>
 
           {/* Desktop header content */}
@@ -163,7 +163,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-4">
               <span className="text-sm text-slate-500">{user?.email}</span>
               <Button variant="ghost" size="sm" onClick={handleLogout}>
-                <LogOut className="h-4 w-4 mr-2" />
+                <LogOut className="size-4 mr-2" />
                 Logout
               </Button>
             </div>

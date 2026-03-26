@@ -36,7 +36,7 @@ import {
   Cell,
   Legend,
 } from 'recharts';
-import { Download, TrendingUp, Users, Calendar, DollarSign } from 'lucide-react';
+import { Download, TrendingUp, Users, CalendarDays, Banknote } from 'lucide-react';
 import { useCampaigns } from '../hooks/useCampaigns';
 import { supabase } from '../lib/supabase';
 
@@ -228,14 +228,14 @@ export function Reports() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Reports & Analytics</h1>
-          <p className="text-slate-500 mt-1">Event performance and unit metrics</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Reports & Analytics</h1>
+          <p className="text-muted-foreground mt-1">Track event performance and agent metrics</p>
         </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="w-full sm:w-48">
-          <Label className="text-slate-600">Event</Label>
+          <Label className="text-sm font-medium">Event</Label>
           <Select value={selectedCampaignId} onValueChange={setSelectedCampaignId}>
             <SelectTrigger className="mt-1">
               <SelectValue />
@@ -251,7 +251,7 @@ export function Reports() {
           </Select>
         </div>
         <div className="w-full sm:w-48">
-          <Label className="text-slate-600">Date Range</Label>
+          <Label className="text-sm font-medium">Date Range</Label>
           <Select value={dateRange} onValueChange={setDateRange}>
             <SelectTrigger className="mt-1">
               <SelectValue />
@@ -272,7 +272,7 @@ export function Reports() {
           title="Total Invitations"
           value={reportStats?.totalInvitations || 0}
           subtitle={`${reportStats?.activeCampaigns || 0} active events`}
-          icon={Calendar}
+          icon={CalendarDays}
           iconColor="text-sky-600"
           iconBgColor="bg-sky-100"
           loading={statsLoading}
@@ -299,7 +299,7 @@ export function Reports() {
           title="Rewards Pending"
           value={`RM${reportStats?.pendingRewardsAmount || 0}`}
           subtitle={`${reportStats?.totalAgents || 0} units`}
-          icon={DollarSign}
+          icon={Banknote}
           iconColor="text-amber-600"
           iconBgColor="bg-amber-100"
           loading={statsLoading}
@@ -313,7 +313,7 @@ export function Reports() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-lg">Invitation Funnel</CardTitle>
-                <CardDescription>Weekly conversion rates</CardDescription>
+                <CardDescription>Sent vs. registered vs. attended</CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={() => handleExport('invitations')}>
                 <Download className="h-4 w-4 mr-2" />
@@ -391,7 +391,7 @@ export function Reports() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-lg">Top Performing Units</CardTitle>
-                <CardDescription>By attendance rate</CardDescription>
+                <CardDescription>Ranked by attendance conversion</CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={() => handleExport('agents')}>
                 <Download className="h-4 w-4 mr-2" />
@@ -420,8 +420,8 @@ export function Reports() {
                   topAgents?.map((agent) => (
                     <TableRow key={agent.name} className="hover:bg-slate-50/50 transition-colors">
                       <TableCell className="font-medium">{agent.name}</TableCell>
-                      <TableCell className="text-right text-slate-600">{agent.invitations}</TableCell>
-                      <TableCell className="text-right text-slate-600">{agent.attendance}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{agent.invitations}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{agent.attendance}</TableCell>
                       <TableCell className="text-right font-medium text-emerald-600">{agent.rate}</TableCell>
                     </TableRow>
                   ))
@@ -436,7 +436,7 @@ export function Reports() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-lg">System Summary</CardTitle>
-                <CardDescription>Overall statistics</CardDescription>
+                <CardDescription>Key metrics at a glance</CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={() => handleExport('summary')}>
                 <Download className="h-4 w-4 mr-2" />
@@ -455,19 +455,19 @@ export function Reports() {
               <TableBody>
                 <TableRow className="hover:bg-slate-50/50 transition-colors">
                   <TableCell className="font-medium">Total Events</TableCell>
-                  <TableCell className="text-right text-slate-600">{reportStats?.totalCampaigns || 0}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{reportStats?.totalCampaigns || 0}</TableCell>
                 </TableRow>
                 <TableRow className="hover:bg-slate-50/50 transition-colors">
                   <TableCell className="font-medium">Active Events</TableCell>
-                  <TableCell className="text-right text-slate-600">{reportStats?.activeCampaigns || 0}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{reportStats?.activeCampaigns || 0}</TableCell>
                 </TableRow>
                 <TableRow className="hover:bg-slate-50/50 transition-colors">
                   <TableCell className="font-medium">Total Units</TableCell>
-                  <TableCell className="text-right text-slate-600">{reportStats?.totalAgents || 0}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{reportStats?.totalAgents || 0}</TableCell>
                 </TableRow>
                 <TableRow className="hover:bg-slate-50/50 transition-colors">
                   <TableCell className="font-medium">Total Rewards</TableCell>
-                  <TableCell className="text-right text-slate-600">RM{reportStats?.totalRewardsAmount || 0}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">RM{reportStats?.totalRewardsAmount || 0}</TableCell>
                 </TableRow>
               </TableBody>
             </Table>

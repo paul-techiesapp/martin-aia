@@ -16,7 +16,7 @@ import {
   TooltipTrigger,
   useToast,
 } from '@agent-system/shared-ui';
-import { Link2, Copy, Check, Calendar, MapPin, UserCheck, CheckCircle, Users, FileDown, Loader2 } from 'lucide-react';
+import { Link2, Copy, Check, CalendarDays, MapPin, UserCheck, CheckCircle, Users, FileDown, Loader2 } from 'lucide-react';
 import { generateBulkInvitationCards } from '@agent-system/shared-ui';
 import type { InvitationCardData } from '@agent-system/shared-ui';
 import { supabase } from '../lib/supabase';
@@ -35,7 +35,7 @@ export function PartnerLinks() {
   // Role guard: only partners can access this page
   if (role && role !== 'partner') {
     return (
-      <div className="p-6 text-center text-slate-500">
+      <div className="p-6 text-center text-muted-foreground">
         <p>This page is only available to partners.</p>
       </div>
     );
@@ -136,8 +136,8 @@ export function PartnerLinks() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">My Links</h1>
-        <p className="text-slate-500 mt-1">
+        <h1 className="text-3xl font-bold text-foreground">My Links</h1>
+        <p className="text-muted-foreground mt-1">
           Generate and share registration links under {partner?.agent?.name ?? 'your unit'}
         </p>
       </div>
@@ -171,7 +171,7 @@ export function PartnerLinks() {
 
       {/* Campaign Selection */}
       <div>
-        <h2 className="text-lg font-semibold text-slate-900 mb-3">Select an Event</h2>
+        <h2 className="text-lg font-semibold text-foreground mb-3">Select an Event</h2>
         {campaignsLoading ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (
@@ -189,7 +189,7 @@ export function PartnerLinks() {
         ) : campaigns?.length === 0 ? (
           <Card className="glass-card">
             <CardContent className="p-6">
-              <p className="text-slate-500 text-center">No active events available</p>
+              <p className="text-muted-foreground text-center">No active events available</p>
             </CardContent>
           </Card>
         ) : (
@@ -205,19 +205,19 @@ export function PartnerLinks() {
                 onClick={() => setSelectedCampaignId(campaign.id)}
               >
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-slate-900">
-                    <div className="h-8 w-8 rounded-lg bg-sky-100 flex items-center justify-center">
-                      <Calendar className="h-4 w-4 text-sky-600" />
+                  <CardTitle className="flex items-center gap-2 text-foreground">
+                    <div className="size-8 rounded-lg bg-sky-100 flex items-center justify-center">
+                      <CalendarDays className="size-4 text-sky-600" />
                     </div>
                     {campaign.name}
                   </CardTitle>
-                  <CardDescription className="flex items-center gap-1 text-slate-500">
-                    <MapPin className="h-4 w-4" />
+                  <CardDescription className="flex items-center gap-1 text-muted-foreground">
+                    <MapPin className="size-4" />
                     {campaign.venue}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-sm text-slate-600">
+                  <div className="text-sm text-muted-foreground">
                     {new Date(campaign.start_date).toLocaleDateString()} - {new Date(campaign.end_date).toLocaleDateString()}
                   </div>
                 </CardContent>
@@ -236,7 +236,7 @@ export function PartnerLinks() {
           </CardHeader>
           <CardContent>
             {slots.length === 0 ? (
-              <p className="text-slate-500">No slots available for this event</p>
+              <p className="text-muted-foreground">No slots available for this event</p>
             ) : (
               <div className="space-y-3">
                 {slots.map((slot: Slot) => {
@@ -249,10 +249,10 @@ export function PartnerLinks() {
                       className="flex items-center justify-between p-4 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors"
                     >
                       <div className="flex-1">
-                        <div className="font-medium text-slate-900">
+                        <div className="font-medium text-foreground">
                           {format(parseISO(slot.start_at), 'd MMM yyyy')}
                         </div>
-                        <div className="text-sm text-slate-500">
+                        <div className="text-sm text-muted-foreground">
                           {format(parseISO(slot.start_at), 'HH:mm')} - {format(parseISO(slot.end_at), 'HH:mm')}
                         </div>
                         {existingLink && (
@@ -271,11 +271,11 @@ export function PartnerLinks() {
                           >
                             {copiedLinkId === existingLink.id ? (
                               <>
-                                <Check className="h-4 w-4 mr-1 text-emerald-600" /> Copied!
+                                <Check className="size-4 mr-1 text-emerald-600" /> Copied!
                               </>
                             ) : (
                               <>
-                                <Copy className="h-4 w-4 mr-1" /> Copy Link
+                                <Copy className="size-4 mr-1" /> Copy Link
                               </>
                             )}
                           </Button>
@@ -286,7 +286,7 @@ export function PartnerLinks() {
                             disabled={creatingSlotId === slot.id}
                             className="bg-primary hover:bg-primary/90"
                           >
-                            <Link2 className="h-4 w-4 mr-1" />
+                            <Link2 className="size-4 mr-1" />
                             {creatingSlotId === slot.id ? 'Creating...' : 'Get My Link'}
                           </Button>
                         )}
@@ -329,15 +329,15 @@ export function PartnerLinks() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-8 w-8 p-0"
+                                className="size-8 p-0"
                                 onClick={() => handleDownloadCards(link)}
                                 disabled={downloadingLinkId === link.id}
                                 aria-label="Download invitation cards"
                               >
                                 {downloadingLinkId === link.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  <Loader2 className="size-4 animate-spin" />
                                 ) : (
-                                  <FileDown className="h-4 w-4" />
+                                  <FileDown className="size-4" />
                                 )}
                               </Button>
                             </TooltipTrigger>
@@ -349,14 +349,14 @@ export function PartnerLinks() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-8 w-8 p-0"
+                              className="size-8 p-0"
                               onClick={() => handleCopyLink(link.link_code, link.id)}
                               aria-label="Copy registration link"
                             >
                               {copiedLinkId === link.id ? (
-                                <Check className="h-4 w-4 text-emerald-600" />
+                                <Check className="size-4 text-emerald-600" />
                               ) : (
-                                <Copy className="h-4 w-4" />
+                                <Copy className="size-4" />
                               )}
                             </Button>
                           </TooltipTrigger>

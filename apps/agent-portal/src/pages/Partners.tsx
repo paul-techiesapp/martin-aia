@@ -49,7 +49,7 @@ export function Partners() {
   // Role guard: only agents can access this page
   if (role && role !== 'agent') {
     return (
-      <div className="p-6 text-center text-slate-500">
+      <div className="p-6 text-center text-muted-foreground">
         <p>This page is only available to agents.</p>
       </div>
     );
@@ -103,11 +103,11 @@ export function Partners() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Partners</h1>
-          <p className="text-slate-500 mt-1">Manage your recruitment partners</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Partners</h1>
+          <p className="text-muted-foreground mt-1">Manage your recruitment partners and track their activity</p>
         </div>
         <Button onClick={() => setIsAddOpen(true)} className="bg-primary hover:bg-primary/90">
-          <UserPlus className="h-4 w-4 mr-2" />
+          <UserPlus className="size-4 mr-2" />
           Add Partner
         </Button>
       </div>
@@ -140,8 +140,9 @@ export function Partners() {
           {isLoading ? (
             <TableSkeleton rows={5} columns={6} />
           ) : partners?.length === 0 ? (
-            <p className="text-slate-500">No partners yet. Click "Add Partner" to get started.</p>
+            <p className="text-muted-foreground">No partners yet. Click "Add Partner" to get started.</p>
           ) : (
+            <div className="overflow-auto rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
@@ -157,9 +158,9 @@ export function Partners() {
                 {partners?.map((p) => (
                   <TableRow key={p.id} className="hover:bg-slate-50/50 transition-colors">
                     <TableCell className="font-medium">{p.name}</TableCell>
-                    <TableCell className="text-slate-600">{p.email}</TableCell>
-                    <TableCell className="text-slate-600">{p.phone}</TableCell>
-                    <TableCell className="text-slate-600">{claimCounts?.[p.id] ?? 0}</TableCell>
+                    <TableCell className="text-muted-foreground">{p.email}</TableCell>
+                    <TableCell className="text-muted-foreground">{p.phone}</TableCell>
+                    <TableCell className="text-muted-foreground">{claimCounts?.[p.id] ?? 0}</TableCell>
                     <TableCell>
                       <Badge variant={p.status === 'active' ? 'success' : 'inactive'}>
                         {p.status}
@@ -173,7 +174,7 @@ export function Partners() {
                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
                           onClick={() => setDeactivateId(p.id)}
                         >
-                          <ShieldOff className="h-4 w-4 mr-1" />
+                          <ShieldOff className="size-4 mr-1" />
                           Deactivate
                         </Button>
                       )}
@@ -182,6 +183,7 @@ export function Partners() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

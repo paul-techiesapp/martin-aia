@@ -1,19 +1,19 @@
 import { useState } from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
 import { cn, Button, Sheet, SheetContent, SheetTrigger, Logo } from '@agent-system/shared-ui';
-import { Home, Calendar, Link2, Award, LogOut, Menu, Users } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Link2, Award, LogOut, Menu, Users } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 const agentNavigation = [
-  { name: 'Dashboard', href: '/', icon: Home },
-  { name: 'Events', href: '/campaigns', icon: Calendar },
+  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Events', href: '/campaigns', icon: CalendarDays },
   { name: 'My Links', href: '/my-links', icon: Link2 },
   { name: 'Rewards', href: '/rewards', icon: Award },
   { name: 'Partners', href: '/partners', icon: Users },
 ];
 
 const partnerNavigation = [
-  { name: 'Dashboard', href: '/', icon: Home },
+  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'My Links', href: '/partner-links', icon: Link2 },
 ];
 
@@ -52,7 +52,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   : 'text-slate-300 hover:bg-white/8 hover:text-white'
               )}
             >
-              <item.icon className={cn("h-5 w-5", isActive && "text-indigo-300")} />
+              <item.icon className={cn("size-5", isActive && "text-indigo-300")} />
               {item.name}
             </Link>
           );
@@ -80,7 +80,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="sm" className="lg:hidden h-9 w-9 p-0">
-                    <Menu className="h-5 w-5" />
+                    <Menu className="size-5" />
                   </Button>
                 </SheetTrigger>
               </Sheet>
@@ -99,7 +99,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               onClick={signOut}
               className="text-slate-600 hover:text-slate-900 hover:bg-slate-100"
             >
-              <LogOut className="h-4 w-4 mr-2" />
+              <LogOut className="size-4 mr-2" />
               Sign Out
             </Button>
           </div>

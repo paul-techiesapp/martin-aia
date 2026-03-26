@@ -9,7 +9,7 @@ import {
   StatCardGrid,
   Skeleton,
 } from '@agent-system/shared-ui';
-import { Calendar, Award, ArrowRight, Users, UserCheck, CheckCircle } from 'lucide-react';
+import { CalendarDays, Award, ChevronRight, Users, UserCheck, CheckCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useRegistrationStats, usePartnerRegistrationStats } from '../hooks/useRegistrations';
 import { useActiveCampaigns } from '../hooks/useCampaigns';
@@ -29,9 +29,9 @@ function AgentDashboard() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h1>
-        <p className="text-slate-500 mt-1">
-          Welcome back, {agent?.name}! Here's your overview.
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
+        <p className="text-muted-foreground mt-1">
+          Welcome back, {agent?.name}! Here's your performance overview.
         </p>
       </div>
 
@@ -39,7 +39,7 @@ function AgentDashboard() {
         <StatCard
           title="Active Events"
           value={activeCampaigns}
-          icon={Calendar}
+          icon={CalendarDays}
           iconColor="sky"
           description="Available for links"
           loading={isLoading}
@@ -86,20 +86,20 @@ function AgentDashboard() {
             ) : agent?.tier ? (
               <div className="space-y-3">
                 <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                  <span className="text-slate-500">Tier Name</span>
-                  <span className="font-semibold text-slate-900">{agent.tier.name}</span>
+                  <span className="text-muted-foreground">Tier Name</span>
+                  <span className="font-semibold text-foreground">{agent.tier.name}</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                  <span className="text-slate-500">Reward per Attendance</span>
+                  <span className="text-muted-foreground">Reward per Attendance</span>
                   <span className="font-semibold text-emerald-600">RM{agent.tier.reward_amount.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-slate-500">Invitation Limit per Slot</span>
-                  <span className="font-semibold text-slate-900">{agent.tier.invitation_limit_per_slot}</span>
+                  <span className="text-muted-foreground">Invitation Limit per Slot</span>
+                  <span className="font-semibold text-foreground">{agent.tier.invitation_limit_per_slot}</span>
                 </div>
               </div>
             ) : (
-              <p className="text-slate-500">No tier assigned</p>
+              <p className="text-muted-foreground">No tier assigned</p>
             )}
           </CardContent>
         </Card>
@@ -114,22 +114,22 @@ function AgentDashboard() {
               to="/campaigns"
               className="flex items-center justify-between p-3 rounded-lg hover:bg-indigo-50 transition-all duration-200 group cursor-pointer"
             >
-              <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-700">Browse Active Events</span>
-              <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
+              <span className="text-sm font-medium text-foreground group-hover:text-indigo-700">Browse Active Events</span>
+              <ChevronRight className="size-4 text-muted-foreground group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
             </Link>
             <Link
               to="/my-links"
               className="flex items-center justify-between p-3 rounded-lg hover:bg-indigo-50 transition-all duration-200 group cursor-pointer"
             >
-              <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-700">View My Links</span>
-              <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
+              <span className="text-sm font-medium text-foreground group-hover:text-indigo-700">View My Links</span>
+              <ChevronRight className="size-4 text-muted-foreground group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
             </Link>
             <Link
               to="/partners"
               className="flex items-center justify-between p-3 rounded-lg hover:bg-indigo-50 transition-all duration-200 group cursor-pointer"
             >
-              <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-700">Manage Partners</span>
-              <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
+              <span className="text-sm font-medium text-foreground group-hover:text-indigo-700">Manage Partners</span>
+              <ChevronRight className="size-4 text-muted-foreground group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
             </Link>
           </CardContent>
         </Card>
@@ -145,8 +145,8 @@ function PartnerDashboard() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
-        <p className="text-slate-500 mt-1">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
+        <p className="text-muted-foreground mt-1">
           Welcome back, {partner?.name}! You're a partner under {partner?.agent?.name ?? 'your unit'}.
         </p>
       </div>
@@ -188,8 +188,8 @@ function PartnerDashboard() {
             to="/partner-links"
             className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors group"
           >
-            <span className="text-sm font-medium text-slate-700">Get & Share My Links</span>
-            <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-1 transition-all" />
+            <span className="text-sm font-medium text-foreground">Get & Share My Links</span>
+            <ChevronRight className="size-4 text-muted-foreground group-hover:text-sky-600 group-hover:translate-x-1 transition-all" />
           </Link>
         </CardContent>
       </Card>

@@ -155,7 +155,7 @@ export function Settings() {
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploading}
                   >
-                    <Upload className="h-4 w-4 mr-1" />
+                    <Upload className="size-4 mr-1" />
                     Replace
                   </Button>
                   <Button
@@ -164,7 +164,7 @@ export function Settings() {
                     onClick={handleRemoveLogo}
                     disabled={deleteLogo.isPending}
                   >
-                    <Trash2 className="h-4 w-4 mr-1" />
+                    <Trash2 className="size-4 mr-1" />
                     Remove
                   </Button>
                 </div>
@@ -174,7 +174,7 @@ export function Settings() {
                 className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <Image className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                <Image className="size-8 mx-auto text-muted-foreground mb-2" />
                 <p className="text-sm text-muted-foreground">
                   {isUploading ? 'Uploading...' : 'Click to upload logo (PNG, JPEG, or SVG, max 2MB)'}
                 </p>

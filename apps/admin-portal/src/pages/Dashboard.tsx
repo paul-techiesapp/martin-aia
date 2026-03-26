@@ -9,7 +9,7 @@ import {
   StatCard,
   StatCardGrid,
 } from '@agent-system/shared-ui';
-import { Calendar, Users, UserCheck, ClipboardList, DollarSign, ArrowRight } from 'lucide-react';
+import { CalendarDays, Users, UserCheck, ClipboardList, Banknote, ChevronRight } from 'lucide-react';
 import { useCampaigns } from '../hooks/useCampaigns';
 import { useRegistrationStats } from '../hooks/useRegistrations';
 import { CampaignStatus } from '@agent-system/shared-types';
@@ -67,8 +67,8 @@ export function Dashboard() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h1>
-        <p className="text-slate-500 mt-1">Welcome to the Management System</p>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
+        <p className="text-muted-foreground mt-1">Overview of your recruitment operations</p>
       </div>
 
       <StatCardGrid columns={5}>
@@ -76,7 +76,7 @@ export function Dashboard() {
           title="Active Events"
           value={activeCampaigns}
           subtitle="Currently running"
-          icon={Calendar}
+          icon={CalendarDays}
           iconColor="text-sky-600"
           iconBgColor="bg-sky-100"
           loading={isLoading}
@@ -91,7 +91,7 @@ export function Dashboard() {
           loading={isLoading}
         />
         <StatCard
-          title="Total Registrations"
+          title="Registrations"
           value={registrationStats?.totalRegistrations ?? 0}
           subtitle={`${registrationStats?.completed ?? 0} completed`}
           icon={ClipboardList}
@@ -100,9 +100,9 @@ export function Dashboard() {
           loading={isLoading}
         />
         <StatCard
-          title="Attendance Today"
+          title="Today's Attendance"
           value={todayAttendance ?? 0}
-          subtitle="Check-ins"
+          subtitle="Checked in today"
           icon={UserCheck}
           iconColor="text-violet-600"
           iconBgColor="bg-violet-100"
@@ -111,8 +111,8 @@ export function Dashboard() {
         <StatCard
           title="Pending Rewards"
           value={pendingRewardsCount ?? 0}
-          subtitle="To be processed"
-          icon={DollarSign}
+          subtitle="Awaiting processing"
+          icon={Banknote}
           iconColor="text-amber-600"
           iconBgColor="bg-amber-100"
           loading={isLoading}
@@ -126,36 +126,36 @@ export function Dashboard() {
             <CardDescription>Latest check-ins and registrations</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-slate-500 text-sm">No recent activity</p>
+            <p className="text-sm text-muted-foreground">No recent activity to display.</p>
           </CardContent>
         </Card>
 
         <Card className="glass-card">
           <CardHeader>
             <CardTitle className="text-lg">Quick Actions</CardTitle>
-            <CardDescription>Common tasks</CardDescription>
+            <CardDescription>Frequently used tasks</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             <Link
               to="/campaigns/new"
               className="flex items-center justify-between p-3 rounded-lg hover:bg-indigo-50 transition-all duration-200 group cursor-pointer"
             >
-              <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-700">Create New Event</span>
-              <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
+              <span className="text-sm font-medium text-foreground group-hover:text-indigo-700">Create New Event</span>
+              <ChevronRight className="size-4 text-muted-foreground group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
             </Link>
             <Link
               to="/agents/new"
               className="flex items-center justify-between p-3 rounded-lg hover:bg-indigo-50 transition-all duration-200 group cursor-pointer"
             >
-              <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-700">Add New Unit</span>
-              <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
+              <span className="text-sm font-medium text-foreground group-hover:text-indigo-700">Add New Unit</span>
+              <ChevronRight className="size-4 text-muted-foreground group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
             </Link>
             <Link
               to="/reports"
               className="flex items-center justify-between p-3 rounded-lg hover:bg-indigo-50 transition-all duration-200 group cursor-pointer"
             >
-              <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-700">View Reports</span>
-              <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
+              <span className="text-sm font-medium text-foreground group-hover:text-indigo-700">View Reports</span>
+              <ChevronRight className="size-4 text-muted-foreground group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
             </Link>
           </CardContent>
         </Card>

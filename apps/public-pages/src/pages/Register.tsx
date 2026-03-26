@@ -23,7 +23,7 @@ import {
   Checkbox,
   Logo,
 } from '@agent-system/shared-ui';
-import { Calendar, MapPin, Clock, CheckCircle } from 'lucide-react';
+import { CalendarDays, MapPin, Clock, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { TERMS_AND_CONDITIONS } from '../constants/terms';
 import { format, parseISO } from 'date-fns';
@@ -205,18 +205,18 @@ export function Register() {
               <CheckCircle className="h-10 w-10 text-emerald-600" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-slate-900">Registration Complete!</h2>
-              <p className="text-slate-500 mt-2">
+              <h2 className="text-2xl font-bold text-foreground">Registration Complete!</h2>
+              <p className="text-muted-foreground mt-2">
                 You have successfully registered for the event. Please arrive on time with your NRIC for verification.
               </p>
             </div>
             <div className="bg-slate-50 p-4 rounded-xl text-left border border-slate-100">
-              <p className="font-semibold text-slate-900">{agentLink?.slot.campaign.name}</p>
-              <p className="text-sm text-slate-500 mt-1">
+              <p className="font-semibold text-foreground">{agentLink?.slot.campaign.name}</p>
+              <p className="text-sm text-muted-foreground mt-1">
                 {agentLink?.slot.start_at ? format(parseISO(agentLink.slot.start_at), 'EEE d MMM yyyy, HH:mm') : ''} -{' '}
                 {agentLink?.slot.end_at ? format(parseISO(agentLink.slot.end_at), 'HH:mm') : ''}
               </p>
-              <p className="text-sm text-slate-500">{agentLink?.slot.campaign.venue}</p>
+              <p className="text-sm text-muted-foreground">{agentLink?.slot.campaign.venue}</p>
             </div>
           </CardContent>
         </Card>
@@ -230,8 +230,8 @@ export function Register() {
       <Card className="w-full max-w-lg bg-white/95 backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
         <CardHeader className="text-center pt-8">
           <Logo size="lg" showText={false} className="mx-auto mb-4" />
-          <CardTitle className="text-2xl font-bold text-slate-900">Event Registration</CardTitle>
-          <CardDescription className="text-slate-500">
+          <CardTitle className="text-2xl font-bold text-foreground">Event Registration</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Complete your registration for the event
           </CardDescription>
         </CardHeader>
@@ -239,20 +239,20 @@ export function Register() {
           {/* Event Details */}
           <div className="bg-slate-50 p-4 rounded-xl space-y-2 border border-slate-100">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-sky-100 flex items-center justify-center">
-                <Calendar className="h-4 w-4 text-sky-600" />
+              <div className="size-8 rounded-lg bg-sky-100 flex items-center justify-center">
+                <CalendarDays className="size-4 text-sky-600" />
               </div>
-              <span className="font-semibold text-slate-900">{agentLink?.slot.campaign.name}</span>
+              <span className="font-semibold text-foreground">{agentLink?.slot.campaign.name}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-slate-500 ml-10">
-              <Clock className="h-4 w-4" />
+            <div className="flex items-center gap-2 text-sm text-muted-foreground ml-10">
+              <Clock className="size-4" />
               <span>
                 {agentLink?.slot.start_at ? format(parseISO(agentLink.slot.start_at), 'EEE d MMM yyyy, HH:mm') : ''} -{' '}
                 {agentLink?.slot.end_at ? format(parseISO(agentLink.slot.end_at), 'HH:mm') : ''}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-slate-500 ml-10">
-              <MapPin className="h-4 w-4" />
+            <div className="flex items-center gap-2 text-sm text-muted-foreground ml-10">
+              <MapPin className="size-4" />
               <span>{agentLink?.slot.campaign.venue}</span>
             </div>
           </div>
@@ -270,7 +270,7 @@ export function Register() {
                 name="invitee_name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-700">Full Name (as per IC)</FormLabel>
+                    <FormLabel className="text-foreground">Full Name (as per IC)</FormLabel>
                     <FormControl>
                       <Input placeholder="John Doe" className="h-11" {...field} />
                     </FormControl>
@@ -284,11 +284,11 @@ export function Register() {
                 name="invitee_nric"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-700">NRIC Number</FormLabel>
+                    <FormLabel className="text-foreground">NRIC Number</FormLabel>
                     <FormControl>
                       <Input placeholder="S1234567A" className="h-11" {...field} />
                     </FormControl>
-                    <FormDescription className="text-slate-400">
+                    <FormDescription className="text-muted-foreground">
                       Required for event check-in verification
                     </FormDescription>
                     <FormMessage />
@@ -301,7 +301,7 @@ export function Register() {
                 name="invitee_phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-700">Phone Number</FormLabel>
+                    <FormLabel className="text-foreground">Phone Number</FormLabel>
                     <FormControl>
                       <Input placeholder="+65 9123 4567" className="h-11" {...field} />
                     </FormControl>
@@ -315,7 +315,7 @@ export function Register() {
                 name="invitee_email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-700">Email Address</FormLabel>
+                    <FormLabel className="text-foreground">Email Address</FormLabel>
                     <FormControl>
                       <Input type="email" placeholder="you@example.com" className="h-11" {...field} />
                     </FormControl>
@@ -329,7 +329,7 @@ export function Register() {
                 name="invitee_occupation"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-700">Occupation</FormLabel>
+                    <FormLabel className="text-foreground">Occupation</FormLabel>
                     <FormControl>
                       <Input placeholder="Software Engineer" className="h-11" {...field} />
                     </FormControl>
@@ -340,12 +340,12 @@ export function Register() {
 
               {/* Terms & Conditions */}
               <div className="border-t border-slate-200 pt-4 mt-2">
-                <FormLabel className="text-slate-700">Terms & Conditions</FormLabel>
+                <FormLabel className="text-foreground">Terms & Conditions</FormLabel>
                 <ScrollArea className="h-[160px] mt-2 rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <div className="space-y-3 text-xs text-slate-600 leading-relaxed pr-4">
+                  <div className="space-y-3 text-xs text-muted-foreground leading-relaxed pr-4">
                     {TERMS_AND_CONDITIONS.map((section, index) => (
                       <div key={index}>
-                        <p className="font-semibold text-slate-700">{section.title}</p>
+                        <p className="font-semibold text-foreground">{section.title}</p>
                         <p>{section.body}</p>
                       </div>
                     ))}
@@ -364,7 +364,7 @@ export function Register() {
                         />
                       </FormControl>
                       <div className="space-y-1 leading-none">
-                        <FormLabel className="text-sm text-slate-700 font-normal cursor-pointer">
+                        <FormLabel className="text-sm text-foreground font-normal cursor-pointer">
                           I have read and agree to the Terms & Conditions
                         </FormLabel>
                         <FormMessage />

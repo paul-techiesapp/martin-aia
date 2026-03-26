@@ -16,7 +16,7 @@ import {
   StatCardGrid,
   TableSkeleton,
 } from '@agent-system/shared-ui';
-import { DollarSign, TrendingUp, Clock, CheckCircle } from 'lucide-react';
+import { Banknote, TrendingUp, Clock, CheckCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useRegistrationStats } from '../hooks/useRegistrations';
 import { supabase } from '../lib/supabase';
@@ -87,15 +87,15 @@ export function Rewards() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Rewards</h1>
-        <p className="text-slate-500 mt-1">Track your earnings from successful attendance</p>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Rewards</h1>
+        <p className="text-muted-foreground mt-1">Track your earnings from successful attendance completions</p>
       </div>
 
       <StatCardGrid columns={4}>
         <StatCard
           title="Total Earned"
           value={`RM${totalEarned.toFixed(2)}`}
-          icon={DollarSign}
+          icon={Banknote}
           iconColor="emerald"
           description={`${completedCount} completed attendances`}
           loading={isLoading}
@@ -137,10 +137,11 @@ export function Rewards() {
           {isLoading ? (
             <TableSkeleton rows={5} columns={5} />
           ) : !completedRegistrations || completedRegistrations.length === 0 ? (
-            <p className="text-slate-500">
+            <p className="text-muted-foreground">
               No completed attendances yet. Rewards are earned when your invitees complete full attendance (check-in and check-out).
             </p>
           ) : (
+            <div className="overflow-auto rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
@@ -157,8 +158,8 @@ export function Rewards() {
                     <TableCell className="font-medium">
                       {reg.slot?.campaign?.name ?? '-'}
                     </TableCell>
-                    <TableCell className="text-slate-600">{reg.invitee_name}</TableCell>
-                    <TableCell className="capitalize text-slate-600">
+                    <TableCell className="text-muted-foreground">{reg.invitee_name}</TableCell>
+                    <TableCell className="capitalize text-muted-foreground">
                       {reg.capacity_type.replace('_', ' ')}
                     </TableCell>
                     <TableCell className="text-right font-semibold text-emerald-600">
@@ -171,6 +172,7 @@ export function Rewards() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -183,22 +185,22 @@ export function Rewards() {
           <div className="flex items-start gap-4">
             <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-sm font-bold flex-shrink-0">1</div>
             <div>
-              <p className="font-medium text-slate-900">Share Your Link</p>
-              <p className="text-sm text-slate-500">Get your shareable link and share it with potential attendees.</p>
+              <p className="font-medium text-foreground">Share Your Link</p>
+              <p className="text-sm text-muted-foreground">Get your shareable link and share it with potential attendees.</p>
             </div>
           </div>
           <div className="flex items-start gap-4">
             <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-sm font-bold flex-shrink-0">2</div>
             <div>
-              <p className="font-medium text-slate-900">They Register & Attend</p>
-              <p className="text-sm text-slate-500">Invitees register via your link and attend the event with full check-in and check-out.</p>
+              <p className="font-medium text-foreground">They Register & Attend</p>
+              <p className="text-sm text-muted-foreground">Invitees register via your link and attend the event with full check-in and check-out.</p>
             </div>
           </div>
           <div className="flex items-start gap-4">
             <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-sm font-bold flex-shrink-0">3</div>
             <div>
-              <p className="font-medium text-slate-900">Earn Rewards</p>
-              <p className="text-sm text-slate-500">For each successful full attendance, you earn RM{rewardAmount.toFixed(2)} based on your tier.</p>
+              <p className="font-medium text-foreground">Earn Rewards</p>
+              <p className="text-sm text-muted-foreground">For each successful full attendance, you earn RM{rewardAmount.toFixed(2)} based on your tier.</p>
             </div>
           </div>
         </CardContent>

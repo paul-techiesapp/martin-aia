@@ -77,15 +77,15 @@ function SlotRow({
 
   return (
     <>
-      <TableRow className="hover:bg-slate-50/50 transition-colors">
+      <TableRow className="hover:bg-muted/50 transition-colors">
         <TableCell className="font-medium">
           {format(parseISO(slot.start_at), 'd MMM yyyy')}
         </TableCell>
-        <TableCell className="text-slate-600">
+        <TableCell className="text-muted-foreground">
           {format(parseISO(slot.start_at), 'HH:mm')} - {format(parseISO(slot.end_at), 'HH:mm')}
         </TableCell>
-        <TableCell className="text-slate-600">{slot.checkin_window_minutes} mins</TableCell>
-        <TableCell className="text-slate-600">{slot.checkout_window_minutes} mins</TableCell>
+        <TableCell className="text-muted-foreground">{slot.checkin_window_minutes} mins</TableCell>
+        <TableCell className="text-muted-foreground">{slot.checkout_window_minutes} mins</TableCell>
         <TableCell>
           <Button
             variant="ghost"
@@ -113,58 +113,58 @@ function SlotRow({
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0" aria-label="Actions"
+              className="size-8 p-0" aria-label="Actions"
               onClick={() => window.open(`/venue-display/${slot.id}`, '_blank')}
               title="Open venue display with QR codes"
             >
-              <Monitor className="h-4 w-4 text-sky-500" />
+              <Monitor className="size-4 text-sky-500" />
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0" aria-label="Actions"
+              className="size-8 p-0" aria-label="Actions"
               onClick={onOpenReminder}
               title="Send email reminders"
             >
-              <Mail className="h-4 w-4 text-indigo-500" />
+              <Mail className="size-4 text-indigo-500" />
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0" aria-label="Actions"
+              className="size-8 p-0" aria-label="Actions"
               onClick={onToggleCardType}
               title={slot.is_auto_card ? 'Switch to manual cards' : 'Switch to auto cards'}
             >
-              <FileText className="h-4 w-4 text-amber-500" />
+              <FileText className="size-4 text-amber-500" />
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0" aria-label="Actions"
+              className="size-8 p-0" aria-label="Actions"
               onClick={onToggleActive}
             >
               {slot.is_active ? (
-                <PowerOff className="h-4 w-4" />
+                <PowerOff className="size-4" />
               ) : (
-                <Power className="h-4 w-4" />
+                <Power className="size-4" />
               )}
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0" aria-label="Actions"
+              className="size-8 p-0" aria-label="Actions"
               onClick={onDelete}
             >
-              <Trash2 className="h-4 w-4 text-red-500" />
+              <Trash2 className="size-4 text-red-500" />
             </Button>
           </div>
         </TableCell>
       </TableRow>
       {isExpanded && (
         <TableRow>
-          <TableCell colSpan={7} className="bg-slate-50/50 p-0">
+          <TableCell colSpan={7} className="bg-muted/50 p-0">
             <div className="p-4">
-              <h4 className="text-sm font-semibold text-slate-700 mb-3">
+              <h4 className="text-sm font-semibold text-foreground mb-3">
                 Registrations for {format(parseISO(slot.start_at), 'd MMM yyyy, HH:mm')}
               </h4>
               {isLoadingRegistrations ? (
@@ -174,7 +174,7 @@ function SlotRow({
                   ))}
                 </div>
               ) : !registrations || registrations.length === 0 ? (
-                <p className="text-sm text-slate-500">No registrations for this slot yet.</p>
+                <p className="text-sm text-muted-foreground">No registrations for this slot yet.</p>
               ) : (
                 <Table>
                   <TableHeader>
@@ -189,15 +189,15 @@ function SlotRow({
                   </TableHeader>
                   <TableBody>
                     {registrations.map((reg) => (
-                      <TableRow key={reg.id} className="hover:bg-white/50 transition-colors">
+                      <TableRow key={reg.id} className="hover:bg-background/50 transition-colors">
                         <TableCell className="font-medium">{reg.invitee_name}</TableCell>
-                        <TableCell className="text-slate-600 font-mono text-sm">{reg.invitee_nric}</TableCell>
-                        <TableCell className="text-slate-600">{reg.invitee_phone}</TableCell>
-                        <TableCell className="text-slate-600">
+                        <TableCell className="text-muted-foreground font-mono text-sm">{reg.invitee_nric}</TableCell>
+                        <TableCell className="text-muted-foreground">{reg.invitee_phone}</TableCell>
+                        <TableCell className="text-muted-foreground">
                           {reg.agent?.name ?? '-'}
                           {reg.agent?.agent_code ? ` (${reg.agent.agent_code})` : ''}
                         </TableCell>
-                        <TableCell className="capitalize text-slate-600">
+                        <TableCell className="capitalize text-muted-foreground">
                           {reg.capacity_type?.replace('_', ' ') ?? '-'}
                         </TableCell>
                         <TableCell>
@@ -466,7 +466,7 @@ export function CampaignDetail() {
     return (
       <Card className="glass-card">
         <CardContent className="p-6">
-          <p className="text-slate-500">Event not found</p>
+          <p className="text-muted-foreground">Event not found</p>
         </CardContent>
       </Card>
     );
@@ -477,30 +477,30 @@ export function CampaignDetail() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={() => navigate({ to: '/campaigns' })}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <ArrowLeft className="size-4 mr-2" />
             Back
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">{campaign.name}</h1>
-            <p className="text-slate-500">{campaign.venue}</p>
+            <h1 className="text-3xl font-bold text-foreground">{campaign.name}</h1>
+            <p className="text-muted-foreground">{campaign.venue}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {campaign.status === CampaignStatus.DRAFT && (
             <Button onClick={() => handleToggleStatus(CampaignStatus.ACTIVE)} className="bg-emerald-600 hover:bg-emerald-700">
-              <Power className="h-4 w-4 mr-2" />
+              <Power className="size-4 mr-2" />
               Activate
             </Button>
           )}
           {campaign.status === CampaignStatus.ACTIVE && (
             <Button variant="outline" onClick={() => handleToggleStatus(CampaignStatus.PAUSED)}>
-              <PowerOff className="h-4 w-4 mr-2" />
+              <PowerOff className="size-4 mr-2" />
               Pause
             </Button>
           )}
           {campaign.status === CampaignStatus.PAUSED && (
             <Button onClick={() => handleToggleStatus(CampaignStatus.ACTIVE)} className="bg-emerald-600 hover:bg-emerald-700">
-              <Power className="h-4 w-4 mr-2" />
+              <Power className="size-4 mr-2" />
               Resume
             </Button>
           )}
@@ -515,7 +515,7 @@ export function CampaignDetail() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="glass-card">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Status
             </CardTitle>
           </CardHeader>
@@ -527,24 +527,24 @@ export function CampaignDetail() {
         </Card>
         <Card className="glass-card">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Dates
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="font-semibold text-slate-900">
+            <p className="font-semibold text-foreground">
               {new Date(campaign.start_date).toLocaleDateString()} - {new Date(campaign.end_date).toLocaleDateString()}
             </p>
           </CardContent>
         </Card>
         <Card className="glass-card">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Type
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="font-semibold capitalize text-slate-900">
+            <p className="font-semibold capitalize text-foreground">
               {campaign.registration_type?.replace('_', ' ')}
             </p>
           </CardContent>
@@ -563,7 +563,7 @@ export function CampaignDetail() {
             <Dialog open={isAddSlotOpen} onOpenChange={setIsAddSlotOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-primary hover:bg-primary/90">
-                  <Plus className="h-4 w-4 mr-2" />
+                  <Plus className="size-4 mr-2" />
                   Add Slot
                 </Button>
               </DialogTrigger>
@@ -589,7 +589,7 @@ export function CampaignDetail() {
                     size="sm"
                     onClick={() => setIsBulkMode(true)}
                   >
-                    <CalendarPlus className="h-4 w-4 mr-1" />
+                    <CalendarPlus className="size-4 mr-1" />
                     Bulk Generate
                   </Button>
                 </div>
@@ -733,7 +733,7 @@ export function CampaignDetail() {
                           {bulkPreview.map((date) => {
                             const key = format(date, 'yyyy-MM-dd');
                             return (
-                              <label key={key} className="flex items-center gap-2 py-1 px-2 hover:bg-slate-50 rounded text-sm">
+                              <label key={key} className="flex items-center gap-2 py-1 px-2 hover:bg-muted rounded text-sm">
                                 <Checkbox
                                   checked={bulkSelected.has(key)}
                                   onCheckedChange={(checked) => {
@@ -786,7 +786,7 @@ export function CampaignDetail() {
               ))}
             </div>
           ) : slots?.length === 0 ? (
-            <p className="text-slate-500">No slots configured yet. Add a slot to get started.</p>
+            <p className="text-muted-foreground">No slots configured yet. Add a slot to get started.</p>
           ) : (
             <Table>
               <TableHeader>
@@ -1089,7 +1089,7 @@ export function CampaignDetail() {
                 disabled={sendReminders.isPending}
                 className="bg-indigo-600 hover:bg-indigo-700"
               >
-                <Mail className="h-4 w-4 mr-2" />
+                <Mail className="size-4 mr-2" />
                 {sendReminders.isPending
                   ? 'Sending...'
                   : `Send ${reminderSlot.count} Email${reminderSlot.count > 1 ? 's' : ''}`}

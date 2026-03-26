@@ -223,7 +223,7 @@ export function PdfExport() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
+                <FileText className="size-5" />
                 Invitation Cards
               </CardTitle>
               <CardDescription>
@@ -249,12 +249,12 @@ export function PdfExport() {
               >
                 {isGeneratingInvitations ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 size-4 animate-spin" />
                     Generating...
                   </>
                 ) : (
                   <>
-                    <FileDown className="mr-2 h-4 w-4" />
+                    <FileDown className="mr-2 size-4" />
                     Download Invitation Cards
                   </>
                 )}

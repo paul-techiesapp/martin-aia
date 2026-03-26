@@ -36,7 +36,7 @@ import {
   AlertDialogTitle,
   TableSkeleton,
 } from '@agent-system/shared-ui';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useTiers, useCreateTier, useUpdateTier, useDeleteTier } from '../../hooks/useTiers';
 import { RoleType, type Tier } from '@agent-system/shared-types';
 
@@ -115,13 +115,13 @@ export function TierList() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Tiers</h1>
-          <p className="text-slate-500">Configure reward tiers and invitation limits</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Tiers</h1>
+          <p className="text-muted-foreground">Configure reward tiers and invitation limits</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={() => handleOpenDialog()}>
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="size-4 mr-2" />
               New Tier
             </Button>
           </DialogTrigger>
@@ -129,7 +129,7 @@ export function TierList() {
             <DialogHeader>
               <DialogTitle>{editingTier ? 'Edit Tier' : 'Create Tier'}</DialogTitle>
               <DialogDescription>
-                Configure the tier settings
+                {editingTier ? 'Update the tier name, role type, reward amount, and invitation limits.' : 'Define the tier name, role type, reward amount, and invitation limits.'}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -196,15 +196,16 @@ export function TierList() {
           {isLoading ? (
             <TableSkeleton rows={5} columns={5} />
           ) : tiers?.length === 0 ? (
-            <p className="text-slate-500">No tiers configured yet.</p>
+            <p className="text-sm text-muted-foreground">No tiers configured yet. Create your first tier to define reward structures.</p>
           ) : (
+            <div className="overflow-auto rounded-md border">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="hover:bg-transparent">
                   <TableHead>Name</TableHead>
                   <TableHead>Role Type</TableHead>
-                  <TableHead>Reward Amount</TableHead>
-                  <TableHead>Invitation Limit</TableHead>
+                  <TableHead className="text-right">Reward Amount</TableHead>
+                  <TableHead className="text-right">Invitation Limit</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -212,13 +213,13 @@ export function TierList() {
                 {tiers?.map((tier) => (
                   <TableRow key={tier.id} className="hover:bg-slate-50/50 transition-colors">
                     <TableCell className="font-medium">{tier.name}</TableCell>
-                    <TableCell className="capitalize">{tier.role_type.replace('_', ' ')}</TableCell>
-                    <TableCell>RM{tier.reward_amount.toFixed(2)}</TableCell>
-                    <TableCell>{tier.invitation_limit_per_slot} per slot</TableCell>
+                    <TableCell className="capitalize text-muted-foreground">{tier.role_type.replace('_', ' ')}</TableCell>
+                    <TableCell className="text-right font-medium">RM{tier.reward_amount.toFixed(2)}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">{tier.invitation_limit_per_slot} per slot</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(tier)} aria-label="Edit tier">
-                          <Edit className="h-4 w-4" />
+                          <Pencil className="size-4" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -227,7 +228,7 @@ export function TierList() {
                           disabled={deleteTier.isPending}
                           aria-label="Delete tier"
                         >
-                          <Trash2 className="h-4 w-4 text-destructive" />
+                          <Trash2 className="size-4 text-destructive" />
                         </Button>
                       </div>
                     </TableCell>
@@ -235,6 +236,7 @@ export function TierList() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

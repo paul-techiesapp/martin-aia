@@ -403,6 +403,9 @@ export function CheckOut() {
           <CardContent className="p-0">
             {/* Success Header — always shown */}
             <div className="p-8 text-center border-b">
+              <div className="flex justify-center mb-4">
+                <Logo size="lg" showText={false} />
+              </div>
               <div className="size-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="size-8 text-emerald-600" />
               </div>

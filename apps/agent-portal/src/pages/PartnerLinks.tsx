@@ -25,6 +25,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useActiveCampaigns, useCampaignSlots } from '../hooks/useCampaigns';
 import { usePartnerLinks, useCreateLink } from '../hooks/useAgentLinks';
 import { usePartnerRegistrationStats } from '../hooks/useRegistrations';
+import { useSystemSettings } from '../hooks/useSystemSettings';
+import { DEFAULT_CARD_TEMPLATE, DEFAULT_COMPANY_BRANDING } from '@agent-system/shared-types';
 import type { Slot } from '@agent-system/shared-types';
 
 export function PartnerLinks() {
@@ -44,6 +46,7 @@ export function PartnerLinks() {
   const { data: stats, isLoading: statsLoading } = usePartnerRegistrationStats(partner?.id);
   const createLink = useCreateLink();
   const { toast } = useToast();
+  const { data: systemSettings } = useSystemSettings();
 
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
@@ -116,7 +119,9 @@ export function PartnerLinks() {
         isAutoCard: true,
       }));
 
-      const doc = await generateBulkInvitationCards(invitationData);
+      const branding = systemSettings?.company_branding ?? DEFAULT_COMPANY_BRANDING;
+      const template = systemSettings?.card_template ?? DEFAULT_CARD_TEMPLATE;
+      const doc = await generateBulkInvitationCards(invitationData, template, branding);
       doc.save(`invitation-cards-${link.slot.campaign.name}.pdf`);
       toast({ title: `${regs.length} card${regs.length > 1 ? 's' : ''} downloaded` });
     } catch (err: any) {
@@ -314,6 +319,8 @@ export function PartnerLinks() {
                     venue={link.slot?.campaign?.venue ?? '-'}
                     date={link.slot ? parseISO(link.slot.start_at) : new Date()}
                     startTime={link.slot ? format(parseISO(link.slot.start_at), 'HH:mm') : '-'}
+                    companyName={systemSettings?.company_branding?.companyName}
+                    logoUrl={systemSettings?.company_branding?.logoUrl}
                     actions={
                       <div className="flex items-center gap-1">
                         {link.slot?.is_auto_card && (

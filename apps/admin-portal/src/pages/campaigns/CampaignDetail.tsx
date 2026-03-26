@@ -482,7 +482,7 @@ export function CampaignDetail() {
           </Button>
           <div>
             <h1 className="text-2xl font-semibold text-foreground">{campaign.name}</h1>
-            <p className="text-muted-foreground">{campaign.venue}</p>
+            <p className="text-sm text-muted-foreground">{campaign.venue}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -786,7 +786,7 @@ export function CampaignDetail() {
               ))}
             </div>
           ) : slots?.length === 0 ? (
-            <p className="text-muted-foreground">No slots configured yet. Add a slot to get started.</p>
+            <p className="text-sm text-muted-foreground">No slots configured yet. Add a slot to get started.</p>
           ) : (
             <Table>
               <TableHeader>

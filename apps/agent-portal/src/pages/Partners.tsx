@@ -104,7 +104,7 @@ export function Partners() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Partners</h1>
-          <p className="text-muted-foreground">Manage your recruitment partners and track their activity</p>
+          <p className="text-sm text-muted-foreground">Manage your recruitment partners and track their activity</p>
         </div>
         <Button onClick={() => setIsAddOpen(true)} className="bg-primary hover:bg-primary/90">
           <UserPlus className="size-4 mr-1.5" />
@@ -140,7 +140,7 @@ export function Partners() {
           {isLoading ? (
             <TableSkeleton rows={5} columns={6} />
           ) : partners?.length === 0 ? (
-            <p className="text-muted-foreground">No partners yet. Click "Add Partner" to get started.</p>
+            <p className="text-sm text-muted-foreground">No partners yet. Click "Add Partner" to get started.</p>
           ) : (
             <div className="overflow-auto rounded-md border">
             <Table>

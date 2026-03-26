@@ -88,7 +88,7 @@ export function Rewards() {
     <div className="flex flex-col gap-4 animate-fade-in">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Rewards</h1>
-        <p className="text-muted-foreground">Track your earnings from successful attendance completions</p>
+        <p className="text-sm text-muted-foreground">Track your earnings from successful attendance completions</p>
       </div>
 
       <StatCardGrid columns={4}>

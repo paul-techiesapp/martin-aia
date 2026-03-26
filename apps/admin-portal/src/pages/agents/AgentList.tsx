@@ -64,7 +64,7 @@ export function AgentList() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Units</h1>
-          <p className="text-muted-foreground">Manage unit accounts and tier assignments</p>
+          <p className="text-sm text-muted-foreground">Manage unit accounts and tier assignments</p>
         </div>
         <Link to="/agents/new">
           <Button>

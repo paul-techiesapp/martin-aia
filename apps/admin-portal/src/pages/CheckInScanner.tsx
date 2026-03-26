@@ -156,7 +156,7 @@ export function CheckInScanner() {
     <div className="flex flex-col gap-4">
       <div>
         <h1 className="text-2xl font-semibold">Check-In Scanner</h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Scan invitation card QR codes to check in attendees
         </p>
       </div>

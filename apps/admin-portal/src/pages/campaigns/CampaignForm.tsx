@@ -103,7 +103,7 @@ export function CampaignForm() {
           <h1 className="text-2xl font-semibold">
             {isEditing ? 'Edit Event' : 'Create Event'}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {isEditing ? 'Update event details' : 'Set up a new recruitment event'}
           </p>
         </div>

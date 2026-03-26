@@ -68,7 +68,7 @@ export function Dashboard() {
     <div className="flex flex-col gap-4 animate-fade-in">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">Overview of your recruitment operations</p>
+        <p className="text-sm text-muted-foreground">Overview of your recruitment operations</p>
       </div>
 
       <StatCardGrid columns={5}>

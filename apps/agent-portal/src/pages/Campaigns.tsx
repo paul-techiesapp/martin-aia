@@ -64,7 +64,7 @@ export function Campaigns() {
     <div className="flex flex-col gap-4 animate-fade-in">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Active Events</h1>
-        <p className="text-muted-foreground">Browse events and generate your shareable invitation links</p>
+        <p className="text-sm text-muted-foreground">Browse events and generate your shareable invitation links</p>
       </div>
 
       {isLoading ? (
@@ -128,7 +128,7 @@ export function Campaigns() {
             {slots.length === 0 ? (
               <p className="text-muted-foreground">No slots available for this event</p>
             ) : (
-              <div className="space-y-3">
+              <div className="divide-y">
                 {slots.map((slot: Slot) => {
                   const existingLink = getExistingLink(slot.id);
                   const regCount = existingLink?.registration_count ?? 0;
@@ -137,50 +137,45 @@ export function Campaigns() {
                   return (
                     <div
                       key={slot.id}
-                      className="flex items-center justify-between p-4 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors"
+                      className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0"
                     >
-                      <div className="flex-1">
-                        <div className="font-medium text-foreground">
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="font-medium text-foreground w-28">
                           {format(parseISO(slot.start_at), 'd MMM yyyy')}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {format(parseISO(slot.start_at), 'HH:mm')} - {format(parseISO(slot.end_at), 'HH:mm')}
-                        </div>
+                        </span>
+                        <span className="text-muted-foreground">
+                          {format(parseISO(slot.start_at), 'HH:mm')} – {format(parseISO(slot.end_at), 'HH:mm')}
+                        </span>
                         {existingLink && (
-                          <div className="mt-1 text-sm">
-                            <span className={regCount >= maxPerSlot ? 'text-amber-600 font-medium' : 'text-sky-600'}>
-                              {regCount}/{maxPerSlot} registered
-                            </span>
-                          </div>
+                          <span className={`text-xs ${regCount >= maxPerSlot ? 'text-amber-600 font-medium' : 'text-sky-600'}`}>
+                            {regCount}/{maxPerSlot} registered
+                          </span>
                         )}
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div>
                         {existingLink ? (
                           <Button
                             variant="outline"
                             size="sm"
+                            className="h-7 text-xs"
                             onClick={() => handleCopyLink(existingLink.link_code, slot.id)}
                           >
                             {copiedSlotId === slot.id ? (
-                              <>
-                                <Check className="size-4 mr-1 text-emerald-600" /> Copied!
-                              </>
+                              <><Check className="size-3 mr-1 text-emerald-600" /> Copied!</>
                             ) : (
-                              <>
-                                <Copy className="size-4 mr-1" /> Copy Link
-                              </>
+                              <><Copy className="size-3 mr-1" /> Copy Link</>
                             )}
                           </Button>
                         ) : (
                           <Button
                             size="sm"
+                            className="h-7 text-xs"
                             onClick={() => handleGetLink(slot.id)}
                             disabled={creatingSlotId === slot.id}
-                            className=""
                           >
-                            <Link2 className="size-4 mr-1" />
-                            {creatingSlotId === slot.id ? 'Creating...' : 'Get My Link'}
+                            <Link2 className="size-3 mr-1" />
+                            {creatingSlotId === slot.id ? 'Creating...' : 'Get Link'}
                           </Button>
                         )}
                       </div>

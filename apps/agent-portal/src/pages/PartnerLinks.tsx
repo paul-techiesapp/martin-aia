@@ -137,7 +137,7 @@ export function PartnerLinks() {
     <div className="flex flex-col gap-4 animate-fade-in">
       <div>
         <h1 className="text-2xl font-semibold text-foreground">My Links</h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Generate and share registration links under {partner?.agent?.name ?? 'your unit'}
         </p>
       </div>

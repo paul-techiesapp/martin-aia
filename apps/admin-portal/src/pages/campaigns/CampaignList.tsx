@@ -124,7 +124,7 @@ export function CampaignList() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Events</h1>
-          <p className="text-muted-foreground">Manage recruitment events and their time slots</p>
+          <p className="text-sm text-muted-foreground">Manage recruitment events and their time slots</p>
         </div>
         <Link to="/campaigns/new">
           <Button>

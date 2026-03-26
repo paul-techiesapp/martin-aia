@@ -116,7 +116,7 @@ export function TierList() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Tiers</h1>
-          <p className="text-muted-foreground">Configure reward tiers and invitation limits</p>
+          <p className="text-sm text-muted-foreground">Configure reward tiers and invitation limits</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>

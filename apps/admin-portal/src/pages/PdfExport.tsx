@@ -156,7 +156,7 @@ export function PdfExport() {
     <div className="flex flex-col gap-4">
       <div>
         <h1 className="text-2xl font-semibold">PDF Export</h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Generate invitation cards for events
         </p>
       </div>

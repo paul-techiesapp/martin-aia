@@ -106,7 +106,7 @@ export function Settings() {
       <div className="flex flex-col gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Company Settings</h1>
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-sm text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -116,7 +116,7 @@ export function Settings() {
     <div className="flex flex-col gap-4">
       <div>
         <h1 className="text-2xl font-semibold">Company Settings</h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Manage your company branding and logo for invitation cards.
         </p>
       </div>

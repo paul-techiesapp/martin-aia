@@ -30,7 +30,7 @@ function AgentDashboard() {
     <div className="flex flex-col gap-4 animate-fade-in">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Welcome back, {agent?.name}! Here's your performance overview.
         </p>
       </div>
@@ -146,7 +146,7 @@ function PartnerDashboard() {
     <div className="flex flex-col gap-4 animate-fade-in">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Welcome back, {partner?.name}! You're a partner under {partner?.agent?.name ?? 'your unit'}.
         </p>
       </div>

@@ -136,7 +136,7 @@ export function MyLinks() {
     <div className="flex flex-col gap-4 animate-fade-in">
       <div>
         <h1 className="text-2xl font-semibold text-foreground">My Links</h1>
-        <p className="text-muted-foreground">Generate and share registration links for events</p>
+        <p className="text-sm text-muted-foreground">Generate and share registration links for events</p>
       </div>
 
       <StatCardGrid columns={3}>
@@ -391,7 +391,7 @@ export function MyLinks() {
             {!slotRegistrations ? (
               <TableSkeleton rows={3} columns={4} />
             ) : slotRegistrations.length === 0 ? (
-              <p className="text-muted-foreground">No registrations yet for this slot.</p>
+              <p className="text-sm text-muted-foreground">No registrations yet for this slot.</p>
             ) : (
               <Table>
                 <TableHeader>

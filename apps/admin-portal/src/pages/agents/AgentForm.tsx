@@ -111,7 +111,7 @@ export function AgentForm() {
           <h1 className="text-2xl font-semibold">
             {isEditing ? 'Edit Unit' : 'Create Unit'}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {isEditing ? 'Update unit details' : 'Register a new unit'}
           </p>
         </div>

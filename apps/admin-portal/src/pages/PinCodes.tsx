@@ -115,7 +115,7 @@ export function PinCodes() {
     <div className="flex flex-col gap-4 animate-fade-in">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">PIN Codes</h1>
-        <p className="text-muted-foreground">Generate and manage attendance PIN codes for event slots</p>
+        <p className="text-sm text-muted-foreground">Generate and manage attendance PIN codes for event slots</p>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
@@ -245,7 +245,7 @@ export function PinCodes() {
           </CardHeader>
           <CardContent>
             {displayTokens.length === 0 ? (
-              <p className="text-muted-foreground">No display links generated yet.</p>
+              <p className="text-sm text-muted-foreground">No display links generated yet.</p>
             ) : (
               <div className="space-y-2">
                 {displayTokens.map((dt) => {
@@ -332,7 +332,7 @@ export function PinCodes() {
             {isLoading ? (
               <TableSkeleton rows={5} columns={3} />
             ) : pinCodes?.length === 0 ? (
-              <p className="text-muted-foreground">No PIN codes generated yet.</p>
+              <p className="text-sm text-muted-foreground">No PIN codes generated yet.</p>
             ) : (
               <div className="overflow-auto rounded-md border">
               <Table>

@@ -229,7 +229,7 @@ export function Reports() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Reports & Analytics</h1>
-          <p className="text-muted-foreground">Track event performance and agent metrics</p>
+          <p className="text-sm text-muted-foreground">Track event performance and agent metrics</p>
         </div>
       </div>
 

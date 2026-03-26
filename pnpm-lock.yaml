@@ -251,6 +251,9 @@ importers:
 
   packages/shared-ui:
     dependencies:
+      '@agent-system/shared-types':
+        specifier: workspace:*
+        version: link:../shared-types
       '@hookform/resolvers':
         specifier: 3.9.1
         version: 3.9.1(react-hook-form@7.71.1(react@18.3.1))

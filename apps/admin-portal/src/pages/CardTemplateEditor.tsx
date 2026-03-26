@@ -327,7 +327,7 @@ export function CardTemplateEditor() {
             {previewUrl ? (
               <iframe
                 src={previewUrl}
-                className="w-full max-w-[600px] h-full max-h-[500px] border rounded shadow-sm bg-white"
+                className="w-full max-w-[600px] h-[420px] border rounded shadow-sm bg-white"
                 title="Card Preview"
               />
             ) : (

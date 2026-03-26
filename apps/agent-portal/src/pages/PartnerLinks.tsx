@@ -134,10 +134,10 @@ export function PartnerLinks() {
   const isLoading = campaignsLoading || linksLoading || statsLoading;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="flex flex-col gap-4 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">My Links</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="text-2xl font-semibold text-foreground">My Links</h1>
+        <p className="text-muted-foreground">
           Generate and share registration links under {partner?.agent?.name ?? 'your unit'}
         </p>
       </div>
@@ -173,7 +173,7 @@ export function PartnerLinks() {
       <div>
         <h2 className="text-lg font-semibold text-foreground mb-3">Select an Event</h2>
         {campaignsLoading ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (
               <Card key={i} className="glass-card">
                 <CardHeader>
@@ -193,7 +193,7 @@ export function PartnerLinks() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {campaigns?.map((campaign) => (
               <Card
                 key={campaign.id}
@@ -231,7 +231,7 @@ export function PartnerLinks() {
       {selectedCampaignId && slots && (
         <Card className="glass-card">
           <CardHeader>
-            <CardTitle className="text-lg">Event Slots</CardTitle>
+            <CardTitle>Event Slots</CardTitle>
             <CardDescription>Get your shareable link for each slot</CardDescription>
           </CardHeader>
           <CardContent>
@@ -304,7 +304,7 @@ export function PartnerLinks() {
       {links && links.length > 0 && (
         <Card className="glass-card">
           <CardHeader>
-            <CardTitle className="text-lg">My Active Links</CardTitle>
+            <CardTitle>My Active Links</CardTitle>
             <CardDescription>
               {links.length} link{links.length !== 1 ? 's' : ''} created
             </CardDescription>

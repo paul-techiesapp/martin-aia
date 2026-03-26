@@ -452,7 +452,7 @@ export function CampaignDetail() {
             <Skeleton className="h-5 w-40" />
           </div>
         </div>
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-3">
           <Skeleton className="h-24 rounded-xl" />
           <Skeleton className="h-24 rounded-xl" />
           <Skeleton className="h-24 rounded-xl" />
@@ -473,34 +473,34 @@ export function CampaignDetail() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="flex flex-col gap-4 animate-fade-in">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={() => navigate({ to: '/campaigns' })}>
-            <ArrowLeft className="size-4 mr-2" />
+            <ArrowLeft className="size-4 mr-1.5" />
             Back
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">{campaign.name}</h1>
+            <h1 className="text-2xl font-semibold text-foreground">{campaign.name}</h1>
             <p className="text-muted-foreground">{campaign.venue}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {campaign.status === CampaignStatus.DRAFT && (
             <Button onClick={() => handleToggleStatus(CampaignStatus.ACTIVE)} className="bg-emerald-600 hover:bg-emerald-700">
-              <Power className="size-4 mr-2" />
+              <Power className="size-4 mr-1.5" />
               Activate
             </Button>
           )}
           {campaign.status === CampaignStatus.ACTIVE && (
             <Button variant="outline" onClick={() => handleToggleStatus(CampaignStatus.PAUSED)}>
-              <PowerOff className="size-4 mr-2" />
+              <PowerOff className="size-4 mr-1.5" />
               Pause
             </Button>
           )}
           {campaign.status === CampaignStatus.PAUSED && (
             <Button onClick={() => handleToggleStatus(CampaignStatus.ACTIVE)} className="bg-emerald-600 hover:bg-emerald-700">
-              <Power className="size-4 mr-2" />
+              <Power className="size-4 mr-1.5" />
               Resume
             </Button>
           )}
@@ -512,7 +512,7 @@ export function CampaignDetail() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-3 md:grid-cols-3">
         <Card className="glass-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -555,7 +555,7 @@ export function CampaignDetail() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-lg">Event Slots</CardTitle>
+              <CardTitle>Event Slots</CardTitle>
               <CardDescription>
                 Configure the available time slots for this event
               </CardDescription>
@@ -563,7 +563,7 @@ export function CampaignDetail() {
             <Dialog open={isAddSlotOpen} onOpenChange={setIsAddSlotOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-primary hover:bg-primary/90">
-                  <Plus className="size-4 mr-2" />
+                  <Plus className="size-4 mr-1.5" />
                   Add Slot
                 </Button>
               </DialogTrigger>
@@ -822,7 +822,7 @@ export function CampaignDetail() {
       {/* Post-Checkout Content Configuration */}
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle className="text-lg">Post-Checkout Content</CardTitle>
+          <CardTitle>Post-Checkout Content</CardTitle>
           <CardDescription>
             Configure what attendees see after successful check-out
           </CardDescription>
@@ -914,7 +914,7 @@ export function CampaignDetail() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-lg">Card Template</CardTitle>
+              <CardTitle>Card Template</CardTitle>
               <CardDescription>
                 {overrideCount > 0
                   ? `${overrideCount} field${overrideCount > 1 ? 's' : ''} overridden from system default`
@@ -1089,7 +1089,7 @@ export function CampaignDetail() {
                 disabled={sendReminders.isPending}
                 className="bg-indigo-600 hover:bg-indigo-700"
               >
-                <Mail className="size-4 mr-2" />
+                <Mail className="size-4 mr-1.5" />
                 {sendReminders.isPending
                   ? 'Sending...'
                   : `Send ${reminderSlot.count} Email${reminderSlot.count > 1 ? 's' : ''}`}

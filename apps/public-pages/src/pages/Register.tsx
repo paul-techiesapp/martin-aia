@@ -206,13 +206,13 @@ export function Register() {
             </div>
             <div>
               <h2 className="text-2xl font-bold text-foreground">Registration Complete!</h2>
-              <p className="text-muted-foreground mt-2">
+              <p className="text-muted-foreground">
                 You have successfully registered for the event. Please arrive on time with your NRIC for verification.
               </p>
             </div>
             <div className="bg-slate-50 p-4 rounded-xl text-left border border-slate-100">
               <p className="font-semibold text-foreground">{agentLink?.slot.campaign.name}</p>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-sm text-muted-foreground">
                 {agentLink?.slot.start_at ? format(parseISO(agentLink.slot.start_at), 'EEE d MMM yyyy, HH:mm') : ''} -{' '}
                 {agentLink?.slot.end_at ? format(parseISO(agentLink.slot.end_at), 'HH:mm') : ''}
               </p>
@@ -235,7 +235,7 @@ export function Register() {
             Complete your registration for the event
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6 px-6 pb-8">
+        <CardContent className="flex flex-col gap-4 px-6 pb-8">
           {/* Event Details */}
           <div className="bg-slate-50 p-4 rounded-xl space-y-2 border border-slate-100">
             <div className="flex items-center gap-2">

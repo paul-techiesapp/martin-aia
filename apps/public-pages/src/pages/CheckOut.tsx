@@ -408,9 +408,9 @@ export function CheckOut() {
               </div>
               <h2 className="text-2xl font-bold text-emerald-600">Check-Out Successful!</h2>
               {attendeeName && (
-                <p className="text-xl font-semibold text-foreground mt-2">{attendeeName}</p>
+                <p className="text-xl font-semibold text-foreground">{attendeeName}</p>
               )}
-              <p className="text-muted-foreground mt-2">
+              <p className="text-muted-foreground">
                 Thank you for attending! Your full attendance has been recorded.
               </p>
             </div>
@@ -584,7 +584,7 @@ export function CheckOut() {
                       'Sending...'
                     ) : (
                       <>
-                        <MessageSquare className="size-4 mr-2" />
+                        <MessageSquare className="size-4 mr-1.5" />
                         Send OTP to WhatsApp
                       </>
                     )}
@@ -649,7 +649,7 @@ export function CheckOut() {
                       'Verifying...'
                     ) : (
                       <>
-                        <ArrowRight className="size-4 mr-2" />
+                        <ArrowRight className="size-4 mr-1.5" />
                         Complete Check Out
                       </>
                     )}

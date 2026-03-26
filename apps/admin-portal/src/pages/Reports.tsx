@@ -225,11 +225,11 @@ export function Reports() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="flex flex-col gap-4 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Reports & Analytics</h1>
-          <p className="text-muted-foreground mt-1">Track event performance and agent metrics</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Reports & Analytics</h1>
+          <p className="text-muted-foreground">Track event performance and agent metrics</p>
         </div>
       </div>
 
@@ -307,16 +307,16 @@ export function Reports() {
       </StatCardGrid>
 
       {/* Charts */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2">
         <Card className="glass-card">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-lg">Invitation Funnel</CardTitle>
+                <CardTitle>Invitation Funnel</CardTitle>
                 <CardDescription>Sent vs. registered vs. attended</CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={() => handleExport('invitations')}>
-                <Download className="h-4 w-4 mr-2" />
+                <Download className="h-4 w-4 mr-1.5" />
                 Export
               </Button>
             </div>
@@ -347,7 +347,7 @@ export function Reports() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-lg">Attendance Breakdown</CardTitle>
+                <CardTitle>Attendance Breakdown</CardTitle>
                 <CardDescription>Completion status</CardDescription>
               </div>
             </div>
@@ -385,16 +385,16 @@ export function Reports() {
       </div>
 
       {/* Tables */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2">
         <Card className="glass-card">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-lg">Top Performing Units</CardTitle>
+                <CardTitle>Top Performing Units</CardTitle>
                 <CardDescription>Ranked by attendance conversion</CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={() => handleExport('agents')}>
-                <Download className="h-4 w-4 mr-2" />
+                <Download className="h-4 w-4 mr-1.5" />
                 Export
               </Button>
             </div>
@@ -435,11 +435,11 @@ export function Reports() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-lg">System Summary</CardTitle>
+                <CardTitle>System Summary</CardTitle>
                 <CardDescription>Key metrics at a glance</CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={() => handleExport('summary')}>
-                <Download className="h-4 w-4 mr-2" />
+                <Download className="h-4 w-4 mr-1.5" />
                 Export
               </Button>
             </div>

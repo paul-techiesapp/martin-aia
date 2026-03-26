@@ -120,15 +120,15 @@ export function CampaignList() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="flex flex-col gap-4 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Events</h1>
-          <p className="text-muted-foreground mt-1">Manage recruitment events and their time slots</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Events</h1>
+          <p className="text-muted-foreground">Manage recruitment events and their time slots</p>
         </div>
         <Link to="/campaigns/new">
           <Button>
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="h-4 w-4 mr-1.5" />
             New Event
           </Button>
         </Link>
@@ -136,7 +136,7 @@ export function CampaignList() {
 
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle className="text-lg">All Events</CardTitle>
+          <CardTitle>All Events</CardTitle>
           <CardDescription>
             {campaigns?.length ?? 0} total events
           </CardDescription>
@@ -303,7 +303,7 @@ export function CampaignList() {
               >
                 {duplicateCampaign.isPending ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
                     Duplicating...
                   </>
                 ) : (

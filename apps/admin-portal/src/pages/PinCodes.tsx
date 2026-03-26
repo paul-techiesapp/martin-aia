@@ -112,16 +112,16 @@ export function PinCodes() {
   const checkoutUrl = `${baseUrl}/public/checkout?slot=${selectedSlotId}`;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="flex flex-col gap-4 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">PIN Codes</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">PIN Codes</h1>
         <p className="text-muted-foreground">Generate and manage attendance PIN codes for event slots</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2">
         <Card className="glass-card">
           <CardHeader>
-            <CardTitle className="text-lg">Select Slot</CardTitle>
+            <CardTitle>Select Slot</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -167,14 +167,14 @@ export function PinCodes() {
         {selectedSlotId && (
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle className="text-lg">QR Codes for Venue</CardTitle>
+              <CardTitle>QR Codes for Venue</CardTitle>
               <CardDescription>Display for attendees to scan</CardDescription>
             </CardHeader>
             <CardContent className="flex gap-4">
               <Dialog open={qrMode === 'checkin'} onOpenChange={(open) => setQrMode(open ? 'checkin' : null)}>
                 <DialogTrigger asChild>
                   <Button className="flex-1">
-                    <QrCode className="size-4 mr-2" />
+                    <QrCode className="size-4 mr-1.5" />
                     Check-In QR
                   </Button>
                 </DialogTrigger>
@@ -201,7 +201,7 @@ export function PinCodes() {
               <Dialog open={qrMode === 'checkout'} onOpenChange={(open) => setQrMode(open ? 'checkout' : null)}>
                 <DialogTrigger asChild>
                   <Button variant="outline" className="flex-1">
-                    <QrCode className="size-4 mr-2" />
+                    <QrCode className="size-4 mr-1.5" />
                     Check-Out QR
                   </Button>
                 </DialogTrigger>
@@ -234,11 +234,11 @@ export function PinCodes() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-lg">Venue Display Links</CardTitle>
+                <CardTitle>Venue Display Links</CardTitle>
                 <CardDescription>Share these links with venue devices for rotating QR codes</CardDescription>
               </div>
               <Button onClick={handleGenerateDisplayToken}>
-                <Plus className="size-4 mr-2" />
+                <Plus className="size-4 mr-1.5" />
                 Generate Link
               </Button>
             </div>
@@ -286,7 +286,7 @@ export function PinCodes() {
                 <Dialog open={isGenerateOpen} onOpenChange={setIsGenerateOpen}>
                   <DialogTrigger asChild>
                     <Button>
-                      <Plus className="size-4 mr-2" />
+                      <Plus className="size-4 mr-1.5" />
                       Generate
                     </Button>
                   </DialogTrigger>
@@ -318,11 +318,11 @@ export function PinCodes() {
                   </DialogContent>
                 </Dialog>
                 <Button variant="outline" onClick={handlePrint}>
-                  <Printer className="size-4 mr-2" />
+                  <Printer className="size-4 mr-1.5" />
                   Print
                 </Button>
                 <Button variant="destructive" onClick={handleDeleteUnused}>
-                  <Trash2 className="size-4 mr-2" />
+                  <Trash2 className="size-4 mr-1.5" />
                   Delete Unused
                 </Button>
               </div>

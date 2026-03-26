@@ -153,9 +153,9 @@ export function CheckInScanner() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-3xl font-bold">Check-In Scanner</h1>
+        <h1 className="text-2xl font-semibold">Check-In Scanner</h1>
         <p className="text-muted-foreground">
           Scan invitation card QR codes to check in attendees
         </p>

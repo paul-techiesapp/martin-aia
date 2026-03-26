@@ -103,9 +103,9 @@ export function Settings() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="flex flex-col gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Company Settings</h1>
+          <h1 className="text-2xl font-semibold">Company Settings</h1>
           <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
@@ -113,9 +113,9 @@ export function Settings() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-2xl font-bold">Company Settings</h1>
+        <h1 className="text-2xl font-semibold">Company Settings</h1>
         <p className="text-muted-foreground">
           Manage your company branding and logo for invitation cards.
         </p>

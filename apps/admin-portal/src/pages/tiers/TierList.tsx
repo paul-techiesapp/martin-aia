@@ -112,16 +112,16 @@ export function TierList() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="flex flex-col gap-4 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Tiers</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Tiers</h1>
           <p className="text-muted-foreground">Configure reward tiers and invitation limits</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={() => handleOpenDialog()}>
-              <Plus className="size-4 mr-2" />
+              <Plus className="size-4 mr-1.5" />
               New Tier
             </Button>
           </DialogTrigger>

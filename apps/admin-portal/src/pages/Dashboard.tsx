@@ -65,10 +65,10 @@ export function Dashboard() {
   const isLoading = campaignsLoading || agentsLoading || attendanceLoading || rewardsLoading || registrationStatsLoading;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="flex flex-col gap-4 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Overview of your recruitment operations</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Dashboard</h1>
+        <p className="text-muted-foreground">Overview of your recruitment operations</p>
       </div>
 
       <StatCardGrid columns={5}>
@@ -119,10 +119,10 @@ export function Dashboard() {
         />
       </StatCardGrid>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2">
         <Card className="glass-card">
           <CardHeader>
-            <CardTitle className="text-lg">Recent Activity</CardTitle>
+            <CardTitle>Recent Activity</CardTitle>
             <CardDescription>Latest check-ins and registrations</CardDescription>
           </CardHeader>
           <CardContent>
@@ -132,7 +132,7 @@ export function Dashboard() {
 
         <Card className="glass-card">
           <CardHeader>
-            <CardTitle className="text-lg">Quick Actions</CardTitle>
+            <CardTitle>Quick Actions</CardTitle>
             <CardDescription>Frequently used tasks</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">

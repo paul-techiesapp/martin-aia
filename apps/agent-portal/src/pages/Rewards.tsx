@@ -85,10 +85,10 @@ export function Rewards() {
   const isLoading = statsLoading || rewardsLoading || registrationsLoading;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="flex flex-col gap-4 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Rewards</h1>
-        <p className="text-muted-foreground mt-1">Track your earnings from successful attendance completions</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Rewards</h1>
+        <p className="text-muted-foreground">Track your earnings from successful attendance completions</p>
       </div>
 
       <StatCardGrid columns={4}>
@@ -128,7 +128,7 @@ export function Rewards() {
 
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle className="text-lg">Reward History</CardTitle>
+          <CardTitle>Reward History</CardTitle>
           <CardDescription>
             Your completed attendances and earned rewards
           </CardDescription>
@@ -179,7 +179,7 @@ export function Rewards() {
 
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle className="text-lg">How Rewards Work</CardTitle>
+          <CardTitle>How Rewards Work</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-start gap-4">

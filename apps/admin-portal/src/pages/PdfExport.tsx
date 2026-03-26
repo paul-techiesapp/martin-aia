@@ -153,9 +153,9 @@ export function PdfExport() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-3xl font-bold">PDF Export</h1>
+        <h1 className="text-2xl font-semibold">PDF Export</h1>
         <p className="text-muted-foreground">
           Generate invitation cards for events
         </p>
@@ -249,12 +249,12 @@ export function PdfExport() {
               >
                 {isGeneratingInvitations ? (
                   <>
-                    <Loader2 className="mr-2 size-4 animate-spin" />
+                    <Loader2 className="mr-1.5 size-4 animate-spin" />
                     Generating...
                   </>
                 ) : (
                   <>
-                    <FileDown className="mr-2 size-4" />
+                    <FileDown className="mr-1.5 size-4" />
                     Download Invitation Cards
                   </>
                 )}

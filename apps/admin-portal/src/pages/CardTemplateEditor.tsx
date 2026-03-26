@@ -154,7 +154,7 @@ export function CardTemplateEditor() {
           <ArrowLeft className="size-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold">Card Template Editor</h1>
+          <h1 className="text-2xl font-semibold">Card Template Editor</h1>
           <p className="text-sm text-muted-foreground">Customize the invitation card design</p>
         </div>
       </div>
@@ -340,16 +340,16 @@ export function CardTemplateEditor() {
       {/* Bottom bar */}
       <div className="flex items-center justify-between p-4 border-t bg-background">
         <Button variant="outline" onClick={handleReset}>
-          <RotateCcw className="size-4 mr-2" />
+          <RotateCcw className="size-4 mr-1.5" />
           Reset to Defaults
         </Button>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleDownload}>
-            <Download className="size-4 mr-2" />
+            <Download className="size-4 mr-1.5" />
             Download Sample PDF
           </Button>
           <Button onClick={handleSave} disabled={updateTemplate.isPending}>
-            <Save className="size-4 mr-2" />
+            <Save className="size-4 mr-1.5" />
             {updateTemplate.isPending ? 'Saving...' : 'Save Template'}
           </Button>
         </div>

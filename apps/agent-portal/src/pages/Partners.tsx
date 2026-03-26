@@ -100,14 +100,14 @@ export function Partners() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="flex flex-col gap-4 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Partners</h1>
-          <p className="text-muted-foreground mt-1">Manage your recruitment partners and track their activity</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Partners</h1>
+          <p className="text-muted-foreground">Manage your recruitment partners and track their activity</p>
         </div>
         <Button onClick={() => setIsAddOpen(true)} className="bg-primary hover:bg-primary/90">
-          <UserPlus className="size-4 mr-2" />
+          <UserPlus className="size-4 mr-1.5" />
           Add Partner
         </Button>
       </div>
@@ -133,7 +133,7 @@ export function Partners() {
 
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle className="text-lg">All Partners</CardTitle>
+          <CardTitle>All Partners</CardTitle>
           <CardDescription>{totalCount} partners total</CardDescription>
         </CardHeader>
         <CardContent>

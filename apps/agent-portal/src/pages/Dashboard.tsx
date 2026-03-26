@@ -27,10 +27,10 @@ function AgentDashboard() {
   const isLoading = statsLoading || campaignsLoading || partnersLoading;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="flex flex-col gap-4 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Dashboard</h1>
+        <p className="text-muted-foreground">
           Welcome back, {agent?.name}! Here's your performance overview.
         </p>
       </div>
@@ -70,10 +70,10 @@ function AgentDashboard() {
         />
       </StatCardGrid>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2">
         <Card className="glass-card">
           <CardHeader>
-            <CardTitle className="text-lg">Your Tier</CardTitle>
+            <CardTitle>Your Tier</CardTitle>
             <CardDescription>Current reward structure</CardDescription>
           </CardHeader>
           <CardContent>
@@ -106,27 +106,27 @@ function AgentDashboard() {
 
         <Card className="glass-card">
           <CardHeader>
-            <CardTitle className="text-lg">Quick Actions</CardTitle>
+            <CardTitle>Quick Actions</CardTitle>
             <CardDescription>Common tasks</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             <Link
               to="/campaigns"
-              className="flex items-center justify-between p-3 rounded-lg hover:bg-indigo-50 transition-all duration-200 group cursor-pointer"
+              className="flex items-center justify-between p-2.5 rounded-lg hover:bg-indigo-50 transition-all duration-200 group cursor-pointer"
             >
               <span className="text-sm font-medium text-foreground group-hover:text-indigo-700">Browse Active Events</span>
               <ChevronRight className="size-4 text-muted-foreground group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
             </Link>
             <Link
               to="/my-links"
-              className="flex items-center justify-between p-3 rounded-lg hover:bg-indigo-50 transition-all duration-200 group cursor-pointer"
+              className="flex items-center justify-between p-2.5 rounded-lg hover:bg-indigo-50 transition-all duration-200 group cursor-pointer"
             >
               <span className="text-sm font-medium text-foreground group-hover:text-indigo-700">View My Links</span>
               <ChevronRight className="size-4 text-muted-foreground group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
             </Link>
             <Link
               to="/partners"
-              className="flex items-center justify-between p-3 rounded-lg hover:bg-indigo-50 transition-all duration-200 group cursor-pointer"
+              className="flex items-center justify-between p-2.5 rounded-lg hover:bg-indigo-50 transition-all duration-200 group cursor-pointer"
             >
               <span className="text-sm font-medium text-foreground group-hover:text-indigo-700">Manage Partners</span>
               <ChevronRight className="size-4 text-muted-foreground group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
@@ -143,10 +143,10 @@ function PartnerDashboard() {
   const { data: stats, isLoading } = usePartnerRegistrationStats(partner?.id);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="flex flex-col gap-4 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Dashboard</h1>
+        <p className="text-muted-foreground">
           Welcome back, {partner?.name}! You're a partner under {partner?.agent?.name ?? 'your unit'}.
         </p>
       </div>
@@ -180,13 +180,13 @@ function PartnerDashboard() {
 
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle className="text-lg">Quick Actions</CardTitle>
+          <CardTitle>Quick Actions</CardTitle>
           <CardDescription>Common tasks</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
           <Link
             to="/partner-links"
-            className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors group"
+            className="flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50 transition-colors group"
           >
             <span className="text-sm font-medium text-foreground">Get & Share My Links</span>
             <ChevronRight className="size-4 text-muted-foreground group-hover:text-sky-600 group-hover:translate-x-1 transition-all" />

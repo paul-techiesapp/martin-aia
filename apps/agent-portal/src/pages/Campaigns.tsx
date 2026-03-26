@@ -61,14 +61,14 @@ export function Campaigns() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="flex flex-col gap-4 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Active Events</h1>
-        <p className="text-muted-foreground mt-1">Browse events and generate your shareable invitation links</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Active Events</h1>
+        <p className="text-muted-foreground">Browse events and generate your shareable invitation links</p>
       </div>
 
       {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
             <Card key={i} className="glass-card">
               <CardHeader>
@@ -89,7 +89,7 @@ export function Campaigns() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {campaigns?.map((campaign) => (
             <Card
               key={campaign.id}
@@ -128,7 +128,7 @@ export function Campaigns() {
       {selectedCampaignId && slots && (
         <Card className="glass-card">
           <CardHeader>
-            <CardTitle className="text-lg">Available Slots</CardTitle>
+            <CardTitle>Available Slots</CardTitle>
             <CardDescription>Get your shareable link for each slot</CardDescription>
           </CardHeader>
           <CardContent>

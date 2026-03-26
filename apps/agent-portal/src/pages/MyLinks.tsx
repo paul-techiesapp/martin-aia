@@ -133,10 +133,10 @@ export function MyLinks() {
   const isLoading = campaignsLoading || linksLoading || statsLoading;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="flex flex-col gap-4 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">My Links</h1>
-        <p className="text-muted-foreground mt-1">Generate and share registration links for events</p>
+        <h1 className="text-2xl font-semibold text-foreground">My Links</h1>
+        <p className="text-muted-foreground">Generate and share registration links for events</p>
       </div>
 
       <StatCardGrid columns={3}>
@@ -170,7 +170,7 @@ export function MyLinks() {
       <div>
         <h2 className="text-lg font-semibold text-foreground mb-3">Select an Event</h2>
         {campaignsLoading ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (
               <Card key={i} className="glass-card">
                 <CardHeader>
@@ -190,7 +190,7 @@ export function MyLinks() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {campaigns?.map((campaign) => (
               <Card
                 key={campaign.id}
@@ -231,7 +231,7 @@ export function MyLinks() {
       {selectedCampaignId && slots && (
         <Card className="glass-card">
           <CardHeader>
-            <CardTitle className="text-lg">Event Slots</CardTitle>
+            <CardTitle>Event Slots</CardTitle>
             <CardDescription>Get your shareable link for each slot</CardDescription>
           </CardHeader>
           <CardContent>
@@ -313,7 +313,7 @@ export function MyLinks() {
       {links && links.length > 0 && (
         <Card className="glass-card">
           <CardHeader>
-            <CardTitle className="text-lg">My Active Links</CardTitle>
+            <CardTitle>My Active Links</CardTitle>
             <CardDescription>
               {links.length} link{links.length !== 1 ? 's' : ''} created
             </CardDescription>
@@ -387,7 +387,7 @@ export function MyLinks() {
       {selectedSlotId && (
         <Card className="glass-card">
           <CardHeader>
-            <CardTitle className="text-lg">Registrations</CardTitle>
+            <CardTitle>Registrations</CardTitle>
             <CardDescription>
               People who registered via your link for this slot
             </CardDescription>

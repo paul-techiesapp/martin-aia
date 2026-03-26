@@ -101,14 +101,14 @@ export function AgentForm() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-4">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="sm" onClick={() => navigate({ to: '/agents' })}>
-          <ArrowLeft className="size-4 mr-2" />
+          <ArrowLeft className="size-4 mr-1.5" />
           Back
         </Button>
         <div>
-          <h1 className="text-3xl font-bold">
+          <h1 className="text-2xl font-semibold">
             {isEditing ? 'Edit Unit' : 'Create Unit'}
           </h1>
           <p className="text-muted-foreground">

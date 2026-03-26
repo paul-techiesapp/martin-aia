@@ -186,7 +186,7 @@ export function Display() {
       </div>
 
       <h1 className="text-2xl font-bold text-white mt-3">{slot?.campaign.name}</h1>
-      <p className="text-sm text-slate-500 mt-1">
+      <p className="text-sm text-slate-500">
         {slot?.campaign.venue} &bull; {slot ? format(parseISO(slot.start_at), 'd MMM yyyy, HH:mm') : ''} – {slot ? format(parseISO(slot.end_at), 'HH:mm') : ''}
       </p>
 

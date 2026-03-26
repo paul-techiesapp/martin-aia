@@ -60,15 +60,15 @@ export function AgentList() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="flex flex-col gap-4 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Units</h1>
-          <p className="text-muted-foreground mt-1">Manage unit accounts and tier assignments</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Units</h1>
+          <p className="text-muted-foreground">Manage unit accounts and tier assignments</p>
         </div>
         <Link to="/agents/new">
           <Button>
-            <Plus className="size-4 mr-2" />
+            <Plus className="size-4 mr-1.5" />
             New Unit
           </Button>
         </Link>
@@ -76,7 +76,7 @@ export function AgentList() {
 
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle className="text-lg">All Units</CardTitle>
+          <CardTitle>All Units</CardTitle>
           <CardDescription>
             {agents?.length ?? 0} registered units
           </CardDescription>

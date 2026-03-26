@@ -24,6 +24,11 @@ export interface InvitationCardProps {
   /** Invitation status — when omitted, badge is hidden */
   status?: string;
 
+  /** Company name displayed on card. Falls back to "RACC Agency". */
+  companyName?: string;
+  /** Company logo URL. Falls back to no image. */
+  logoUrl?: string | null;
+
   /** Action buttons rendered in bottom-right of right panel */
   actions?: React.ReactNode;
   className?: string;
@@ -38,6 +43,8 @@ export function InvitationCard({
   inviteeName,
   inviteeType,
   status,
+  companyName,
+  logoUrl,
   actions,
   className,
 }: InvitationCardProps) {
@@ -66,11 +73,14 @@ export function InvitationCard({
         style={{ background: 'linear-gradient(135deg, #0F172A, #0369A1)' }}
       >
         <div>
+          {logoUrl && (
+            <img src={logoUrl} alt={companyName || 'RACC Agency'} className="w-8 h-8 object-contain mb-1" />
+          )}
           <div
             className="text-[8px] font-semibold uppercase tracking-[1px]"
             style={{ color: '#DAA520' }}
           >
-            RACC Agency
+            {companyName || 'RACC Agency'}
           </div>
           <div className="text-[8px] text-white/60">Event Invitation</div>
         </div>

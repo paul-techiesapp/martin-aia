@@ -143,6 +143,7 @@ Deno.serve(async (req) => {
 
     // 7. Generate 6-digit OTP
     const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000000).padStart(6, '0');
+    console.log(`[CHECKOUT OTP] Phone: ${phone}, Code: ${code}`);
 
     // 8. Insert OTP record
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();

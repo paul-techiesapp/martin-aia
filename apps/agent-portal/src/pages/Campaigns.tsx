@@ -9,7 +9,7 @@ import {
   Skeleton,
   useToast,
 } from '@agent-system/shared-ui';
-import { CalendarDays, MapPin, Link2, Copy, Check } from 'lucide-react';
+import { MapPin, Link2, Copy, Check } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useAuth } from '../hooks/useAuth';
 import { useActiveCampaigns, useCampaignSlots } from '../hooks/useCampaigns';
@@ -93,31 +93,24 @@ export function Campaigns() {
           {campaigns?.map((campaign) => (
             <Card
               key={campaign.id}
-              className={`glass-card cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-xl ${
+              className={`cursor-pointer transition-colors duration-150 ${
                 selectedCampaignId === campaign.id
-                  ? 'ring-2 ring-indigo-500 shadow-lg shadow-indigo-500/10'
-                  : 'hover:border-indigo-200'
+                  ? 'ring-2 ring-primary shadow-sm'
+                  : 'hover:bg-muted/50'
               }`}
               onClick={() => setSelectedCampaignId(campaign.id)}
             >
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-foreground">
-                  <div className="h-8 w-8 rounded-lg bg-sky-100 flex items-center justify-center">
-                    <CalendarDays className="size-4 text-sky-600" />
-                  </div>
-                  {campaign.name}
-                </CardTitle>
-                <CardDescription className="flex items-center gap-1 text-muted-foreground">
-                  <MapPin className="size-4" />
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">{campaign.name}</CardTitle>
+                <CardDescription className="flex items-center gap-1">
+                  <MapPin className="size-3" />
                   {campaign.venue}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-sm text-muted-foreground">
-                  {new Date(campaign.start_date).toLocaleDateString()} - {new Date(campaign.end_date).toLocaleDateString()}
-                </div>
-                <div className="mt-2 text-sm capitalize text-muted-foreground">
-                  Type: {campaign.registration_type?.replace('_', ' ')}
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{new Date(campaign.start_date).toLocaleDateString()} – {new Date(campaign.end_date).toLocaleDateString()}</span>
+                  <span className="capitalize">{campaign.registration_type?.replace('_', ' ')}</span>
                 </div>
               </CardContent>
             </Card>

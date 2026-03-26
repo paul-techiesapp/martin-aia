@@ -25,7 +25,7 @@ import {
   TooltipTrigger,
   useToast,
 } from '@agent-system/shared-ui';
-import { Link2, Copy, Check, CalendarDays, MapPin, UserCheck, CheckCircle, Users, FileDown, Loader2 } from 'lucide-react';
+import { Link2, Copy, Check, MapPin, UserCheck, CheckCircle, Users, FileDown, Loader2 } from 'lucide-react';
 import { generateBulkInvitationCards } from '@agent-system/shared-ui';
 import type { InvitationCardData } from '@agent-system/shared-ui';
 import { supabase } from '../lib/supabase';
@@ -194,31 +194,26 @@ export function MyLinks() {
             {campaigns?.map((campaign) => (
               <Card
                 key={campaign.id}
-                className={`glass-card cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-xl ${
+                className={`cursor-pointer transition-colors duration-150 ${
                   selectedCampaignId === campaign.id
-                    ? 'ring-2 ring-sky-500 shadow-lg shadow-sky-500/10'
-                    : 'hover:border-sky-200'
+                    ? 'ring-2 ring-primary shadow-sm'
+                    : 'hover:bg-muted/50'
                 }`}
                 onClick={() => {
                   setSelectedCampaignId(campaign.id);
                   setSelectedSlotId(null);
                 }}
               >
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-foreground">
-                    <div className="size-8 rounded-lg bg-sky-100 flex items-center justify-center">
-                      <CalendarDays className="size-4 text-sky-600" />
-                    </div>
-                    {campaign.name}
-                  </CardTitle>
-                  <CardDescription className="flex items-center gap-1 text-muted-foreground">
-                    <MapPin className="size-4" />
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">{campaign.name}</CardTitle>
+                  <CardDescription className="flex items-center gap-1">
+                    <MapPin className="size-3" />
                     {campaign.venue}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-sm text-muted-foreground">
-                    {new Date(campaign.start_date).toLocaleDateString()} - {new Date(campaign.end_date).toLocaleDateString()}
+                  <div className="text-xs text-muted-foreground">
+                    {new Date(campaign.start_date).toLocaleDateString()} – {new Date(campaign.end_date).toLocaleDateString()}
                   </div>
                 </CardContent>
               </Card>

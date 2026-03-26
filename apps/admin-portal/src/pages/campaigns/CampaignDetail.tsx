@@ -39,10 +39,11 @@ import { useCampaign, useUpdateCampaignStatus, useUpdateCampaign } from '../../h
 import { useEmailReminders } from '../../hooks/useEmailReminders';
 import { useSlots, useCreateSlot, useDeleteSlot, useToggleSlotActive, useUpdateSlot } from '../../hooks/useSlots';
 import { useRegistrationsBySlot } from '../../hooks/useRegistrations';
-import { CampaignStatus } from '@agent-system/shared-types';
+import { CampaignStatus, getEffectiveTemplate, DEFAULT_CARD_TEMPLATE } from '@agent-system/shared-types';
+import type { CardTemplate, Slot } from '@agent-system/shared-types';
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import type { Slot } from '@agent-system/shared-types';
+import { useSystemSettings } from '../../hooks/useSystemSettings';
 
 function getRegistrationStatusVariant(status: string): 'active' | 'warning' | 'info' | 'inactive' {
   switch (status) {
@@ -264,6 +265,18 @@ export function CampaignDetail() {
   });
   const [isCheckoutConfigDirty, setIsCheckoutConfigDirty] = useState(false);
 
+  // Card template override state
+  const { data: systemSettings } = useSystemSettings();
+  const [showOverrideEditor, setShowOverrideEditor] = useState(false);
+  const [templateOverrides, setTemplateOverrides] = useState<Partial<CardTemplate> | null>(null);
+  const [isOverrideDirty, setIsOverrideDirty] = useState(false);
+
+  useEffect(() => {
+    if (campaign?.card_template_overrides) {
+      setTemplateOverrides(campaign.card_template_overrides as Partial<CardTemplate>);
+    }
+  }, [campaign]);
+
   useEffect(() => {
     if (campaign?.checkout_config && typeof campaign.checkout_config === 'object') {
       const cfg = campaign.checkout_config as unknown as Record<string, unknown>;
@@ -289,6 +302,48 @@ export function CampaignDetail() {
     } catch (err: any) {
       toast({ title: 'Failed to save', description: err.message, variant: 'error' });
     }
+  };
+
+  const handleSaveOverrides = async () => {
+    if (!campaignId) return;
+    try {
+      await updateCampaign.mutateAsync({
+        id: campaignId,
+        card_template_overrides: templateOverrides,
+      } as any);
+      setIsOverrideDirty(false);
+      toast({ title: 'Card template overrides saved' });
+    } catch (err: any) {
+      toast({ title: 'Failed to save overrides', description: err.message, variant: 'error' });
+    }
+  };
+
+  const handleResetOverrides = async () => {
+    if (!campaignId) return;
+    try {
+      await updateCampaign.mutateAsync({
+        id: campaignId,
+        card_template_overrides: null,
+      } as any);
+      setTemplateOverrides(null);
+      setIsOverrideDirty(false);
+      setShowOverrideEditor(false);
+      toast({ title: 'Card template reset to system default' });
+    } catch (err: any) {
+      toast({ title: 'Failed to reset', description: err.message, variant: 'error' });
+    }
+  };
+
+  const effectiveTemplate = getEffectiveTemplate(
+    systemSettings?.card_template ?? DEFAULT_CARD_TEMPLATE,
+    templateOverrides
+  );
+
+  const overrideCount = templateOverrides ? Object.keys(templateOverrides).length : 0;
+
+  const updateOverrideField = <K extends keyof CardTemplate>(key: K, value: CardTemplate[K]) => {
+    setTemplateOverrides((prev) => ({ ...prev, [key]: value }));
+    setIsOverrideDirty(true);
   };
 
   const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -852,6 +907,161 @@ export function CampaignDetail() {
             </Button>
           )}
         </CardContent>
+      </Card>
+
+      {/* Card Template Override */}
+      <Card className="glass-card">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">Card Template</CardTitle>
+              <CardDescription>
+                {overrideCount > 0
+                  ? `${overrideCount} field${overrideCount > 1 ? 's' : ''} overridden from system default`
+                  : 'Using system default template'}
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowOverrideEditor(!showOverrideEditor)}
+            >
+              {showOverrideEditor ? 'Collapse' : 'Customize'}
+            </Button>
+          </div>
+        </CardHeader>
+        {showOverrideEditor && (
+          <CardContent className="space-y-6">
+            {/* Colors */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold">Colors</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-xs">
+                    Auto Card Color
+                    {templateOverrides?.autoCardColor && <Badge variant="info" className="ml-1 text-[10px]">Overridden</Badge>}
+                  </Label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={effectiveTemplate.autoCardColor}
+                      onChange={(e) => updateOverrideField('autoCardColor', e.target.value)}
+                      className="h-9 w-12 rounded border cursor-pointer"
+                    />
+                    <Input
+                      value={effectiveTemplate.autoCardColor}
+                      onChange={(e) => updateOverrideField('autoCardColor', e.target.value)}
+                      className="font-mono text-sm"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">
+                    Manual Card Color
+                    {templateOverrides?.manualCardColor && <Badge variant="info" className="ml-1 text-[10px]">Overridden</Badge>}
+                  </Label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={effectiveTemplate.manualCardColor}
+                      onChange={(e) => updateOverrideField('manualCardColor', e.target.value)}
+                      className="h-9 w-12 rounded border cursor-pointer"
+                    />
+                    <Input
+                      value={effectiveTemplate.manualCardColor}
+                      onChange={(e) => updateOverrideField('manualCardColor', e.target.value)}
+                      className="font-mono text-sm"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">
+                    Accent Color
+                    {templateOverrides?.accentColor && <Badge variant="info" className="ml-1 text-[10px]">Overridden</Badge>}
+                  </Label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={effectiveTemplate.accentColor}
+                      onChange={(e) => updateOverrideField('accentColor', e.target.value)}
+                      className="h-9 w-12 rounded border cursor-pointer"
+                    />
+                    <Input
+                      value={effectiveTemplate.accentColor}
+                      onChange={(e) => updateOverrideField('accentColor', e.target.value)}
+                      className="font-mono text-sm"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">
+                    Panel Text Color
+                    {templateOverrides?.panelTextColor && <Badge variant="info" className="ml-1 text-[10px]">Overridden</Badge>}
+                  </Label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={effectiveTemplate.panelTextColor}
+                      onChange={(e) => updateOverrideField('panelTextColor', e.target.value)}
+                      className="h-9 w-12 rounded border cursor-pointer"
+                    />
+                    <Input
+                      value={effectiveTemplate.panelTextColor}
+                      onChange={(e) => updateOverrideField('panelTextColor', e.target.value)}
+                      className="font-mono text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold">Content</h4>
+              <div className="space-y-2">
+                <Label className="text-xs">
+                  Subtitle
+                  {templateOverrides?.subtitle && <Badge variant="info" className="ml-1 text-[10px]">Overridden</Badge>}
+                </Label>
+                <Input
+                  value={effectiveTemplate.subtitle}
+                  onChange={(e) => updateOverrideField('subtitle', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">
+                  Instruction Text
+                  {templateOverrides?.instructionText && <Badge variant="info" className="ml-1 text-[10px]">Overridden</Badge>}
+                </Label>
+                <Input
+                  value={effectiveTemplate.instructionText}
+                  onChange={(e) => updateOverrideField('instructionText', e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 justify-end">
+              {overrideCount > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={handleResetOverrides}
+                  disabled={updateCampaign.isPending}
+                >
+                  Reset to System Default
+                </Button>
+              )}
+              {isOverrideDirty && (
+                <Button
+                  onClick={handleSaveOverrides}
+                  disabled={updateCampaign.isPending}
+                >
+                  {updateCampaign.isPending ? 'Saving...' : 'Save Overrides'}
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        )}
       </Card>
 
       {/* Send Reminders confirmation dialog */}

@@ -8,7 +8,7 @@ interface AuthState {
   session: Session | null;
   agent: AgentWithTier | null;
   partner: PartnerWithAgent | null;
-  role: 'agent' | 'partner' | null;
+  role: 'agent_admin' | 'agent' | 'partner' | null;
   isLoading: boolean;
 }
 
@@ -45,7 +45,6 @@ export function useAuth() {
   }, []);
 
   const fetchUserRole = async (userId: string) => {
-    // Try agent first
     const { data: agentData, error: agentError } = await supabase
       .from('agents')
       .select('*, tier:tiers(*)')
@@ -53,17 +52,17 @@ export function useAuth() {
       .single();
 
     if (!agentError && agentData) {
+      const agentRole = agentData.parent_agent_id === null ? 'agent_admin' : 'agent';
       setState(prev => ({
         ...prev,
         agent: agentData as AgentWithTier,
         partner: null,
-        role: 'agent',
+        role: agentRole,
         isLoading: false,
       }));
       return;
     }
 
-    // Try partner
     const { data: partnerData, error: partnerError } = await supabase
       .from('partners')
       .select('*, agent:agents(*)')
@@ -82,7 +81,6 @@ export function useAuth() {
       return;
     }
 
-    // Neither agent nor partner — sign out (unauthorized)
     await supabase.auth.signOut();
     setState(prev => ({ ...prev, agent: null, partner: null, role: null, isLoading: false }));
   };

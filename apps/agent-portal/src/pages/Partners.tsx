@@ -47,7 +47,7 @@ export function Partners() {
   const { agent, role } = useAuth();
 
   // Role guard: only agents can access this page
-  if (role && role !== 'agent') {
+  if (role && role !== 'agent_admin') {
     return (
       <div className="p-6 text-center text-muted-foreground">
         <p>This page is only available to agents.</p>

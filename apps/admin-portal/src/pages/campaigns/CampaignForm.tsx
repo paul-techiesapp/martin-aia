@@ -37,6 +37,10 @@ const campaignSchema = z.object({
   end_date: z.string().min(1, 'End date is required'),
   registration_type: z.nativeEnum(InvitationType),
   status: z.nativeEnum(CampaignStatus),
+  max_headcount: z.preprocess(
+    (val) => (val === '' || val === null || val === undefined ? null : Number(val)),
+    z.number().int().positive().nullable()
+  ),
 });
 
 type CampaignFormData = z.infer<typeof campaignSchema>;
@@ -59,6 +63,7 @@ export function CampaignForm() {
       end_date: '',
       registration_type: InvitationType.BUSINESS_OPPORTUNITY,
       status: CampaignStatus.DRAFT,
+      max_headcount: null,
     },
   });
 
@@ -71,16 +76,18 @@ export function CampaignForm() {
         end_date: campaign.end_date,
         registration_type: campaign.registration_type,
         status: campaign.status,
+        max_headcount: campaign.max_headcount,
       });
     }
   }, [campaign, form]);
 
   const onSubmit = async (data: CampaignFormData) => {
     try {
+      const payload = { ...data, max_headcount: data.max_headcount || null };
       if (isEditing && campaignId) {
-        await updateCampaign.mutateAsync({ id: campaignId, ...data });
+        await updateCampaign.mutateAsync({ id: campaignId, ...payload });
       } else {
-        await createCampaign.mutateAsync({ ...data, checkout_config: { fb_enabled: false, fb_url: '', video_enabled: false, video_url: '', rating_enabled: false } });
+        await createCampaign.mutateAsync({ ...payload, checkout_config: { fb_enabled: false, fb_url: '', video_enabled: false, video_url: '', rating_enabled: false } });
       }
       navigate({ to: '/campaigns' });
     } catch (error) {
@@ -239,6 +246,31 @@ export function CampaignForm() {
                         <SelectItem value={CampaignStatus.COMPLETED}>Completed</SelectItem>
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="max_headcount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Max Headcount</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="Leave empty for unlimited"
+                        value={field.value ?? ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          field.onChange(val === '' ? null : parseInt(val));
+                        }}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Maximum total attendees across all slots. Leave empty for unlimited.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

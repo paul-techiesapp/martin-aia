@@ -89,13 +89,9 @@ function AgentDashboard() {
                   <span className="text-muted-foreground">Tier Name</span>
                   <span className="font-semibold text-foreground">{agent.tier.name}</span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b">
+                <div className="flex justify-between items-center py-2">
                   <span className="text-muted-foreground">Reward per Attendance</span>
                   <span className="font-semibold text-emerald-600">RM{agent.tier.reward_amount.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-muted-foreground">Invitation Limit per Slot</span>
-                  <span className="font-semibold text-foreground">{agent.tier.invitation_limit_per_slot}</span>
                 </div>
               </div>
             ) : (

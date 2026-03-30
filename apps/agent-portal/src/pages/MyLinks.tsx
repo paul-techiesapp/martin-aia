@@ -73,8 +73,6 @@ export function MyLinks() {
     );
   }
 
-  const maxPerSlot = agent?.tier?.invitation_limit_per_slot ?? 0;
-
   const getExistingLink = (slotId: string) => {
     return links?.find((l) => l.slot.id === slotId);
   };
@@ -275,8 +273,8 @@ export function MyLinks() {
                         </div>
                         {existingLink && (
                           <div className="mt-1 text-sm">
-                            <span className={regCount >= maxPerSlot ? 'text-amber-600 font-medium' : 'text-sky-600'}>
-                              {regCount}/{maxPerSlot} registered
+                            <span className="text-sky-600">
+                              {regCount} registered
                             </span>
                           </div>
                         )}

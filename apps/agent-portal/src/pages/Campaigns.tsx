@@ -149,7 +149,6 @@ export function Campaigns() {
                 {slots.map((slot: Slot) => {
                   const existingLink = getExistingLink(slot.id);
                   const regCount = existingLink?.registration_count ?? 0;
-                  const maxPerSlot = agent?.tier?.invitation_limit_per_slot ?? 0;
 
                   return (
                     <div
@@ -164,8 +163,8 @@ export function Campaigns() {
                           {format(parseISO(slot.start_at), 'HH:mm')} – {format(parseISO(slot.end_at), 'HH:mm')}
                         </span>
                         {existingLink && (
-                          <span className={`text-xs ${regCount >= maxPerSlot ? 'text-amber-600 font-medium' : 'text-sky-600'}`}>
-                            {regCount}/{maxPerSlot} registered
+                          <span className="text-xs text-sky-600">
+                            {regCount} registered
                           </span>
                         )}
                       </div>

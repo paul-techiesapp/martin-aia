@@ -30,7 +30,6 @@ export interface InvitationCardData {
   uniqueToken: string;
   registrationId: string;
   registrationUrl: string;
-  isAutoCard: boolean;
 }
 
 async function generateQrDataUrl(text: string, color: string): Promise<string> {
@@ -63,7 +62,7 @@ async function drawInvitationCard(
   doc.rect(0, 0, pageW, pageH, 'F');
 
   // --- Left Panel ---
-  const panelColor = hexToRgb(data.isAutoCard ? template.autoCardColor : template.manualCardColor);
+  const panelColor = hexToRgb(template.panelColor);
   doc.setFillColor(panelColor.r, panelColor.g, panelColor.b);
   doc.rect(0, 0, leftW, pageH, 'F');
 

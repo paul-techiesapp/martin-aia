@@ -132,7 +132,6 @@ export function MyLinks() {
         uniqueToken: link.link_code,
         registrationId: reg.id,
         registrationUrl: `${publicPagesUrl}/public/register/${link.link_code}`,
-        isAutoCard: true,
       }));
 
       const branding = systemSettings?.company_branding ?? DEFAULT_COMPANY_BRANDING;
@@ -343,27 +342,25 @@ export function MyLinks() {
                     logoUrl={systemSettings?.company_branding?.logoUrl}
                     actions={
                       <div className="flex items-center gap-1">
-                        {link.slot?.is_auto_card && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="size-8 p-0"
-                                onClick={() => handleDownloadCards(link)}
-                                disabled={downloadingLinkId === link.id}
-                                aria-label="Download invitation cards"
-                              >
-                                {downloadingLinkId === link.id ? (
-                                  <Loader2 className="size-4 animate-spin" />
-                                ) : (
-                                  <FileDown className="size-4" />
-                                )}
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Download invitation cards</TooltipContent>
-                          </Tooltip>
-                        )}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="size-8 p-0"
+                              onClick={() => handleDownloadCards(link)}
+                              disabled={downloadingLinkId === link.id}
+                              aria-label="Download invitation cards"
+                            >
+                              {downloadingLinkId === link.id ? (
+                                <Loader2 className="size-4 animate-spin" />
+                              ) : (
+                                <FileDown className="size-4" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Download invitation cards</TooltipContent>
+                        </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button

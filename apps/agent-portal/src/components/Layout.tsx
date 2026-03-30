@@ -1,15 +1,23 @@
 import { useState } from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
 import { cn, Button, Sheet, SheetContent, SheetTrigger, Logo } from '@agent-system/shared-ui';
-import { LayoutDashboard, CalendarDays, Link2, Award, LogOut, Menu, Users } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Link2, Award, LogOut, Menu, Users, UserCog } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+
+const agentAdminNavigation = [
+  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Events', href: '/campaigns', icon: CalendarDays },
+  { name: 'My Links', href: '/my-links', icon: Link2 },
+  { name: 'Rewards', href: '/rewards', icon: Award },
+  { name: 'My Agents', href: '/my-agents', icon: UserCog },
+  { name: 'Partners', href: '/partners', icon: Users },
+];
 
 const agentNavigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Events', href: '/campaigns', icon: CalendarDays },
   { name: 'My Links', href: '/my-links', icon: Link2 },
   { name: 'Rewards', href: '/rewards', icon: Award },
-  { name: 'Partners', href: '/partners', icon: Users },
 ];
 
 const partnerNavigation = [
@@ -22,11 +30,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { agent, partner, role, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const navigation = role === 'partner' ? partnerNavigation : agentNavigation;
+  const navigation = role === 'partner'
+    ? partnerNavigation
+    : role === 'agent_admin'
+      ? agentAdminNavigation
+      : agentNavigation;
+
   const displayName = role === 'partner' ? partner?.name : agent?.name;
   const subtitle = role === 'partner'
     ? `Partner · ${partner?.agent?.name ?? 'Unknown Unit'}`
-    : agent?.tier?.name;
+    : agent?.tier?.name ?? 'No Tier';
 
   const SidebarContent = () => (
     <>

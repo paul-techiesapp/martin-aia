@@ -38,9 +38,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   useToast,
+  Switch,
 } from '@agent-system/shared-ui';
-import { Users, UserCheck, Clock, UserPlus, ShieldOff, Tag } from 'lucide-react';
+import { Users, UserCheck, Clock, UserPlus, ShieldOff, Tag, Mail } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { supabase } from '../lib/supabase';
 import {
   useMySubAgents,
   useMyTierRequests,
@@ -70,6 +72,26 @@ export function MyAgents() {
   const createSubAgent = useCreateSubAgent();
   const requestTier = useRequestTier();
   const deactivateSubAgent = useDeactivateSubAgent();
+
+  const [isUpdatingAutoInvite, setIsUpdatingAutoInvite] = useState(false);
+
+  const handleToggleAutoInvite = async () => {
+    if (!agent) return;
+    setIsUpdatingAutoInvite(true);
+    try {
+      const { error } = await supabase
+        .from('agents')
+        .update({ is_auto_invite: !agent.is_auto_invite })
+        .eq('id', agent.id);
+      if (error) throw error;
+      toast({ title: `Auto invite ${agent.is_auto_invite ? 'disabled' : 'enabled'}` });
+      window.location.reload();
+    } catch (err: any) {
+      toast({ title: 'Failed to update setting', description: err.message, variant: 'error' });
+    } finally {
+      setIsUpdatingAutoInvite(false);
+    }
+  };
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isTierOpen, setIsTierOpen] = useState(false);
@@ -171,6 +193,26 @@ export function MyAgents() {
 
   return (
     <div className="flex flex-col gap-4 animate-fade-in">
+      {/* Auto Invite Setting */}
+      <Card className="mb-6">
+        <CardContent className="flex items-center justify-between py-4">
+          <div className="flex items-center gap-3">
+            <Mail className="size-5 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium">Auto Invite</p>
+              <p className="text-xs text-muted-foreground">
+                Automatically send invitation cards via email when invitations are created
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={agent?.is_auto_invite ?? true}
+            onCheckedChange={handleToggleAutoInvite}
+            disabled={isUpdatingAutoInvite}
+          />
+        </CardContent>
+      </Card>
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">My Agents</h1>

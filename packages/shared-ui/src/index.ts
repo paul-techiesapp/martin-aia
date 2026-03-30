@@ -83,6 +83,8 @@ export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from './comp
 export { Separator } from './components/ui/separator';
 export { ScrollArea, ScrollBar } from './components/ui/scroll-area';
 export { Checkbox } from './components/ui/checkbox';
+export { Switch } from './components/ui/switch';
+export type { SwitchProps } from './components/ui/switch';
 export { Tabs, TabsList, TabsTrigger, TabsContent } from './components/ui/tabs';
 export { Progress } from './components/ui/progress';
 export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor } from './components/ui/popover';

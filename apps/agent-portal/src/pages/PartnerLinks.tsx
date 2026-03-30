@@ -41,6 +41,23 @@ export function PartnerLinks() {
     );
   }
 
+  if (partner && !partner.tier_id) {
+    return (
+      <div className="flex flex-col gap-4 animate-fade-in">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">My Links</h1>
+          <p className="text-sm text-muted-foreground">Manage your registration links</p>
+        </div>
+        <Card>
+          <CardContent className="py-8 text-center">
+            <p className="text-muted-foreground">You need an approved tier assignment before you can generate links.</p>
+            <p className="text-sm text-muted-foreground mt-1">Please contact your unit administrator to request a tier.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const { data: campaigns, isLoading: campaignsLoading } = useActiveCampaigns();
   const { data: links, isLoading: linksLoading } = usePartnerLinks(partner?.id);
   const { data: stats, isLoading: statsLoading } = usePartnerRegistrationStats(partner?.id);

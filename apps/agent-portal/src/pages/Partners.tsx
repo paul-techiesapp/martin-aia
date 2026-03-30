@@ -139,7 +139,23 @@ export function Partners() {
 
   const renderTierStatus = (p: { id: string; tier: any | null }) => {
     if (p.tier) {
-      return <span className="text-sm">{p.tier.name}</span>;
+      const pendingChange = getTierRequestForPartner(p.id);
+      if (pendingChange) {
+        return (
+          <div className="flex items-center gap-2">
+            <span className="text-sm">{p.tier.name}</span>
+            <Badge variant="warning" className="text-xs">Change Pending</Badge>
+          </div>
+        );
+      }
+      return (
+        <div className="flex items-center gap-2">
+          <span className="text-sm">{p.tier.name}</span>
+          <Button variant="ghost" size="sm" className="text-xs text-muted-foreground h-6 px-2" onClick={() => openTierDialog(p.id)}>
+            Change
+          </Button>
+        </div>
+      );
     }
 
     const pendingReq = getTierRequestForPartner(p.id);

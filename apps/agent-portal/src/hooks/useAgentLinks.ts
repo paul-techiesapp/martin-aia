@@ -7,7 +7,6 @@ interface AgentLinkWithSlotCampaign extends AgentLink {
     id: string;
     start_at: string;
     end_at: string;
-    is_auto_card: boolean;
     campaign: {
       id: string;
       name: string;
@@ -29,7 +28,6 @@ export function useMyLinks(agentId: string | undefined) {
             id,
             start_at,
             end_at,
-            is_auto_card,
             campaign:campaigns(id, name, venue)
           )
         `)
@@ -144,7 +142,6 @@ export function usePartnerLinks(partnerId: string | undefined) {
             id,
             start_at,
             end_at,
-            is_auto_card,
             campaign:campaigns(id, name, venue)
           )
         `)

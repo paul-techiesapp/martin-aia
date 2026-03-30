@@ -883,38 +883,19 @@ export function CampaignDetail() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <Label className="text-xs">
-                    Auto Card Color
-                    {templateOverrides?.autoCardColor && <Badge variant="info" className="ml-1 text-[10px]">Overridden</Badge>}
+                    Panel Color
+                    {templateOverrides?.panelColor && <Badge variant="info" className="ml-1 text-[10px]">Overridden</Badge>}
                   </Label>
                   <div className="flex gap-2">
                     <input
                       type="color"
-                      value={effectiveTemplate.autoCardColor}
-                      onChange={(e) => updateOverrideField('autoCardColor', e.target.value)}
+                      value={effectiveTemplate.panelColor}
+                      onChange={(e) => updateOverrideField('panelColor', e.target.value)}
                       className="h-9 w-12 rounded border cursor-pointer"
                     />
                     <Input
-                      value={effectiveTemplate.autoCardColor}
-                      onChange={(e) => updateOverrideField('autoCardColor', e.target.value)}
-                      className="font-mono text-sm"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">
-                    Manual Card Color
-                    {templateOverrides?.manualCardColor && <Badge variant="info" className="ml-1 text-[10px]">Overridden</Badge>}
-                  </Label>
-                  <div className="flex gap-2">
-                    <input
-                      type="color"
-                      value={effectiveTemplate.manualCardColor}
-                      onChange={(e) => updateOverrideField('manualCardColor', e.target.value)}
-                      className="h-9 w-12 rounded border cursor-pointer"
-                    />
-                    <Input
-                      value={effectiveTemplate.manualCardColor}
-                      onChange={(e) => updateOverrideField('manualCardColor', e.target.value)}
+                      value={effectiveTemplate.panelColor}
+                      onChange={(e) => updateOverrideField('panelColor', e.target.value)}
                       className="font-mono text-sm"
                     />
                   </div>

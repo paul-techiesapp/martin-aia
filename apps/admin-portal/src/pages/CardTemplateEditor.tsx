@@ -39,7 +39,6 @@ const SAMPLE_DATA: InvitationCardData = {
   uniqueToken: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
   registrationId: 'sample-reg-001',
   registrationUrl: 'https://example.com/register/sample',
-  isAutoCard: true,
 };
 
 const VISIBLE_ELEMENT_LABELS: Record<string, string> = {
@@ -60,7 +59,6 @@ export function CardTemplateEditor() {
   const { toast } = useToast();
 
   const [formState, setFormState] = useState<CardTemplate>(DEFAULT_CARD_TEMPLATE);
-  const [previewMode, setPreviewMode] = useState<'auto' | 'manual'>('auto');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -74,7 +72,7 @@ export function CardTemplateEditor() {
 
   const renderPreview = useCallback(async () => {
     try {
-      const effectiveData = { ...SAMPLE_DATA, isAutoCard: previewMode === 'auto' };
+      const effectiveData = { ...SAMPLE_DATA };
       const doc = await generateInvitationCard(effectiveData, formState, branding);
       const pdfBlob = doc.output('blob');
       const url = URL.createObjectURL(pdfBlob);
@@ -85,7 +83,7 @@ export function CardTemplateEditor() {
     } catch {
       // Preview generation failed silently
     }
-  }, [formState, branding, previewMode]);
+  }, [formState, branding]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -134,7 +132,7 @@ export function CardTemplateEditor() {
 
   const handleDownload = async () => {
     try {
-      const effectiveData = { ...SAMPLE_DATA, isAutoCard: previewMode === 'auto' };
+      const effectiveData = { ...SAMPLE_DATA };
       const doc = await generateInvitationCard(effectiveData, formState, branding);
       doc.save('sample-invitation-card.pdf');
     } catch {
@@ -306,21 +304,7 @@ export function CardTemplateEditor() {
         {/* Right panel - Preview */}
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex items-center gap-2 p-4 border-b">
-            <span className="text-sm font-medium">Preview:</span>
-            <Button
-              variant={previewMode === 'auto' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setPreviewMode('auto')}
-            >
-              Auto Card
-            </Button>
-            <Button
-              variant={previewMode === 'manual' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setPreviewMode('manual')}
-            >
-              Manual Card
-            </Button>
+            <span className="text-sm font-medium">Preview</span>
           </div>
           <div className="flex-1 bg-muted/50 flex items-center justify-center p-4">
             {previewUrl ? (

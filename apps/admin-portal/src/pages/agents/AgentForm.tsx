@@ -88,7 +88,7 @@ export function AgentForm() {
       } else {
         // For new agents, we need to create an auth user first
         // For now, we'll use a placeholder user_id
-        await createAgent.mutateAsync({ ...data, user_id: crypto.randomUUID(), parent_agent_id: null });
+        await createAgent.mutateAsync({ ...data, user_id: crypto.randomUUID(), parent_agent_id: null, is_auto_invite: true });
       }
       navigate({ to: '/agents' });
     } catch (error) {

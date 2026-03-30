@@ -29,14 +29,35 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Label,
+  useToast,
 } from '@agent-system/shared-ui';
-import { Plus, Pencil, Trash2, MoreHorizontal } from 'lucide-react';
+import { Plus, Pencil, Trash2, MoreHorizontal, Check, X } from 'lucide-react';
 import { useAgents, useDeleteAgent } from '../../hooks/useAgents';
+import {
+  usePendingTierRequests,
+  useApproveTierRequest,
+  useRejectTierRequest,
+} from '../../hooks/useTierRequests';
 
 export function AgentList() {
   const { data: agents, isLoading, error } = useAgents();
   const deleteAgent = useDeleteAgent();
+  const { data: pendingRequests, isLoading: isLoadingRequests } = usePendingTierRequests();
+  const approveTierRequest = useApproveTierRequest();
+  const rejectTierRequest = useRejectTierRequest();
+  const { toast } = useToast();
+
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [rejectId, setRejectId] = useState<string | null>(null);
+  const [rejectNotes, setRejectNotes] = useState('');
 
   const handleDelete = (id: string) => {
     setDeleteId(id);
@@ -46,6 +67,27 @@ export function AgentList() {
     if (deleteId) {
       deleteAgent.mutate(deleteId);
       setDeleteId(null);
+    }
+  };
+
+  const handleApprove = async (requestId: string) => {
+    try {
+      await approveTierRequest.mutateAsync(requestId);
+      toast({ title: 'Tier approved', description: 'The tier has been assigned to the agent.' });
+    } catch (err: any) {
+      toast({ title: 'Failed to approve', description: err.message, variant: 'error' });
+    }
+  };
+
+  const handleReject = async () => {
+    if (!rejectId) return;
+    try {
+      await rejectTierRequest.mutateAsync({ requestId: rejectId, adminNotes: rejectNotes });
+      toast({ title: 'Tier request rejected' });
+      setRejectId(null);
+      setRejectNotes('');
+    } catch (err: any) {
+      toast({ title: 'Failed to reject', description: err.message, variant: 'error' });
     }
   };
 
@@ -74,6 +116,75 @@ export function AgentList() {
         </Link>
       </div>
 
+      {/* Pending Tier Requests Section */}
+      {!isLoadingRequests && pendingRequests && pendingRequests.length > 0 && (
+        <Card className="border-amber-200 bg-amber-50/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              Pending Tier Requests
+              <Badge variant="warning">{pendingRequests.length}</Badge>
+            </CardTitle>
+            <CardDescription>Review and approve or reject tier assignment requests from unit administrators</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-auto rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead>Agent Name</TableHead>
+                    <TableHead>Agent Code</TableHead>
+                    <TableHead>Requested By</TableHead>
+                    <TableHead>Requested Tier</TableHead>
+                    <TableHead>Reward</TableHead>
+                    <TableHead>Requested</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendingRequests.map((req) => (
+                    <TableRow key={req.id}>
+                      <TableCell className="font-medium">{req.agent?.name ?? '—'}</TableCell>
+                      <TableCell className="text-muted-foreground">{req.agent?.agent_code ?? '—'}</TableCell>
+                      <TableCell className="text-muted-foreground">{req.requester?.name ?? '—'}</TableCell>
+                      <TableCell className="text-muted-foreground">{req.requested_tier?.name ?? '—'}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        RM{req.requested_tier?.reward_amount ?? 0}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {new Date(req.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                            onClick={() => handleApprove(req.id)}
+                            disabled={approveTierRequest.isPending}
+                          >
+                            <Check className="size-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => setRejectId(req.id)}
+                            disabled={rejectTierRequest.isPending}
+                          >
+                            <X className="size-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* All Units Table */}
       <Card>
         <CardHeader>
           <CardTitle>All Units</CardTitle>
@@ -148,6 +259,7 @@ export function AgentList() {
         </CardContent>
       </Card>
 
+      {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -164,6 +276,42 @@ export function AgentList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Reject Tier Request Dialog */}
+      <Dialog open={!!rejectId} onOpenChange={(open) => !open && setRejectId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Reject Tier Request</DialogTitle>
+            <DialogDescription>
+              Optionally provide a reason for rejecting this tier request.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="reject-notes">Notes (optional)</Label>
+              <Input
+                id="reject-notes"
+                value={rejectNotes}
+                onChange={e => setRejectNotes(e.target.value)}
+                placeholder="Reason for rejection..."
+                className="mt-1.5"
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setRejectId(null)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleReject}
+                disabled={rejectTierRequest.isPending}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                {rejectTierRequest.isPending ? 'Rejecting...' : 'Reject'}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

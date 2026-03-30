@@ -12,6 +12,7 @@ export function useAgents() {
           *,
           tier:tiers(*)
         `)
+        .is('parent_agent_id', null)
         .order('name', { ascending: true });
 
       if (error) throw error;

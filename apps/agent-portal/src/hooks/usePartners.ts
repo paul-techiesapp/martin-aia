@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-import type { Partner } from '@agent-system/shared-types';
+import type { Partner, PartnerWithTier } from '@agent-system/shared-types';
 
 export function useMyPartners(agentId: string | undefined) {
   return useQuery({
@@ -8,12 +8,12 @@ export function useMyPartners(agentId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('partners')
-        .select('*')
+        .select('*, tier:tiers(*)')
         .eq('agent_id', agentId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as Partner[];
+      return data as PartnerWithTier[];
     },
     enabled: !!agentId,
   });

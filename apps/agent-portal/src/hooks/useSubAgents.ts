@@ -69,7 +69,7 @@ export function useRequestTier() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: { agent_id: string; tier_id: string }) => {
+    mutationFn: async (input: { agent_id?: string; partner_id?: string; tier_id: string }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
@@ -84,6 +84,7 @@ export function useRequestTier() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-tier-requests'] });
       queryClient.invalidateQueries({ queryKey: ['my-sub-agents'] });
+      queryClient.invalidateQueries({ queryKey: ['my-partners'] });
     },
   });
 }

@@ -1,5 +1,5 @@
 import { AgentStatus } from './enums';
-import type { Agent } from './database';
+import type { Agent, Tier } from './database';
 
 export interface Partner {
   id: string;
@@ -9,6 +9,7 @@ export interface Partner {
   email: string;
   phone: string;
   nric: string | null;
+  tier_id: string | null;
   status: AgentStatus;
   created_at: string;
   updated_at: string;
@@ -16,4 +17,8 @@ export interface Partner {
 
 export interface PartnerWithAgent extends Partner {
   agent: Agent;
+}
+
+export interface PartnerWithTier extends Partner {
+  tier: Tier | null;
 }

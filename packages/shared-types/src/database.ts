@@ -122,7 +122,8 @@ export interface Agent {
   nric: string;
   agent_code: string;
   unit_name: string;
-  tier_id: string;
+  tier_id: string | null;
+  parent_agent_id: string | null;
   status: AgentStatus;
   created_at: string;
   updated_at: string;
@@ -231,7 +232,7 @@ export interface SlotWithCampaign extends Slot {
 }
 
 export interface AgentWithTier extends Agent {
-  tier: Tier;
+  tier: Tier | null;
 }
 
 export interface RegistrationWithRelations extends Registration {

@@ -52,3 +52,9 @@ export enum RewardStatus {
   CONFIRMED = 'confirmed',
   PAID = 'paid',
 }
+
+export enum TierRequestStatus {
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+}

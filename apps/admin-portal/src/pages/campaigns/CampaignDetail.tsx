@@ -491,7 +491,7 @@ export function CampaignDetail() {
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-3 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -525,6 +525,18 @@ export function CampaignDetail() {
           <CardContent>
             <p className="font-semibold capitalize text-foreground">
               {campaign.registration_type?.replace('_', ' ')}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Headcount
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="font-semibold text-foreground">
+              {campaign.max_headcount ? `${campaign.max_headcount} max` : 'Unlimited'}
             </p>
           </CardContent>
         </Card>

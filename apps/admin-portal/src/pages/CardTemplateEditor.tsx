@@ -173,8 +173,7 @@ export function CardTemplateEditor() {
 
             {/* Colors Tab */}
             <TabsContent value="colors" className="space-y-4 mt-4">
-              <ColorField label="Auto Card Color" value={formState.autoCardColor} onChange={(v) => updateField('autoCardColor', v)} />
-              <ColorField label="Manual Card Color" value={formState.manualCardColor} onChange={(v) => updateField('manualCardColor', v)} />
+              <ColorField label="Panel Color" value={formState.panelColor} onChange={(v) => updateField('panelColor', v)} />
               <ColorField label="Panel Text Color" value={formState.panelTextColor} onChange={(v) => updateField('panelTextColor', v)} />
               <ColorField label="Accent Color" value={formState.accentColor} onChange={(v) => updateField('accentColor', v)} />
               <ColorField label="QR Code Color" value={formState.qrColor} onChange={(v) => updateField('qrColor', v)} />

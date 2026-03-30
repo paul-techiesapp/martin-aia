@@ -15,6 +15,7 @@ import {
   X,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { usePendingTierRequestCount } from '../hooks/useTierRequests';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -32,6 +33,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { data: pendingTierCount } = usePendingTierRequestCount();
 
   const handleLogout = async () => {
     await signOut();
@@ -71,6 +73,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
               >
                 <item.icon className={cn("size-5", isActive && "text-indigo-300")} />
                 {item.name}
+                {item.name === 'Units' && pendingTierCount ? (
+                  <span className="ml-auto inline-flex items-center justify-center rounded-full bg-amber-500 text-white text-xs font-medium px-1.5 py-0.5 min-w-[1.25rem]">
+                    {pendingTierCount}
+                  </span>
+                ) : null}
               </Link>
             );
           })}
@@ -127,6 +134,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
               >
                 <item.icon className={cn("size-5", isActive && "text-indigo-300")} />
                 {item.name}
+                {item.name === 'Units' && pendingTierCount ? (
+                  <span className="ml-auto inline-flex items-center justify-center rounded-full bg-amber-500 text-white text-xs font-medium px-1.5 py-0.5 min-w-[1.25rem]">
+                    {pendingTierCount}
+                  </span>
+                ) : null}
               </Link>
             );
           })}

@@ -24,8 +24,7 @@ export interface CompanyBranding {
 }
 
 export interface CardTemplate {
-  autoCardColor: string;
-  manualCardColor: string;
+  panelColor: string;
   panelTextColor: string;
   accentColor: string;
   fontFamily: string;
@@ -47,8 +46,7 @@ export interface SystemSettings {
 }
 
 export const DEFAULT_CARD_TEMPLATE: CardTemplate = {
-  autoCardColor: '#0f172a',
-  manualCardColor: '#7f1d1d',
+  panelColor: '#0f172a',
   panelTextColor: '#ffffff',
   accentColor: '#daa520',
   fontFamily: 'helvetica',
@@ -98,7 +96,6 @@ export interface Slot {
   checkin_window_minutes: number;
   checkout_window_minutes: number;
   is_active: boolean;
-  is_auto_card: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -124,6 +121,7 @@ export interface Agent {
   unit_name: string;
   tier_id: string | null;
   parent_agent_id: string | null;
+  is_auto_invite: boolean;
   status: AgentStatus;
   created_at: string;
   updated_at: string;

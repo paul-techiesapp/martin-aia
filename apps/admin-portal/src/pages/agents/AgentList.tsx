@@ -131,8 +131,9 @@ export function AgentList() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead>Agent Name</TableHead>
-                    <TableHead>Agent Code</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Code</TableHead>
                     <TableHead>Requested By</TableHead>
                     <TableHead>Requested Tier</TableHead>
                     <TableHead>Reward</TableHead>
@@ -141,10 +142,19 @@ export function AgentList() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pendingRequests.map((req) => (
+                  {pendingRequests.map((req) => {
+                    const isPartner = !!req.partner_id;
+                    const name = isPartner ? req.partner?.name : req.agent?.name;
+                    const code = isPartner ? '—' : req.agent?.agent_code;
+                    return (
                     <TableRow key={req.id}>
-                      <TableCell className="font-medium">{req.agent?.name ?? '—'}</TableCell>
-                      <TableCell className="text-muted-foreground">{req.agent?.agent_code ?? '—'}</TableCell>
+                      <TableCell className="font-medium">{name ?? '—'}</TableCell>
+                      <TableCell>
+                        <Badge variant={isPartner ? 'info' : 'default'}>
+                          {isPartner ? 'Partner' : 'Agent'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{code ?? '—'}</TableCell>
                       <TableCell className="text-muted-foreground">{req.requester?.name ?? '—'}</TableCell>
                       <TableCell className="text-muted-foreground">{req.requested_tier?.name ?? '—'}</TableCell>
                       <TableCell className="text-muted-foreground">
@@ -176,7 +186,8 @@ export function AgentList() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

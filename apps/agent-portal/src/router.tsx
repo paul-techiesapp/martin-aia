@@ -13,6 +13,7 @@ import { MyLinks } from './pages/MyLinks';
 import { Rewards } from './pages/Rewards';
 import { Partners } from './pages/Partners';
 import { PartnerLinks } from './pages/PartnerLinks';
+import { MyAgents } from './pages/MyAgents';
 import { supabase } from './lib/supabase';
 
 const isAuthenticated = async () => {
@@ -88,6 +89,12 @@ const partnerLinksRoute = createRoute({
   component: PartnerLinks,
 });
 
+const myAgentsRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/my-agents',
+  component: MyAgents,
+});
+
 const routeTree = rootRoute.addChildren([
   loginRoute,
   authenticatedRoute.addChildren([
@@ -97,6 +104,7 @@ const routeTree = rootRoute.addChildren([
     rewardsRoute,
     partnersRoute,
     partnerLinksRoute,
+    myAgentsRoute,
   ]),
 ]);
 

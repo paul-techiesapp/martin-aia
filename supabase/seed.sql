@@ -109,13 +109,12 @@ INSERT INTO auth.identities (
 );
 
 -- Create default tier for agents
-INSERT INTO tiers (id, name, role_type, reward_amount, invitation_limit_per_slot)
+INSERT INTO tiers (id, name, role_type, reward_amount)
 VALUES (
   'f669fbc3-94ea-46ed-bfc5-a24e669ec337',
   'Standard Agent',
   'agent',
-  50.00,
-  10
+  50.00
 );
 
 -- Create agent record for agent@test.com
@@ -144,7 +143,7 @@ INSERT INTO agents (
 );
 
 -- Create a sample campaign
-INSERT INTO campaigns (id, name, start_date, end_date, venue, registration_type, status)
+INSERT INTO campaigns (id, name, start_date, end_date, venue, registration_type, status, max_headcount)
 VALUES (
   'aaaa1111-1111-1111-1111-111111111111',
   'March 2026 Recruitment Drive',
@@ -152,7 +151,8 @@ VALUES (
   '2026-03-31',
   'Marina Bay Sands Convention Centre',
   'business_opportunity',
-  'active'
+  'active',
+  100
 );
 
 -- Create a sample slot for the campaign

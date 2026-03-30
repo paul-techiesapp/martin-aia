@@ -153,7 +153,7 @@ export function MyAgents() {
     if (rejectedReq) {
       return (
         <div className="flex items-center gap-2">
-          <Badge variant="destructive">Rejected</Badge>
+          <Badge variant="error">Rejected</Badge>
           <Button variant="ghost" size="sm" onClick={() => openTierDialog(agentRow.id)}>
             Retry
           </Button>

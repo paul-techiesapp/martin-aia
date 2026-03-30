@@ -75,7 +75,7 @@ export function AgentForm() {
         nric: agent.nric,
         agent_code: agent.agent_code,
         unit_name: agent.unit_name,
-        tier_id: agent.tier_id,
+        tier_id: agent.tier_id ?? '',
         status: agent.status,
       });
     }
@@ -88,7 +88,7 @@ export function AgentForm() {
       } else {
         // For new agents, we need to create an auth user first
         // For now, we'll use a placeholder user_id
-        await createAgent.mutateAsync({ ...data, user_id: crypto.randomUUID() });
+        await createAgent.mutateAsync({ ...data, user_id: crypto.randomUUID(), parent_agent_id: null });
       }
       navigate({ to: '/agents' });
     } catch (error) {

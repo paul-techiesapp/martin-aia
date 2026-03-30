@@ -43,7 +43,6 @@ interface Registration {
   slot: {
     start_at: string;
     end_at: string;
-    is_auto_card: boolean;
     campaign: {
       name: string;
       venue: string;
@@ -101,7 +100,6 @@ export function PdfExport() {
           slot:slots(
             start_at,
             end_at,
-            is_auto_card,
             campaign:campaigns(name, venue, card_template_overrides)
           )
         `)
@@ -134,7 +132,6 @@ export function PdfExport() {
         registrationUrl: reg.agent_link
           ? `${publicPagesUrl}/public/register/${reg.agent_link.link_code}`
           : '',
-        isAutoCard: reg.slot.is_auto_card,
       }));
 
       const branding = systemSettings?.company_branding ?? DEFAULT_COMPANY_BRANDING;

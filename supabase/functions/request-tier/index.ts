@@ -12,11 +12,18 @@ serve(async (req) => {
   }
 
   try {
-    const { agent_id, tier_id } = await req.json();
+    const { agent_id, partner_id, tier_id } = await req.json();
 
-    if (!agent_id || !tier_id) {
+    if ((!agent_id && !partner_id) || !tier_id) {
       return new Response(
-        JSON.stringify({ error: "agent_id and tier_id are required" }),
+        JSON.stringify({ error: "tier_id and one of agent_id or partner_id are required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (agent_id && partner_id) {
+      return new Response(
+        JSON.stringify({ error: "Provide either agent_id or partner_id, not both" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -64,33 +71,69 @@ serve(async (req) => {
       );
     }
 
-    if (agent_id !== callerAgent.id) {
-      const { data: targetAgent, error: targetError } = await supabase
-        .from("agents")
-        .select("id, parent_agent_id")
-        .eq("id", agent_id)
+    if (agent_id) {
+      if (agent_id !== callerAgent.id) {
+        const { data: targetAgent, error: targetError } = await supabase
+          .from("agents")
+          .select("id, parent_agent_id")
+          .eq("id", agent_id)
+          .single();
+
+        if (targetError || !targetAgent || targetAgent.parent_agent_id !== callerAgent.id) {
+          return new Response(
+            JSON.stringify({ error: "You can only request tiers for your own sub-agents" }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
+      const { data: existing } = await supabase
+        .from("tier_requests")
+        .select("id")
+        .eq("agent_id", agent_id)
+        .eq("status", "pending")
+        .maybeSingle();
+
+      if (existing) {
+        return new Response(
+          JSON.stringify({ error: "A pending tier request already exists for this agent" }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } else {
+      const { data: targetPartner, error: partnerError } = await supabase
+        .from("partners")
+        .select("id, agent_id")
+        .eq("id", partner_id)
         .single();
 
-      if (targetError || !targetAgent || targetAgent.parent_agent_id !== callerAgent.id) {
+      if (partnerError || !targetPartner) {
         return new Response(
-          JSON.stringify({ error: "You can only request tiers for your own sub-agents" }),
+          JSON.stringify({ error: "Partner not found" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (targetPartner.agent_id !== callerAgent.id) {
+        return new Response(
+          JSON.stringify({ error: "You can only request tiers for your own partners" }),
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-    }
 
-    const { data: existing } = await supabase
-      .from("tier_requests")
-      .select("id")
-      .eq("agent_id", agent_id)
-      .eq("status", "pending")
-      .maybeSingle();
+      const { data: existing } = await supabase
+        .from("tier_requests")
+        .select("id")
+        .eq("partner_id", partner_id)
+        .eq("status", "pending")
+        .maybeSingle();
 
-    if (existing) {
-      return new Response(
-        JSON.stringify({ error: "A pending tier request already exists for this agent" }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      if (existing) {
+        return new Response(
+          JSON.stringify({ error: "A pending tier request already exists for this partner" }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     const { data: tier, error: tierError } = await supabase
@@ -109,7 +152,8 @@ serve(async (req) => {
     const { data: request, error: insertError } = await supabase
       .from("tier_requests")
       .insert({
-        agent_id,
+        agent_id: agent_id || null,
+        partner_id: partner_id || null,
         requested_tier_id: tier_id,
         requested_by: callerAgent.id,
       })

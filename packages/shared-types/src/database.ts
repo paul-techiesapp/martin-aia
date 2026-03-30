@@ -86,6 +86,7 @@ export interface Campaign {
   updated_at: string;
   checkout_config?: CheckoutConfig;
   card_template_overrides?: Partial<CardTemplate> | null;
+  max_headcount: number | null;
 }
 
 export interface Slot {
@@ -105,7 +106,6 @@ export interface Tier {
   name: string;
   role_type: RoleType;
   reward_amount: number;
-  invitation_limit_per_slot: number;
   created_at: string;
   updated_at: string;
 }

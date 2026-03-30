@@ -53,7 +53,6 @@ export function TierList() {
     name: '',
     role_type: RoleType.AGENT,
     reward_amount: 0,
-    invitation_limit_per_slot: 5,
   });
 
   const handleOpenDialog = (tier?: Tier) => {
@@ -63,7 +62,6 @@ export function TierList() {
         name: tier.name,
         role_type: tier.role_type,
         reward_amount: tier.reward_amount,
-        invitation_limit_per_slot: tier.invitation_limit_per_slot,
       });
     } else {
       setEditingTier(null);
@@ -71,7 +69,6 @@ export function TierList() {
         name: '',
         role_type: RoleType.AGENT,
         reward_amount: 0,
-        invitation_limit_per_slot: 5,
       });
     }
     setIsDialogOpen(true);
@@ -116,7 +113,7 @@ export function TierList() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Tiers</h1>
-          <p className="text-sm text-muted-foreground">Configure reward tiers and invitation limits</p>
+          <p className="text-sm text-muted-foreground">Configure reward tiers</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -129,7 +126,7 @@ export function TierList() {
             <DialogHeader>
               <DialogTitle>{editingTier ? 'Edit Tier' : 'Create Tier'}</DialogTitle>
               <DialogDescription>
-                {editingTier ? 'Update the tier name, role type, reward amount, and invitation limits.' : 'Define the tier name, role type, reward amount, and invitation limits.'}
+                {editingTier ? 'Update the tier name, role type, and reward amount.' : 'Define the tier name, role type, and reward amount.'}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -164,14 +161,6 @@ export function TierList() {
                   onChange={(e) => setFormData({ ...formData, reward_amount: parseFloat(e.target.value) || 0 })}
                 />
               </div>
-              <div>
-                <Label>Invitation Limit per Slot</Label>
-                <Input
-                  type="number"
-                  value={formData.invitation_limit_per_slot}
-                  onChange={(e) => setFormData({ ...formData, invitation_limit_per_slot: parseInt(e.target.value) || 0 })}
-                />
-              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
@@ -194,7 +183,7 @@ export function TierList() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <TableSkeleton rows={5} columns={5} />
+            <TableSkeleton rows={5} columns={4} />
           ) : tiers?.length === 0 ? (
             <p className="text-sm text-muted-foreground">No tiers configured yet. Create your first tier to define reward structures.</p>
           ) : (
@@ -205,7 +194,6 @@ export function TierList() {
                   <TableHead>Name</TableHead>
                   <TableHead>Role Type</TableHead>
                   <TableHead className="text-right">Reward Amount</TableHead>
-                  <TableHead className="text-right">Invitation Limit</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -215,7 +203,6 @@ export function TierList() {
                     <TableCell className="font-medium">{tier.name}</TableCell>
                     <TableCell className="capitalize text-muted-foreground">{tier.role_type.replace('_', ' ')}</TableCell>
                     <TableCell className="text-right font-medium">RM{tier.reward_amount.toFixed(2)}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">{tier.invitation_limit_per_slot} per slot</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(tier)} aria-label="Edit tier">

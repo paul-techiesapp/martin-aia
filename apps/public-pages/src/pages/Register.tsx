@@ -126,7 +126,7 @@ export function Register() {
     setIsSubmitting(true);
     setError(null);
 
-    const { error: rpcError } = await supabase.rpc('register_attendee', {
+    const { data: registrationId, error: rpcError } = await supabase.rpc('register_attendee', {
       p_link_code: linkCode,
       p_name: formData.invitee_name,
       p_nric: formData.invitee_nric,
@@ -156,6 +156,15 @@ export function Register() {
 
     setIsSuccess(true);
     setIsSubmitting(false);
+
+    // Fire-and-forget: send invitation email if agent has auto-invite enabled
+    if (registrationId && formData.invitee_email) {
+      supabase.functions.invoke('send-invitation-email', {
+        body: { registration_id: registrationId, link_code: linkCode },
+      }).catch(() => {
+        // Best-effort — registration already succeeded, silently ignore email failures
+      });
+    }
   };
 
   if (isLoading) {

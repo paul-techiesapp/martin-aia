@@ -221,3 +221,9 @@ s3_host = "env(S3_HOST)"
 s3_region = "env(S3_REGION)"
 s3_access_key = "env(S3_ACCESS_KEY)"
 s3_secret_key = "env(S3_SECRET_KEY)"
+
+# Disable gateway JWT verification because Supabase's platform verifier
+# does not support ES256-signed tokens. The function verifies the caller
+# JWT internally via auth.getUser() which goes through the Auth API.
+[functions.create-agent]
+verify_jwt = false

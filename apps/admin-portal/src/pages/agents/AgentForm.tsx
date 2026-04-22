@@ -38,6 +38,7 @@ const agentSchema = z.object({
   unit_name: z.string().min(1, 'Unit name is required'),
   tier_id: z.string().min(1, 'Tier is required'),
   status: z.nativeEnum(AgentStatus),
+  password: z.string().optional(),
 });
 
 type AgentFormData = z.infer<typeof agentSchema>;
@@ -63,6 +64,7 @@ export function AgentForm() {
       unit_name: '',
       tier_id: '',
       status: AgentStatus.ACTIVE,
+      password: '',
     },
   });
 
@@ -84,11 +86,24 @@ export function AgentForm() {
   const onSubmit = async (data: AgentFormData) => {
     try {
       if (isEditing && agentId) {
-        await updateAgent.mutateAsync({ id: agentId, ...data });
+        const { password: _password, ...updates } = data;
+        await updateAgent.mutateAsync({ id: agentId, ...updates });
       } else {
-        // For new agents, we need to create an auth user first
-        // For now, we'll use a placeholder user_id
-        await createAgent.mutateAsync({ ...data, user_id: crypto.randomUUID(), parent_agent_id: null, is_auto_invite: true });
+        if (!data.password || data.password.length < 6) {
+          form.setError('password', { message: 'Password must be at least 6 characters' });
+          return;
+        }
+        await createAgent.mutateAsync({
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          nric: data.nric,
+          agent_code: data.agent_code,
+          unit_name: data.unit_name,
+          tier_id: data.tier_id,
+          status: data.status,
+          password: data.password,
+        });
       }
       navigate({ to: '/agents' });
     } catch (error) {
@@ -268,6 +283,30 @@ export function AgentForm() {
                   </FormItem>
                 )}
               />
+
+              {!isEditing && (
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Initial Password</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="At least 6 characters"
+                          autoComplete="new-password"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        The unit will use this password to sign in. Share it securely.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <div className="flex gap-4">
                 <Button

@@ -41,19 +41,30 @@ export function useAgent(id: string) {
   });
 }
 
+export interface CreateAgentInput {
+  name: string;
+  email: string;
+  phone: string;
+  nric?: string;
+  agent_code: string;
+  unit_name: string;
+  tier_id: string;
+  status: Agent['status'];
+  password: string;
+}
+
 export function useCreateAgent() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (agent: Omit<Agent, 'id' | 'created_at' | 'updated_at'>) => {
-      const { data, error } = await supabase
-        .from('agents')
-        .insert(agent)
-        .select()
-        .single();
+    mutationFn: async (input: CreateAgentInput) => {
+      const response = await supabase.functions.invoke('create-agent', {
+        body: input,
+      });
 
-      if (error) throw error;
-      return data as Agent;
+      if (response.error) throw new Error(response.error.message || 'Failed to create agent');
+      if (response.data?.error) throw new Error(response.data.error);
+      return response.data.agent as Agent;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agents'] });

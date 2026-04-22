@@ -24,10 +24,10 @@ import {
   FormMessage,
 } from '@agent-system/shared-ui';
 import { ArrowLeft } from 'lucide-react';
-import { useAgent, useCreateAgent, useUpdateAgent } from '../../hooks/useAgents';
+import { CreateAgentError, useAgent, useCreateAgent, useUpdateAgent } from '../../hooks/useAgents';
 import { useTiers } from '../../hooks/useTiers';
 import { AgentStatus } from '@agent-system/shared-types';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 const agentSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -52,6 +52,7 @@ export function AgentForm() {
   const { data: tiers, isLoading: isLoadingTiers } = useTiers();
   const createAgent = useCreateAgent();
   const updateAgent = useUpdateAgent();
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const form = useForm<AgentFormData>({
     resolver: zodResolver(agentSchema),
@@ -84,6 +85,7 @@ export function AgentForm() {
   }, [agent, form]);
 
   const onSubmit = async (data: AgentFormData) => {
+    setSubmitError(null);
     try {
       if (isEditing && agentId) {
         const { password: _password, ...updates } = data;
@@ -107,7 +109,11 @@ export function AgentForm() {
       }
       navigate({ to: '/agents' });
     } catch (error) {
-      console.error('Failed to save agent:', error);
+      if (error instanceof CreateAgentError && error.field) {
+        form.setError(error.field as keyof AgentFormData, { message: error.message });
+      } else {
+        setSubmitError(error instanceof Error ? error.message : 'Failed to save agent');
+      }
     }
   };
 
@@ -306,6 +312,10 @@ export function AgentForm() {
                     </FormItem>
                   )}
                 />
+              )}
+
+              {submitError && (
+                <p className="text-sm font-medium text-destructive">{submitError}</p>
               )}
 
               <div className="flex gap-4">

@@ -53,6 +53,15 @@ export interface CreateAgentInput {
   password: string;
 }
 
+export class CreateAgentError extends Error {
+  field?: keyof CreateAgentInput;
+  constructor(message: string, field?: keyof CreateAgentInput) {
+    super(message);
+    this.name = 'CreateAgentError';
+    this.field = field;
+  }
+}
+
 export function useCreateAgent() {
   const queryClient = useQueryClient();
 
@@ -62,8 +71,12 @@ export function useCreateAgent() {
         body: input,
       });
 
-      if (response.error) throw new Error(response.error.message || 'Failed to create agent');
-      if (response.data?.error) throw new Error(response.data.error);
+      if (response.data?.error) {
+        throw new CreateAgentError(response.data.error, response.data.field);
+      }
+      if (response.error) {
+        throw new CreateAgentError(response.error.message || 'Failed to create agent');
+      }
       return response.data.agent as Agent;
     },
     onSuccess: () => {

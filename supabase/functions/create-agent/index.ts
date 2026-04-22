@@ -6,6 +6,20 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function mapUniqueViolation(
+  error: { code?: string; message?: string | null }
+): { field: string; error: string } | null {
+  if (error.code !== "23505") return null;
+  const msg = error.message ?? "";
+  if (msg.includes("agents_email_key")) return { field: "email", error: "This email is already in use" };
+  if (msg.includes("agents_phone_key")) return { field: "phone", error: "This phone number is already in use" };
+  if (msg.includes("agents_agent_code_key")) return { field: "agent_code", error: "This agent code is already in use" };
+  if (msg.includes("agents_nric_unique") || msg.includes("agents_nric_key")) {
+    return { field: "nric", error: "This NRIC is already in use" };
+  }
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -74,10 +88,14 @@ serve(async (req) => {
     });
 
     if (createError) {
-      const responseStatus = createError.message?.includes("already") ? 409 : 400;
+      const alreadyExists = createError.message?.toLowerCase().includes("already");
       return new Response(
-        JSON.stringify({ error: createError.message || "Failed to create user" }),
-        { status: responseStatus, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify(
+          alreadyExists
+            ? { field: "email", error: "Email is already registered" }
+            : { error: createError.message || "Failed to create user" }
+        ),
+        { status: alreadyExists ? 409 : 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -101,9 +119,10 @@ serve(async (req) => {
 
     if (insertError) {
       await supabase.auth.admin.deleteUser(newUser.user.id);
+      const mapped = mapUniqueViolation(insertError);
       return new Response(
-        JSON.stringify({ error: insertError.message || "Failed to create agent record" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify(mapped ?? { error: insertError.message || "Failed to create agent record" }),
+        { status: mapped ? 409 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

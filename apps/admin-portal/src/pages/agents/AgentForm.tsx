@@ -232,7 +232,7 @@ export function AgentForm() {
                       </FormControl>
                       <SelectContent>
                         {isLoadingTiers ? (
-                          <SelectItem value="" disabled>Loading...</SelectItem>
+                          <div className="py-1.5 pl-8 pr-2 text-sm text-muted-foreground">Loading...</div>
                         ) : (
                           tiers?.map((tier) => (
                             <SelectItem key={tier.id} value={tier.id}>

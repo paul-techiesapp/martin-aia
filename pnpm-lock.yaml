@@ -145,8 +145,8 @@ importers:
         specifier: ^7.71.1
         version: 7.71.1(react@18.3.1)
       zod:
-        specifier: ^4.3.6
-        version: 4.3.6
+        specifier: 3.23.8
+        version: 3.23.8
     devDependencies:
       '@types/qrcode':
         specifier: ^1.5.6
@@ -215,8 +215,8 @@ importers:
         specifier: ^7.71.1
         version: 7.71.1(react@18.3.1)
       zod:
-        specifier: ^4.3.6
-        version: 4.3.6
+        specifier: 3.23.8
+        version: 3.23.8
     devDependencies:
       '@types/react':
         specifier: ^18.2.0
@@ -2422,9 +2422,6 @@ packages:
   zod@3.23.8:
     resolution: {integrity: sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==}
 
-  zod@4.3.6:
-    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
-
 snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
@@ -4488,5 +4485,3 @@ snapshots:
   zod@3.22.4: {}
 
   zod@3.23.8: {}
-
-  zod@4.3.6: {}

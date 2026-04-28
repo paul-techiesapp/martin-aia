@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import {
   Button,
   Card,
@@ -45,7 +45,14 @@ export function CheckInScanner() {
   const startScanner = async () => {
     if (!containerRef.current) return;
 
-    const scanner = new Html5Qrcode('qr-reader');
+    // Accept both 2D QR codes and 1D Code 128 barcodes — invitation cards carry both
+    const scanner = new Html5Qrcode('qr-reader', {
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.QR_CODE,
+        Html5QrcodeSupportedFormats.CODE_128,
+      ],
+      verbose: false,
+    });
     scannerRef.current = scanner;
 
     try {
@@ -53,7 +60,7 @@ export function CheckInScanner() {
         { facingMode: 'environment' },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         handleScanSuccess,
-        () => {}, // Ignore scan failures (no QR in frame)
+        () => {}, // Ignore scan failures (no code in frame)
       );
       setIsScanning(true);
     } catch (err) {
@@ -210,7 +217,7 @@ export function CheckInScanner() {
       <div>
         <h1 className="text-2xl font-semibold">Check-In Scanner</h1>
         <p className="text-sm text-muted-foreground">
-          Scan invitation card QR codes to check in attendees
+          Scan the QR code or barcode on invitation cards to check in attendees
         </p>
       </div>
 
@@ -218,12 +225,12 @@ export function CheckInScanner() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             {mode === 'camera' ? <Camera className="size-5" /> : <ScanBarcode className="size-5" />}
-            QR Scanner
+            Check-In Scanner
           </CardTitle>
           <CardDescription>
             {mode === 'camera'
-              ? 'Point the camera at the QR code on the invitation card'
-              : 'Scan the QR code on the invitation card with the USB scanner'}
+              ? 'Point the camera at the QR code or barcode on the invitation card'
+              : 'Scan the QR code or barcode on the invitation card with the USB scanner'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

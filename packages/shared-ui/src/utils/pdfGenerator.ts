@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
+import JsBarcode from 'jsbarcode';
 import type { CardTemplate, CompanyBranding } from '@agent-system/shared-types';
 import { loadFont } from './fonts';
 
@@ -38,6 +39,23 @@ async function generateQrDataUrl(text: string, color: string): Promise<string> {
     margin: 1,
     color: { dark: color, light: '#ffffff' },
   });
+}
+
+function generateBarcodeDataUrl(value: string, displayText: string, color: string): string {
+  const canvas = document.createElement('canvas');
+  JsBarcode(canvas, value, {
+    format: 'CODE128',
+    width: 2,
+    height: 60,
+    displayValue: true,
+    text: displayText,
+    fontSize: 14,
+    textMargin: 2,
+    margin: 4,
+    lineColor: color,
+    background: '#ffffff',
+  });
+  return canvas.toDataURL('image/png');
 }
 
 async function drawInvitationCard(
@@ -178,16 +196,24 @@ async function drawInvitationCard(
     doc.text(template.instructionText, rightX, dividerY + 24);
   }
 
-  // Token reference (bottom right)
-  if (template.visibleElements.includes('reference')) {
+  // Barcode (bottom of right panel) — encodes the same CHECKIN: payload as the QR
+  // Always rendered; the human-readable text below the bars serves as the visible reference.
+  try {
+    const barcodeDataUrl = generateBarcodeDataUrl(
+      `CHECKIN:${data.registrationId}`,
+      data.uniqueToken,
+      template.qrColor,
+    );
+    const barcodeW = 70;
+    const barcodeH = 12;
+    const barcodeX = rightX + (rightW - barcodeW) / 2;
+    const barcodeY = pageH - barcodeH - 4;
+    doc.addImage(barcodeDataUrl, 'PNG', barcodeX, barcodeY, barcodeW, barcodeH);
+  } catch {
+    // If barcode generation fails, fall back to the original ref text so the card is still useful
     doc.setTextColor(148, 163, 184);
     doc.setFontSize(6);
-    doc.text(
-      `Ref: ${data.uniqueToken}`,
-      pageW - 5,
-      pageH - 5,
-      { align: 'right' },
-    );
+    doc.text(`Ref: ${data.uniqueToken}`, pageW - 5, pageH - 5, { align: 'right' });
   }
 }
 

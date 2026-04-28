@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type FormEvent } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import {
   Button,
@@ -8,8 +8,13 @@ import {
   CardHeader,
   CardTitle,
   Badge,
+  Input,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
 } from '@agent-system/shared-ui';
-import { Camera, CameraOff, CheckCircle, XCircle, RotateCcw } from 'lucide-react';
+import { Camera, CameraOff, CheckCircle, XCircle, RotateCcw, ScanBarcode } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { RegistrationStatus } from '@agent-system/shared-types';
 
@@ -19,12 +24,23 @@ interface CheckInResult {
   message: string;
 }
 
+type ScanMode = 'camera' | 'scanner';
+
+const MODE_STORAGE_KEY = 'checkin-scanner-mode';
+
 export function CheckInScanner() {
+  const [mode, setMode] = useState<ScanMode>(() => {
+    if (typeof window === 'undefined') return 'camera';
+    const stored = window.localStorage.getItem(MODE_STORAGE_KEY);
+    return stored === 'scanner' ? 'scanner' : 'camera';
+  });
   const [isScanning, setIsScanning] = useState(false);
   const [result, setResult] = useState<CheckInResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [manualInput, setManualInput] = useState('');
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const scannerInputRef = useRef<HTMLInputElement>(null);
 
   const startScanner = async () => {
     if (!containerRef.current) return;
@@ -141,8 +157,45 @@ export function CheckInScanner() {
 
   const handleReset = () => {
     setResult(null);
-    startScanner();
+    setManualInput('');
+    if (mode === 'camera') {
+      startScanner();
+    } else {
+      // Refocus the scanner input on next tick so the USB scanner is ready
+      setTimeout(() => scannerInputRef.current?.focus(), 0);
+    }
   };
+
+  const handleScannerSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const value = manualInput.trim();
+    if (!value || isProcessing) return;
+    setManualInput('');
+    handleScanSuccess(value);
+  };
+
+  const handleModeChange = (next: string) => {
+    if (next !== 'camera' && next !== 'scanner') return;
+    if (next === mode) return;
+
+    // Stop camera if leaving camera mode
+    if (mode === 'camera' && scannerRef.current?.isScanning) {
+      scannerRef.current.stop().catch(() => {});
+      setIsScanning(false);
+    }
+
+    setMode(next);
+    setResult(null);
+    setManualInput('');
+    window.localStorage.setItem(MODE_STORAGE_KEY, next);
+  };
+
+  // Auto-focus the scanner input when in scanner mode and ready for input
+  useEffect(() => {
+    if (mode === 'scanner' && !isProcessing && !result) {
+      scannerInputRef.current?.focus();
+    }
+  }, [mode, isProcessing, result]);
 
   useEffect(() => {
     return () => {
@@ -164,40 +217,82 @@ export function CheckInScanner() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Camera className="size-5" />
+            {mode === 'camera' ? <Camera className="size-5" /> : <ScanBarcode className="size-5" />}
             QR Scanner
           </CardTitle>
           <CardDescription>
-            Point the camera at the QR code on the invitation card
+            {mode === 'camera'
+              ? 'Point the camera at the QR code on the invitation card'
+              : 'Scan the QR code on the invitation card with the USB scanner'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Scanner viewport */}
-          <div
-            id="qr-reader"
-            ref={containerRef}
-            className="w-full max-w-md mx-auto rounded-lg overflow-hidden bg-muted"
-            style={{ minHeight: isScanning ? 300 : 0 }}
-          />
+          <Tabs value={mode} onValueChange={handleModeChange}>
+            <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
+              <TabsTrigger value="camera" className="gap-2">
+                <Camera className="size-4" />
+                Camera
+              </TabsTrigger>
+              <TabsTrigger value="scanner" className="gap-2">
+                <ScanBarcode className="size-4" />
+                USB Scanner
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Controls */}
-          {!isScanning && !result && (
-            <div className="flex justify-center">
-              <Button onClick={startScanner} size="lg" className="gap-2">
-                <Camera className="size-5" />
-                Start Scanner
-              </Button>
-            </div>
-          )}
+            <TabsContent value="camera" className="space-y-4 mt-4">
+              {/* Scanner viewport */}
+              <div
+                id="qr-reader"
+                ref={containerRef}
+                className="w-full max-w-md mx-auto rounded-lg overflow-hidden bg-muted"
+                style={{ minHeight: isScanning ? 300 : 0 }}
+              />
 
-          {isScanning && (
-            <div className="flex justify-center">
-              <Button variant="outline" onClick={stopScanner} className="gap-2">
-                <CameraOff className="size-5" />
-                Stop Scanner
-              </Button>
-            </div>
-          )}
+              {/* Controls */}
+              {!isScanning && !result && (
+                <div className="flex justify-center">
+                  <Button onClick={startScanner} size="lg" className="gap-2">
+                    <Camera className="size-5" />
+                    Start Scanner
+                  </Button>
+                </div>
+              )}
+
+              {isScanning && (
+                <div className="flex justify-center">
+                  <Button variant="outline" onClick={stopScanner} className="gap-2">
+                    <CameraOff className="size-5" />
+                    Stop Scanner
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="scanner" className="space-y-4 mt-4">
+              {!result && (
+                <form onSubmit={handleScannerSubmit} className="w-full max-w-md mx-auto space-y-2">
+                  <Input
+                    ref={scannerInputRef}
+                    value={manualInput}
+                    onChange={(e) => setManualInput(e.target.value)}
+                    placeholder="Scan or type registration code…"
+                    autoComplete="off"
+                    spellCheck={false}
+                    disabled={isProcessing}
+                    onBlur={() => {
+                      // Keep the input focused for the next scan unless we're processing
+                      if (!isProcessing && !result) {
+                        setTimeout(() => scannerInputRef.current?.focus(), 0);
+                      }
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground text-center">
+                    Scanner is ready — scan a card or press Enter to submit manually
+                  </p>
+                </form>
+              )}
+            </TabsContent>
+          </Tabs>
 
           {/* Processing state */}
           {isProcessing && (

@@ -86,7 +86,7 @@ export function CheckInScanner() {
       setResult({
         success: false,
         name: '',
-        message: 'Invalid QR code. Please scan an invitation card.',
+        message: "Invalid code — this doesn't look like an invitation card.",
       });
       return;
     }

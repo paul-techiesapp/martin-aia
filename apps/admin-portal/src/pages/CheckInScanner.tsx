@@ -18,10 +18,43 @@ import { Camera, CameraOff, CheckCircle, XCircle, RotateCcw, ScanBarcode } from 
 import { supabase } from '../lib/supabase';
 import { RegistrationStatus } from '@agent-system/shared-types';
 
+interface AttendeeDetails {
+  inviteeName: string;
+  capacityType?: 'agent' | 'business_partner' | null;
+  campaignName?: string | null;
+  venue?: string | null;
+  slotStartAt?: string | null;
+  slotEndAt?: string | null;
+  agentName?: string | null;
+  agentCode?: string | null;
+}
+
 interface CheckInResult {
   success: boolean;
   name: string;
   message: string;
+  details?: AttendeeDetails;
+}
+
+function formatCapacityType(type?: string | null): string {
+  if (type === 'agent') return 'Agent';
+  if (type === 'business_partner') return 'Business Partner';
+  return '—';
+}
+
+function formatSlotDateTime(startAt?: string | null, endAt?: string | null): string {
+  if (!startAt) return '—';
+  const start = new Date(startAt);
+  const datePart = start.toLocaleString('en', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+  const startTime = start.toLocaleString('en', { hour: '2-digit', minute: '2-digit', hour12: false });
+  if (!endAt) return `${datePart} · ${startTime}`;
+  const endTime = new Date(endAt).toLocaleString('en', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return `${datePart} · ${startTime} – ${endTime}`;
 }
 
 type ScanMode = 'camera' | 'scanner';
@@ -98,18 +131,45 @@ export function CheckInScanner() {
     const registrationId = decodedText.replace('CHECKIN:', '');
 
     try {
-      // 1. Look up the registration
+      // 1. Look up the registration with related slot, campaign, and inviting agent
       const { data: registration, error: regError } = await supabase
         .from('registrations')
-        .select('id, invitee_name, status, slot_id')
+        .select(
+          'id, invitee_name, status, slot_id, capacity_type, ' +
+            'slot:slots(start_at, end_at, campaign:campaigns(name, venue)), ' +
+            'agent:agents(name, agent_code)',
+        )
         .eq('id', registrationId)
-        .single();
+        .single<{
+          id: string;
+          invitee_name: string;
+          status: string;
+          slot_id: string;
+          capacity_type: 'agent' | 'business_partner' | null;
+          slot: {
+            start_at: string;
+            end_at: string;
+            campaign: { name: string; venue: string } | null;
+          } | null;
+          agent: { name: string; agent_code: string } | null;
+        }>();
 
       if (regError || !registration) {
         setResult({ success: false, name: '', message: 'Registration not found.' });
         setIsProcessing(false);
         return;
       }
+
+      const details: AttendeeDetails = {
+        inviteeName: registration.invitee_name,
+        capacityType: registration.capacity_type,
+        campaignName: registration.slot?.campaign?.name ?? null,
+        venue: registration.slot?.campaign?.venue ?? null,
+        slotStartAt: registration.slot?.start_at ?? null,
+        slotEndAt: registration.slot?.end_at ?? null,
+        agentName: registration.agent?.name ?? null,
+        agentCode: registration.agent?.agent_code ?? null,
+      };
 
       // 2. Check if already checked in
       const { data: existingAttendance } = await supabase
@@ -123,6 +183,7 @@ export function CheckInScanner() {
           success: false,
           name: registration.invitee_name,
           message: `${registration.invitee_name} has already checked in.`,
+          details,
         });
         setIsProcessing(false);
         return;
@@ -139,7 +200,12 @@ export function CheckInScanner() {
         });
 
       if (attendanceError) {
-        setResult({ success: false, name: registration.invitee_name, message: 'Failed to record check-in.' });
+        setResult({
+          success: false,
+          name: registration.invitee_name,
+          message: 'Failed to record check-in.',
+          details,
+        });
         setIsProcessing(false);
         return;
       }
@@ -154,6 +220,7 @@ export function CheckInScanner() {
         success: true,
         name: registration.invitee_name,
         message: `${registration.invitee_name} checked in successfully!`,
+        details,
       });
     } catch {
       setResult({ success: false, name: '', message: 'An error occurred during check-in.' });
@@ -310,26 +377,85 @@ export function CheckInScanner() {
 
           {/* Result display */}
           {result && !isProcessing && (
-            <div className={`p-6 rounded-lg text-center space-y-3 ${
+            <div className={`p-6 rounded-lg space-y-4 ${
               result.success ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50 border border-red-200'
             }`}>
-              <div className="flex justify-center">
-                {result.success ? (
-                  <CheckCircle className="size-12 text-emerald-500" />
-                ) : (
-                  <XCircle className="size-12 text-red-500" />
+              <div className="text-center space-y-3">
+                <div className="flex justify-center">
+                  {result.success ? (
+                    <CheckCircle className="size-12 text-emerald-500" />
+                  ) : (
+                    <XCircle className="size-12 text-red-500" />
+                  )}
+                </div>
+                {result.name && (
+                  <p className="text-xl font-bold">{result.name}</p>
                 )}
+                <p className={result.success ? 'text-emerald-700' : 'text-red-700'}>
+                  {result.message}
+                </p>
+                <Badge variant={result.success ? 'active' : 'inactive'}>
+                  {result.success ? 'Checked In' : 'Failed'}
+                </Badge>
               </div>
-              {result.name && (
-                <p className="text-xl font-bold">{result.name}</p>
+
+              {/* Attendee details */}
+              {result.details && (
+                <div className="bg-white/70 rounded-md border border-slate-200 p-4 space-y-2 text-sm">
+                  {result.details.campaignName && (
+                    <div className="flex justify-between gap-3">
+                      <span className="text-slate-500">Campaign</span>
+                      <span className="font-medium text-slate-900 text-right">{result.details.campaignName}</span>
+                    </div>
+                  )}
+                  {result.details.venue && (
+                    <div className="flex justify-between gap-3">
+                      <span className="text-slate-500">Venue</span>
+                      <span className="font-medium text-slate-900 text-right">{result.details.venue}</span>
+                    </div>
+                  )}
+                  {result.details.slotStartAt && (
+                    <div className="flex justify-between gap-3">
+                      <span className="text-slate-500">Slot</span>
+                      <span className="font-medium text-slate-900 text-right">
+                        {formatSlotDateTime(result.details.slotStartAt, result.details.slotEndAt)}
+                      </span>
+                    </div>
+                  )}
+                  {result.details.capacityType && (
+                    <div className="flex justify-between gap-3">
+                      <span className="text-slate-500">Type</span>
+                      <span className="font-medium text-slate-900 text-right">
+                        {formatCapacityType(result.details.capacityType)}
+                      </span>
+                    </div>
+                  )}
+                  {result.details.agentName && (
+                    <div className="flex justify-between gap-3">
+                      <span className="text-slate-500">Invited by</span>
+                      <span className="font-medium text-slate-900 text-right">
+                        {result.details.agentName}
+                        {result.details.agentCode ? ` (${result.details.agentCode})` : ''}
+                      </span>
+                    </div>
+                  )}
+                  {result.success && (
+                    <div className="flex justify-between gap-3 pt-2 border-t border-slate-200">
+                      <span className="text-slate-500">Checked in at</span>
+                      <span className="font-medium text-slate-900 text-right">
+                        {new Date().toLocaleString('en', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                          hour12: false,
+                        })}
+                      </span>
+                    </div>
+                  )}
+                </div>
               )}
-              <p className={result.success ? 'text-emerald-700' : 'text-red-700'}>
-                {result.message}
-              </p>
-              <Badge variant={result.success ? 'active' : 'inactive'}>
-                {result.success ? 'Checked In' : 'Failed'}
-              </Badge>
-              <div className="pt-2">
+
+              <div className="flex justify-center pt-1">
                 <Button onClick={handleReset} className="gap-2">
                   <RotateCcw className="size-4" />
                   Scan Next

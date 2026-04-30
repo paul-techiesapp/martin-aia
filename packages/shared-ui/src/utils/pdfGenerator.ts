@@ -45,22 +45,29 @@ async function generateQrDataUrl(text: string, color: string): Promise<string> {
 // Composites a (possibly transparent) logo onto an opaque background of the given color
 // so it renders cleanly on dark panels in the PDF. jsPDF's PNG alpha handling can leave
 // checker-pattern artifacts where the logo is transparent, so we flatten it first.
-async function compositeOnBackground(logoDataUrl: string, backgroundColor: string): Promise<string> {
-  return new Promise<string>((resolve, reject) => {
+// Returns the data URL plus the natural image dimensions so callers can preserve
+// the aspect ratio when placing the image.
+async function compositeOnBackground(
+  logoDataUrl: string,
+  backgroundColor: string,
+): Promise<{ dataUrl: string; width: number; height: number }> {
+  return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
+      const width = img.naturalWidth || img.width;
+      const height = img.naturalHeight || img.height;
       const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth || img.width;
-      canvas.height = img.naturalHeight || img.height;
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext('2d');
       if (!ctx) {
         reject(new Error('Could not get canvas context'));
         return;
       }
       ctx.fillStyle = backgroundColor;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, width, height);
       ctx.drawImage(img, 0, 0);
-      resolve(canvas.toDataURL('image/png'));
+      resolve({ dataUrl: canvas.toDataURL('image/png'), width, height });
     };
     img.onerror = () => reject(new Error('Failed to load logo image'));
     img.src = logoDataUrl;
@@ -113,35 +120,32 @@ async function drawInvitationCard(
   const hasLogo = logoImageData && template.visibleElements.includes('logo');
 
   // Logo — composite onto the panel color first so transparent PNGs render
-  // cleanly without checker-pattern artifacts.
+  // cleanly without checker-pattern artifacts. Preserve the natural aspect
+  // ratio by deriving the rendered height from the source image dimensions.
+  let logoBottomY = 5;
   if (hasLogo) {
     try {
-      const flattenedLogo = await compositeOnBackground(logoImageData!, template.panelColor);
-      doc.addImage(
-        flattenedLogo,
-        'PNG',
-        (leftW - branding.logoWidth) / 2,
-        5,
-        branding.logoWidth,
-        branding.logoWidth * 0.6,
+      const { dataUrl, width, height } = await compositeOnBackground(
+        logoImageData!,
+        template.panelColor,
       );
+      const imgW = branding.logoWidth;
+      const imgH = imgW * (height / width);
+      const imgX = (leftW - imgW) / 2;
+      const imgY = 5;
+      doc.addImage(dataUrl, 'PNG', imgX, imgY, imgW, imgH);
+      logoBottomY = imgY + imgH;
     } catch { /* proceed without logo */ }
   }
 
-  // Company name label (accent color)
-  const accent = hexToRgb(template.accentColor);
-  doc.setTextColor(accent.r, accent.g, accent.b);
-  doc.setFontSize(7);
-  doc.setFont(template.fontFamily, 'bold');
-  doc.text(branding.companyName.toUpperCase(), leftW / 2, hasLogo ? 18 : 12, { align: 'center' });
-
-  // Subtitle
+  // Subtitle (positioned below the logo if present, otherwise near the top)
   if (template.visibleElements.includes('subtitle')) {
     const panelText = hexToRgb(template.panelTextColor);
     doc.setTextColor(panelText.r, panelText.g, panelText.b);
     doc.setFontSize(6);
     doc.setFont(template.fontFamily, 'normal');
-    doc.text(template.subtitle, leftW / 2, hasLogo ? 24 : 18, { align: 'center' });
+    const subtitleY = hasLogo ? logoBottomY + 4 : 12;
+    doc.text(template.subtitle, leftW / 2, subtitleY, { align: 'center' });
   }
 
   // Date display

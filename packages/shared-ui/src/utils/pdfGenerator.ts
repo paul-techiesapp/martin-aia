@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import JsBarcode from 'jsbarcode';
 import type { CardTemplate, CompanyBranding } from '@agent-system/shared-types';
 import { loadFont } from './fonts';
+import bundledLogoSrc from '../assets/logo.png';
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -258,13 +259,14 @@ export async function generateInvitationCard(
 ): Promise<jsPDF> {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [148, 105] });
   let logoImageData: string | undefined;
-  if (branding.logoUrl) {
-    try {
-      const response = await fetch(branding.logoUrl);
-      const blob = await response.blob();
-      logoImageData = await blobToBase64(blob);
-    } catch { /* proceed without logo */ }
-  }
+  // Always use the bundled logo asset for invitation cards, regardless of
+  // whatever URL is set in company branding. The Settings-uploaded logo path
+  // produced rendering artifacts on dark panels; the bundled asset is known good.
+  try {
+    const response = await fetch(bundledLogoSrc);
+    const blob = await response.blob();
+    logoImageData = await blobToBase64(blob);
+  } catch { /* proceed without logo */ }
   await drawInvitationCard(doc, data, template, branding, logoImageData);
   return doc;
 }
@@ -276,13 +278,14 @@ export async function generateBulkInvitationCards(
 ): Promise<jsPDF> {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [148, 105] });
   let logoImageData: string | undefined;
-  if (branding.logoUrl) {
-    try {
-      const response = await fetch(branding.logoUrl);
-      const blob = await response.blob();
-      logoImageData = await blobToBase64(blob);
-    } catch { /* proceed without logo */ }
-  }
+  // Always use the bundled logo asset for invitation cards, regardless of
+  // whatever URL is set in company branding. The Settings-uploaded logo path
+  // produced rendering artifacts on dark panels; the bundled asset is known good.
+  try {
+    const response = await fetch(bundledLogoSrc);
+    const blob = await response.blob();
+    logoImageData = await blobToBase64(blob);
+  } catch { /* proceed without logo */ }
   for (let i = 0; i < invitations.length; i++) {
     if (i > 0) doc.addPage([148, 105], 'landscape');
     await drawInvitationCard(doc, invitations[i], template, branding, logoImageData);

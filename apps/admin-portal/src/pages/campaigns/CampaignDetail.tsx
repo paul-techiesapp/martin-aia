@@ -241,6 +241,8 @@ export function CampaignDetail() {
   const [checkoutConfig, setCheckoutConfig] = useState({
     fb_enabled: false,
     fb_url: '',
+    ig_enabled: false,
+    ig_url: '',
     video_enabled: false,
     video_url: '',
     rating_enabled: false,
@@ -265,6 +267,8 @@ export function CampaignDetail() {
       setCheckoutConfig({
         fb_enabled: cfg.fb_enabled === true,
         fb_url: (cfg.fb_url as string) ?? '',
+        ig_enabled: cfg.ig_enabled === true,
+        ig_url: (cfg.ig_url as string) ?? '',
         video_enabled: cfg.video_enabled === true,
         video_url: (cfg.video_url as string) ?? '',
         rating_enabled: cfg.rating_enabled === true,
@@ -804,6 +808,31 @@ export function CampaignDetail() {
                 value={checkoutConfig.fb_url}
                 onChange={(e) => {
                   setCheckoutConfig({ ...checkoutConfig, fb_url: e.target.value });
+                  setIsCheckoutConfigDirty(true);
+                }}
+              />
+            )}
+          </div>
+
+          {/* Instagram Follow Button */}
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="ig_enabled"
+                checked={checkoutConfig.ig_enabled}
+                onCheckedChange={(checked) => {
+                  setCheckoutConfig({ ...checkoutConfig, ig_enabled: checked === true });
+                  setIsCheckoutConfigDirty(true);
+                }}
+              />
+              <Label htmlFor="ig_enabled" className="font-semibold">Instagram Follow Button</Label>
+            </div>
+            {checkoutConfig.ig_enabled && (
+              <Input
+                placeholder="https://instagram.com/your-handle"
+                value={checkoutConfig.ig_url}
+                onChange={(e) => {
+                  setCheckoutConfig({ ...checkoutConfig, ig_url: e.target.value });
                   setIsCheckoutConfigDirty(true);
                 }}
               />

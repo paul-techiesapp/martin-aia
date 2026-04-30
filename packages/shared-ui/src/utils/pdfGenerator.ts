@@ -41,6 +41,31 @@ async function generateQrDataUrl(text: string, color: string): Promise<string> {
   });
 }
 
+// Composites a (possibly transparent) logo onto an opaque background of the given color
+// so it renders cleanly on dark panels in the PDF. jsPDF's PNG alpha handling can leave
+// checker-pattern artifacts where the logo is transparent, so we flatten it first.
+async function compositeOnBackground(logoDataUrl: string, backgroundColor: string): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Could not get canvas context'));
+        return;
+      }
+      ctx.fillStyle = backgroundColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => reject(new Error('Failed to load logo image'));
+    img.src = logoDataUrl;
+  });
+}
+
 function generateBarcodeDataUrl(value: string, displayText: string, color: string): string {
   const canvas = document.createElement('canvas');
   JsBarcode(canvas, value, {
@@ -86,10 +111,19 @@ async function drawInvitationCard(
 
   const hasLogo = logoImageData && template.visibleElements.includes('logo');
 
-  // Logo
+  // Logo — composite onto the panel color first so transparent PNGs render
+  // cleanly without checker-pattern artifacts.
   if (hasLogo) {
     try {
-      doc.addImage(logoImageData, 'PNG', (leftW - branding.logoWidth) / 2, 5, branding.logoWidth, branding.logoWidth * 0.6);
+      const flattenedLogo = await compositeOnBackground(logoImageData!, template.panelColor);
+      doc.addImage(
+        flattenedLogo,
+        'PNG',
+        (leftW - branding.logoWidth) / 2,
+        5,
+        branding.logoWidth,
+        branding.logoWidth * 0.6,
+      );
     } catch { /* proceed without logo */ }
   }
 

@@ -27,7 +27,7 @@ class OneWaySmsService implements WhatsAppService {
   constructor() {
     this.apiUsername = Deno.env.get('ONEWAYSMS_API_USERNAME') || '';
     this.apiPassword = Deno.env.get('ONEWAYSMS_API_PASSWORD') || '';
-    this.templateId = Deno.env.get('ONEWAYSMS_TEMPLATE_ID') || '2374';
+    this.templateId = Deno.env.get('ONEWAYSMS_TEMPLATE_ID') || '2502';
   }
 
   async sendOtp(phone: string, code: string): Promise<SendResult> {

@@ -21,7 +21,7 @@ export function VenueDisplay() {
   const [countdown, setCountdown] = useState(REFRESH_INTERVAL);
   const [error, setError] = useState<string | null>(null);
 
-  const publicPagesUrl = import.meta.env.VITE_PUBLIC_PAGES_URL || 'https://martin-public-pages.onrender.com';
+  const publicPagesUrl = import.meta.env.VITE_PUBLIC_PAGES_URL || 'https://raccagency.com';
 
   // Fetch slot data on mount
   useEffect(() => {

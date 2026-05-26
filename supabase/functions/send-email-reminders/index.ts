@@ -165,7 +165,7 @@ serve(async (req) => {
       const batch = recipients.slice(i, i + 100);
 
       const emails = batch.map((r) => ({
-        from: "Event Reminders <reminders@aia-test.techies.app>",
+        from: "Event Reminders <reminders@raccagency.com>",
         to: r.invitee_email,
         subject,
         html: buildEmailHtml(

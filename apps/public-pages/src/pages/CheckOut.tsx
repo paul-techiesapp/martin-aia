@@ -24,6 +24,7 @@ import {
 } from '@agent-system/shared-ui';
 import { CheckCircle, MessageSquare, ArrowRight, Star } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { toMalaysianE164 } from '../lib/phone';
 
 // Step 1: Dual identifier schema — NRIC always required + email or phone
 const emailIdentifierSchema = z.object({
@@ -178,6 +179,11 @@ export function CheckOut() {
     setIsSending(true);
     setError(null);
 
+    // For phone identifiers the user types only the local part; prepend +60 so
+    // the value matches what was stored at registration (and what OneWaySMS needs).
+    const submittedIdentifier =
+      identifyBy === 'phone' ? toMalaysianE164(formData.identifier) : formData.identifier;
+
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const response = await fetch(`${supabaseUrl}/functions/v1/send-checkout-otp`, {
@@ -189,7 +195,7 @@ export function CheckOut() {
         body: JSON.stringify({
           slot_id: slotId,
           nric: formData.nric,
-          identifier: formData.identifier,
+          identifier: submittedIdentifier,
         }),
       });
 
@@ -224,7 +230,7 @@ export function CheckOut() {
         return;
       }
 
-      setIdentifier(formData.identifier);
+      setIdentifier(submittedIdentifier);
       setMaskedPhone(data.masked_phone);
       setSendCount((prev) => prev + 1);
       startOtpExpiryTimer();
@@ -586,11 +592,22 @@ export function CheckOut() {
                           {identifyBy === 'email' ? 'Email Address' : 'Phone Number'}
                         </FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder={identifyBy === 'email' ? 'john@example.com' : '+65 9123 4567'}
-                            className="h-11"
-                            {...field}
-                          />
+                          {identifyBy === 'phone' ? (
+                            <div className="relative">
+                              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                                +60
+                              </span>
+                              <Input
+                                type="tel"
+                                inputMode="numeric"
+                                placeholder="12-345 6789"
+                                className="h-11 pl-12"
+                                {...field}
+                              />
+                            </div>
+                          ) : (
+                            <Input placeholder="john@example.com" className="h-11" {...field} />
+                          )}
                         </FormControl>
                         <FormMessage />
                       </FormItem>

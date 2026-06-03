@@ -25,6 +25,7 @@ import {
 } from '@agent-system/shared-ui';
 import { CalendarDays, MapPin, Clock, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { toMalaysianE164 } from '../lib/phone';
 import { TERMS_AND_CONDITIONS } from '../constants/terms';
 import { format, parseISO } from 'date-fns';
 
@@ -130,7 +131,7 @@ export function Register() {
       p_link_code: linkCode,
       p_name: formData.invitee_name,
       p_nric: formData.invitee_nric,
-      p_phone: formData.invitee_phone,
+      p_phone: toMalaysianE164(formData.invitee_phone),
       p_email: formData.invitee_email,
       p_occupation: formData.invitee_occupation,
     });
@@ -312,7 +313,18 @@ export function Register() {
                   <FormItem>
                     <FormLabel className="text-foreground">Phone Number</FormLabel>
                     <FormControl>
-                      <Input placeholder="+65 9123 4567" className="h-11" {...field} />
+                      <div className="relative">
+                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                          +60
+                        </span>
+                        <Input
+                          type="tel"
+                          inputMode="numeric"
+                          placeholder="12-345 6789"
+                          className="h-11 pl-12"
+                          {...field}
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

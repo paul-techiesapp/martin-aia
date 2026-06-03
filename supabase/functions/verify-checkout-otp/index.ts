@@ -1,5 +1,6 @@
 // supabase/functions/verify-checkout-otp/index.ts
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { phonesMatch } from '../_shared/phone-utils.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,7 +43,7 @@ Deno.serve(async (req) => {
 
     // 1b. Cross-check second identifier
     const emailMatch = registration.invitee_email && registration.invitee_email.toLowerCase() === identifier.toLowerCase();
-    const phoneMatch = registration.invitee_phone && registration.invitee_phone === identifier;
+    const phoneMatch = phonesMatch(registration.invitee_phone, identifier);
     if (!emailMatch && !phoneMatch) {
       return new Response(
         JSON.stringify({ error: 'identifier_mismatch', message: 'The email/phone does not match the registration for this NRIC.' }),

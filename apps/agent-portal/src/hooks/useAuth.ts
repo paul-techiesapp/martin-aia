@@ -81,7 +81,11 @@ export function useAuth() {
       return;
     }
 
-    await supabase.auth.signOut();
+    // No agent or partner profile is linked to this authenticated user.
+    // Do NOT sign out here: destroying a valid session causes a silent redirect
+    // loop back to /login on every page load (the auth guard sees no session).
+    // Leave the session intact and expose role=null so the UI can show a clear
+    // "account not linked" message (handled in Layout) instead of looping.
     setState(prev => ({ ...prev, agent: null, partner: null, role: null, isLoading: false }));
   };
 

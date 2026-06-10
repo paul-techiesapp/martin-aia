@@ -27,8 +27,29 @@ const partnerNavigation = [
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const { agent, partner, role, signOut } = useAuth();
+  const { agent, partner, role, isLoading, session, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Authenticated but not linked to any agent/partner profile. Previously the
+  // app called signOut() here, which silently bounced the user back to /login
+  // on every load. Keep the session and show a clear message instead.
+  if (!isLoading && session && !role) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="max-w-md text-center space-y-4">
+          <h1 className="text-xl font-semibold text-foreground">Account not linked</h1>
+          <p className="text-muted-foreground">
+            You're signed in, but this account isn't linked to an agent or partner
+            profile yet. Please contact your administrator to finish setting it up.
+          </p>
+          <Button variant="outline" onClick={signOut}>
+            <LogOut className="size-4 mr-2" />
+            Sign Out
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const navigation = role === 'partner'
     ? partnerNavigation

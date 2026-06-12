@@ -74,21 +74,38 @@ export function CheckInScanner() {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const scannerInputRef = useRef<HTMLInputElement>(null);
+  // Guards: only one start() in flight, and only one scan result handled at a time.
+  // A second Html5Qrcode instance on the same element orphans the first one's
+  // camera stream (nothing can stop it until the page is refreshed), so the
+  // single instance in scannerRef is reused for the lifetime of the page.
+  const isStartingRef = useRef(false);
+  const isHandlingScanRef = useRef(false);
+
+  const getScanner = (): Html5Qrcode => {
+    if (!scannerRef.current) {
+      // Accept both 2D QR codes and 1D Code 128 barcodes — invitation cards carry both
+      scannerRef.current = new Html5Qrcode('qr-reader', {
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.CODE_128,
+        ],
+        verbose: false,
+      });
+    }
+    return scannerRef.current;
+  };
 
   const startScanner = async () => {
     if (!containerRef.current) return;
-
-    // Accept both 2D QR codes and 1D Code 128 barcodes — invitation cards carry both
-    const scanner = new Html5Qrcode('qr-reader', {
-      formatsToSupport: [
-        Html5QrcodeSupportedFormats.QR_CODE,
-        Html5QrcodeSupportedFormats.CODE_128,
-      ],
-      verbose: false,
-    });
-    scannerRef.current = scanner;
+    if (isStartingRef.current) return;
+    isStartingRef.current = true;
 
     try {
+      const scanner = getScanner();
+      if (scanner.isScanning) {
+        setIsScanning(true);
+        return;
+      }
       await scanner.start(
         { facingMode: 'environment' },
         { fps: 10, qrbox: { width: 250, height: 250 } },
@@ -103,34 +120,47 @@ export function CheckInScanner() {
         name: '',
         message: 'Unable to access camera. Please check permissions.',
       });
+    } finally {
+      isStartingRef.current = false;
     }
   };
 
   const stopScanner = async () => {
-    if (scannerRef.current?.isScanning) {
-      await scannerRef.current.stop();
+    const scanner = scannerRef.current;
+    if (scanner?.isScanning) {
+      try {
+        await scanner.stop();
+      } catch (err) {
+        // stop() throws if a stop is already in flight — never let that
+        // propagate into scan handling, or the UI locks up until refresh.
+        console.error('Failed to stop scanner:', err);
+      }
     }
     setIsScanning(false);
   };
 
   const handleScanSuccess = async (decodedText: string) => {
-    // Expect format: CHECKIN:{registrationId}
-    if (!decodedText.startsWith('CHECKIN:')) {
-      setResult({
-        success: false,
-        name: '',
-        message: "Invalid code — this doesn't look like an invitation card.",
-      });
-      return;
-    }
-
-    // Pause scanner while processing
-    await stopScanner();
-    setIsProcessing(true);
-
-    const registrationId = decodedText.replace('CHECKIN:', '');
+    // The camera decode callback fires repeatedly while a code is in frame —
+    // process only one scan at a time.
+    if (isHandlingScanRef.current) return;
+    isHandlingScanRef.current = true;
 
     try {
+      // Expect format: CHECKIN:{registrationId}
+      if (!decodedText.startsWith('CHECKIN:')) {
+        setResult({
+          success: false,
+          name: '',
+          message: "Invalid code — this doesn't look like an invitation card.",
+        });
+        return;
+      }
+
+      // Pause scanner while processing
+      await stopScanner();
+      setIsProcessing(true);
+
+      const registrationId = decodedText.replace('CHECKIN:', '');
       // 1. Look up the registration with related slot, campaign, and inviting agent
       const { data: registration, error: regError } = await supabase
         .from('registrations')
@@ -156,7 +186,6 @@ export function CheckInScanner() {
 
       if (regError || !registration) {
         setResult({ success: false, name: '', message: 'Registration not found.' });
-        setIsProcessing(false);
         return;
       }
 
@@ -185,7 +214,6 @@ export function CheckInScanner() {
           message: `${registration.invitee_name} has already checked in.`,
           details,
         });
-        setIsProcessing(false);
         return;
       }
 
@@ -206,7 +234,6 @@ export function CheckInScanner() {
           message: 'Failed to record check-in.',
           details,
         });
-        setIsProcessing(false);
         return;
       }
 
@@ -226,6 +253,7 @@ export function CheckInScanner() {
       setResult({ success: false, name: '', message: 'An error occurred during check-in.' });
     } finally {
       setIsProcessing(false);
+      isHandlingScanRef.current = false;
     }
   };
 
@@ -253,9 +281,8 @@ export function CheckInScanner() {
     if (next === mode) return;
 
     // Stop camera if leaving camera mode
-    if (mode === 'camera' && scannerRef.current?.isScanning) {
-      scannerRef.current.stop().catch(() => {});
-      setIsScanning(false);
+    if (mode === 'camera') {
+      void stopScanner();
     }
 
     setMode(next);
@@ -274,7 +301,7 @@ export function CheckInScanner() {
   useEffect(() => {
     return () => {
       if (scannerRef.current?.isScanning) {
-        scannerRef.current.stop();
+        scannerRef.current.stop().catch(() => {});
       }
     };
   }, []);

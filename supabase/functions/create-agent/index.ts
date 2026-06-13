@@ -73,7 +73,9 @@ serve(async (req) => {
       supabaseAnonKey
     ).auth.getUser(token);
 
-    if (authError || !caller || caller.user_metadata?.role !== "admin") {
+    // Admin check uses app_metadata (set only by the service role), never the
+    // user-settable user_metadata, to prevent self-escalation via auth.updateUser.
+    if (authError || !caller || caller.app_metadata?.role !== "admin") {
       return new Response(
         JSON.stringify({ error: "Only admins can create agents" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -25,7 +25,7 @@ INSERT INTO auth.users (
   'admin@test.com',
   crypt('@Abc1234', gen_salt('bf')),
   NOW(),
-  '{"provider": "email", "providers": ["email"]}',
+  '{"provider": "email", "providers": ["email"], "role": "admin"}',
   '{"role": "admin"}',
   'authenticated',
   'authenticated',

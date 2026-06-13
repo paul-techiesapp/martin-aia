@@ -92,7 +92,7 @@ serve(async (req) => {
         name,
         email,
         phone,
-        nric: nric || "",
+        nric: nric || null,
         agent_code,
         unit_name: agent.unit_name,
         parent_agent_id: agent.id,

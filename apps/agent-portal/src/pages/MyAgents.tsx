@@ -40,7 +40,7 @@ import {
   useToast,
   Switch,
 } from '@agent-system/shared-ui';
-import { Users, UserCheck, Clock, UserPlus, ShieldOff, Tag, Mail } from 'lucide-react';
+import { Users, UserCheck, Clock, UserPlus, Trash2, Tag, Mail } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import {
@@ -148,10 +148,10 @@ export function MyAgents() {
     if (!deactivateId) return;
     try {
       await deactivateSubAgent.mutateAsync(deactivateId);
-      toast({ title: 'Agent deactivated', description: 'The agent has been deactivated.' });
+      toast({ title: 'Agent deleted', description: 'The agent and their partners were permanently removed. Their email and phone can now be reused.' });
       setDeactivateId(null);
     } catch (err: any) {
-      toast({ title: 'Failed to deactivate', description: err.message, variant: 'error' });
+      toast({ title: 'Failed to delete', description: err.message, variant: 'error' });
     }
   };
 
@@ -330,8 +330,8 @@ export function MyAgents() {
                             className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             onClick={() => setDeactivateId(a.id)}
                           >
-                            <ShieldOff className="size-4 mr-1" />
-                            Deactivate
+                            <Trash2 className="size-4 mr-1" />
+                            Delete
                           </Button>
                         )}
                       </TableCell>
@@ -480,9 +480,11 @@ export function MyAgents() {
       <AlertDialog open={!!deactivateId} onOpenChange={(open) => !open && setDeactivateId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Deactivate Agent?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Agent?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will prevent the agent from logging in and deactivate their active links. Existing registrations will remain attributed.
+              This permanently deletes the agent, any partners they created, and their
+              links. Their login is removed so the same email and phone can be reused.
+              This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -491,7 +493,7 @@ export function MyAgents() {
               onClick={handleDeactivate}
               className="bg-red-600 hover:bg-red-700"
             >
-              {deactivateSubAgent.isPending ? 'Deactivating...' : 'Deactivate'}
+              {deactivateSubAgent.isPending ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

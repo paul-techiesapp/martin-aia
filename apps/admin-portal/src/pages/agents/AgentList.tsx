@@ -63,10 +63,14 @@ export function AgentList() {
     setDeleteId(id);
   };
 
-  const confirmDelete = () => {
-    if (deleteId) {
-      deleteAgent.mutate(deleteId);
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await deleteAgent.mutateAsync(deleteId);
+      toast({ title: 'Agent deleted', description: 'The account and its data were permanently removed. The email and phone can now be reused.' });
       setDeleteId(null);
+    } catch (err: any) {
+      toast({ title: 'Failed to delete agent', description: err.message, variant: 'error' });
     }
   };
 
@@ -276,7 +280,9 @@ export function AgentList() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Unit</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this unit? This action cannot be undone.
+              This permanently deletes the agent, all of their sub-agents and partners,
+              and the related invitations and rewards. Their logins are removed so the
+              same email and phone can be reused. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

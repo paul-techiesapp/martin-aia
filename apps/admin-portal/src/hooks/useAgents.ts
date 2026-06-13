@@ -112,12 +112,19 @@ export function useDeleteAgent() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('agents')
-        .delete()
-        .eq('id', id);
+      // Delete via the edge function so the underlying auth.users records are removed
+      // too (agent + its sub-agents + their partners). A direct table delete would
+      // leave orphaned auth users and keep their emails reserved, blocking re-creation.
+      const response = await supabase.functions.invoke('delete-agent', {
+        body: { agent_id: id },
+      });
 
-      if (error) throw error;
+      if (response.data?.error) {
+        throw new Error(response.data.error);
+      }
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to delete agent');
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agents'] });

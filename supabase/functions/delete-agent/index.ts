@@ -6,6 +6,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Permanently deletes an agent (unit) created by an admin.
+//
+// Deletion is done by removing the underlying auth.users record, NOT by deleting
+// the agents row directly. The FK agents.user_id -> auth.users is ON DELETE CASCADE,
+// which only cascades when the auth user is removed; deleting the agents row alone
+// would leave the auth user orphaned and keep its email reserved, so the same
+// email/phone could never be re-used. We therefore collect every auth user under
+// this unit (the agent, its sub-agents, and all of their partners) and delete each
+// one, freeing email/phone/nric/agent_code for re-creation.
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -23,6 +32,7 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const authHeader = req.headers.get("Authorization");
@@ -33,62 +43,55 @@ serve(async (req) => {
       );
     }
 
-    const { data: { user: caller }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user: caller }, error: authError } = await createClient(
+      supabaseUrl,
+      supabaseAnonKey
+    ).auth.getUser(token);
 
-    if (authError || !caller) {
+    if (authError || !caller || caller.user_metadata?.role !== "admin") {
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const { data: callerAgent, error: agentError } = await supabase
-      .from("agents")
-      .select("id, parent_agent_id")
-      .eq("user_id", caller.id)
-      .single();
-
-    if (agentError || !callerAgent || callerAgent.parent_agent_id !== null) {
-      return new Response(
-        JSON.stringify({ error: "Only Agent Admins can deactivate sub-agents" }),
+        JSON.stringify({ error: "Only admins can delete agents" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const { data: targetAgent, error: targetError } = await supabase
+    // Target agent (unit)
+    const { data: target, error: targetError } = await supabase
       .from("agents")
-      .select("id, user_id, parent_agent_id")
+      .select("id, user_id")
       .eq("id", agent_id)
       .single();
 
-    if (targetError || !targetAgent) {
+    if (targetError || !target) {
       return new Response(
         JSON.stringify({ error: "Agent not found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (targetAgent.parent_agent_id !== callerAgent.id) {
-      return new Response(
-        JSON.stringify({ error: "You can only deactivate your own sub-agents" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Sub-agents under this unit (agent hierarchy is a single level deep)
+    const { data: subAgents } = await supabase
+      .from("agents")
+      .select("id, user_id")
+      .eq("parent_agent_id", target.id);
 
-    // Permanently delete the sub-agent. We delete the auth.users record(s) rather
-    // than just flipping status, so the email/phone/nric/agent_code become reusable.
-    // Deleting the auth user cascades (ON DELETE CASCADE) to remove the agents row
-    // and its agent_links. The sub-agent may also own partners, whose auth users are
-    // NOT cascade-removed, so we delete those too to avoid leaving them orphaned.
-    const { data: subPartners } = await supabase
+    const agentIds = [target.id, ...(subAgents ?? []).map((a) => a.id)];
+
+    // Partners belonging to the agent or any of its sub-agents
+    const { data: partners } = await supabase
       .from("partners")
       .select("user_id")
-      .eq("agent_id", targetAgent.id);
+      .in("agent_id", agentIds);
 
+    // Unique set of auth users to remove. Deleting each cascades to remove its
+    // agents/partners row (ON DELETE CASCADE), so no orphaned records remain.
     const userIds = Array.from(
-      new Set([targetAgent.user_id, ...(subPartners ?? []).map((p) => p.user_id)])
+      new Set([
+        target.user_id,
+        ...(subAgents ?? []).map((a) => a.user_id),
+        ...(partners ?? []).map((p) => p.user_id),
+      ])
     );
 
     const errors: string[] = [];
@@ -99,17 +102,17 @@ serve(async (req) => {
 
     if (errors.length > 0) {
       return new Response(
-        JSON.stringify({ error: `Failed to delete sub-agent: ${errors.join("; ")}` }),
+        JSON.stringify({ error: `Failed to fully delete agent: ${errors.join("; ")}` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({ success: true, deleted_users: userIds.length }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("deactivate-sub-agent error:", error);
+    console.error("delete-agent error:", error);
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

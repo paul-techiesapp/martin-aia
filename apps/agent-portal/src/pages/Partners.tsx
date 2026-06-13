@@ -39,7 +39,7 @@ import {
   AlertDialogTitle,
   useToast,
 } from '@agent-system/shared-ui';
-import { Users, UserCheck, UserPlus, ShieldOff, Tag } from 'lucide-react';
+import { Users, UserCheck, UserPlus, Trash2, Tag } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import {
   useMyPartners,
@@ -124,10 +124,10 @@ export function Partners() {
     if (!deactivateId) return;
     try {
       await deactivatePartner.mutateAsync(deactivateId);
-      toast({ title: 'Partner deactivated', description: "Partner's active links have been deactivated." });
+      toast({ title: 'Partner deleted', description: "The partner was permanently removed and their links released. Their email can now be reused." });
       setDeactivateId(null);
     } catch (err: any) {
-      toast({ title: 'Failed to deactivate', description: err.message, variant: 'error' });
+      toast({ title: 'Failed to delete', description: err.message, variant: 'error' });
     }
   };
 
@@ -239,8 +239,8 @@ export function Partners() {
                     <TableCell className="text-right">
                       {p.status === 'active' && (
                         <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => setDeactivateId(p.id)}>
-                          <ShieldOff className="size-4 mr-1" />
-                          Deactivate
+                          <Trash2 className="size-4 mr-1" />
+                          Delete
                         </Button>
                       )}
                     </TableCell>
@@ -326,13 +326,13 @@ export function Partners() {
       <AlertDialog open={!!deactivateId} onOpenChange={(open) => !open && setDeactivateId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Deactivate Partner?</AlertDialogTitle>
-            <AlertDialogDescription>This will prevent the partner from logging in. Their active links will be deactivated. Existing registrations will remain attributed.</AlertDialogDescription>
+            <AlertDialogTitle>Delete Partner?</AlertDialogTitle>
+            <AlertDialogDescription>This permanently deletes the partner and releases their links and claims. Their login is removed so the same email can be reused. This action cannot be undone.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeactivate} className="bg-red-600 hover:bg-red-700">
-              {deactivatePartner.isPending ? 'Deactivating...' : 'Deactivate'}
+              {deactivatePartner.isPending ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

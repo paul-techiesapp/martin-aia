@@ -80,25 +80,23 @@ serve(async (req) => {
       );
     }
 
-    // Step 1: Ban the auth user first (prevents new requests)
-    await supabase.auth.admin.updateUserById(partner.user_id, {
-      ban_duration: "876000h",
-    });
+    // Permanently delete the partner by removing the auth.users record. This frees
+    // the partner's email for reuse. The delete cascades (ON DELETE CASCADE) to remove
+    // the partners row; invitations.claimed_by_partner_id and agent_links.partner_id
+    // are ON DELETE SET NULL, so all of the partner's claims and links are released
+    // automatically (this replaces the old deactivate_partner_and_release RPC).
+    const { error: delErr } = await supabase.auth.admin.deleteUser(partner.user_id);
 
-    // Step 2: Atomically update status and deactivate agent links via RPC
-    const { data: releasedCount, error: rpcError } = await supabase
-      .rpc("deactivate_partner_and_release", { partner_uuid: partner_id });
-
-    if (rpcError) {
-      console.error("deactivate RPC error:", rpcError);
+    if (delErr) {
+      console.error("delete partner error:", delErr);
       return new Response(
-        JSON.stringify({ error: "Failed to deactivate partner" }),
+        JSON.stringify({ error: "Failed to delete partner" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     return new Response(
-      JSON.stringify({ success: true, released_links: releasedCount }),
+      JSON.stringify({ success: true }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

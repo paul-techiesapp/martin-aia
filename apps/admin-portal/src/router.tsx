@@ -7,6 +7,8 @@ import {
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Login } from './pages/Login';
+import { ForgotPassword } from './pages/ForgotPassword';
+import { ResetPassword } from './pages/ResetPassword';
 import { Dashboard } from './pages/Dashboard';
 import { CampaignList } from './pages/campaigns/CampaignList';
 import { CampaignForm } from './pages/campaigns/CampaignForm';
@@ -31,6 +33,19 @@ const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/login',
   component: Login,
+});
+
+// Public, unguarded password-recovery routes (reset link target lands here)
+const forgotPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/forgot-password',
+  component: ForgotPassword,
+});
+
+const resetPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/reset-password',
+  component: ResetPassword,
 });
 
 // Protected layout route
@@ -149,6 +164,8 @@ const venueDisplayRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
+  forgotPasswordRoute,
+  resetPasswordRoute,
   venueDisplayRoute,
   protectedLayoutRoute.addChildren([
     indexRoute,

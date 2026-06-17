@@ -15,6 +15,8 @@ import { Partners } from './pages/Partners';
 import { PartnerLinks } from './pages/PartnerLinks';
 import { MyAgents } from './pages/MyAgents';
 import { Account } from './pages/Account';
+import { ForgotPassword } from './pages/ForgotPassword';
+import { ResetPassword } from './pages/ResetPassword';
 import { supabase } from './lib/supabase';
 
 const isAuthenticated = async () => {
@@ -35,6 +37,19 @@ const loginRoute = createRoute({
       throw redirect({ to: '/' });
     }
   },
+});
+
+// Public, unguarded password-recovery routes (reset link target lands here)
+const forgotPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/forgot-password',
+  component: ForgotPassword,
+});
+
+const resetPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/reset-password',
+  component: ResetPassword,
 });
 
 const authenticatedRoute = createRoute({
@@ -105,6 +120,8 @@ const accountRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
+  forgotPasswordRoute,
+  resetPasswordRoute,
   authenticatedRoute.addChildren([
     indexRoute,
     campaignsRoute,

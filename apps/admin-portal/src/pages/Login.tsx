@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -131,6 +131,14 @@ export function Login() {
               >
                 {isLoading ? 'Signing in...' : 'Sign In'}
               </Button>
+              <div className="text-center">
+                <Link
+                  to="/forgot-password"
+                  className="text-sm text-slate-500 hover:text-slate-700 underline-offset-4 hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
             </form>
           </Form>
         </CardContent>

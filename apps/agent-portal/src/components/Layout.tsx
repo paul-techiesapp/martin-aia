@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
 import { cn, Button, Sheet, SheetContent, SheetTrigger, Logo } from '@agent-system/shared-ui';
-import { LayoutDashboard, CalendarDays, Link2, Award, LogOut, Menu, Users, UserCog } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Link2, Award, LogOut, Menu, Users, UserCog, KeyRound } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 const agentAdminNavigation = [
@@ -11,6 +11,7 @@ const agentAdminNavigation = [
   { name: 'Rewards', href: '/rewards', icon: Award },
   { name: 'My Agents', href: '/my-agents', icon: UserCog },
   { name: 'Partners', href: '/partners', icon: Users },
+  { name: 'Account', href: '/account', icon: KeyRound },
 ];
 
 const agentNavigation = [
@@ -18,11 +19,13 @@ const agentNavigation = [
   { name: 'Events', href: '/campaigns', icon: CalendarDays },
   { name: 'My Links', href: '/my-links', icon: Link2 },
   { name: 'Rewards', href: '/rewards', icon: Award },
+  { name: 'Account', href: '/account', icon: KeyRound },
 ];
 
 const partnerNavigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'My Links', href: '/partner-links', icon: Link2 },
+  { name: 'Account', href: '/account', icon: KeyRound },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {

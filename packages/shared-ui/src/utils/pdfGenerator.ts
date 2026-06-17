@@ -299,7 +299,7 @@ export async function generateBulkInvitationCards(
 
 export function formatSlotDate(isoDatetime: string): string {
   const date = new Date(isoDatetime);
-  return date.toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  return date.toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 export function formatTime(timeString: string): string {

@@ -11,23 +11,27 @@ import {
 } from '@agent-system/shared-ui';
 import { CalendarDays, Award, ChevronRight, Users, UserCheck, CheckCircle, UserCog } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { useRegistrationStats, usePartnerRegistrationStats } from '../hooks/useRegistrations';
+import { useRegistrationStats, useUnitRegistrationStats, usePartnerRegistrationStats } from '../hooks/useRegistrations';
 import { useActiveCampaigns } from '../hooks/useCampaigns';
 import { useMyPartners } from '../hooks/usePartners';
 import { useMySubAgents } from '../hooks/useSubAgents';
 
 function AgentDashboard() {
   const { agent, role } = useAuth();
+  const isUnitAdmin = role === 'agent_admin';
   const { data: stats, isLoading: statsLoading } = useRegistrationStats(agent?.id);
+  // Unit Admins roll up their whole unit's registrations (own + all sub-agents').
+  const { data: unitStats, isLoading: unitStatsLoading } = useUnitRegistrationStats(isUnitAdmin ? agent?.id : undefined);
   const { data: campaigns, isLoading: campaignsLoading } = useActiveCampaigns();
   const { data: partners, isLoading: partnersLoading } = useMyPartners(agent?.id);
-  const { data: subAgents, isLoading: subAgentsLoading } = useMySubAgents(role === 'agent_admin' ? agent?.id : undefined);
+  const { data: subAgents, isLoading: subAgentsLoading } = useMySubAgents(isUnitAdmin ? agent?.id : undefined);
 
+  const reportStats = isUnitAdmin ? unitStats : stats;
   const activeCampaigns = campaigns?.length ?? 0;
   const activePartners = partners?.filter(p => p.status === 'active').length ?? 0;
   const activeSubAgents = subAgents?.filter(a => a.status === 'active').length ?? 0;
 
-  const isLoading = statsLoading || campaignsLoading || partnersLoading || subAgentsLoading;
+  const isLoading = statsLoading || unitStatsLoading || campaignsLoading || partnersLoading || subAgentsLoading;
 
   return (
     <div className="flex flex-col gap-4 animate-fade-in">
@@ -49,10 +53,10 @@ function AgentDashboard() {
         />
         <StatCard
           title="Registered"
-          value={stats?.registered ?? 0}
+          value={reportStats?.registered ?? 0}
           icon={UserCheck}
           iconColor="amber"
-          description="Signed up via your links"
+          description={isUnitAdmin ? 'Across your unit' : 'Signed up via your links'}
           loading={isLoading}
         />
         {role === 'agent_admin' ? (

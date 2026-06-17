@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import type { Registration } from '@agent-system/shared-types';
 
@@ -82,5 +82,25 @@ export function useRegistrationCountBySlot(slotId?: string) {
       return count || 0;
     },
     enabled: !!slotId,
+  });
+}
+
+// Admin-only hard delete of a registration via the delete_registration RPC.
+// Removes the registrant row (cascading to attendance / otp_codes / reward) so a
+// tested or erroneous person's NRIC/phone is freed and they can register again.
+export function useDeleteRegistration() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (registrationId: string) => {
+      const { error } = await supabase.rpc('delete_registration', {
+        p_registration_id: registrationId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['registrations'] });
+      queryClient.invalidateQueries({ queryKey: ['registration-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['registration-count'] });
+    },
   });
 }

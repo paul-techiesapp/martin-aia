@@ -562,9 +562,9 @@ export function CheckOut() {
                     name="nric"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-foreground">NRIC Number</FormLabel>
+                        <FormLabel className="text-foreground">NRIC / MyKad Number</FormLabel>
                         <FormControl>
-                          <Input placeholder="S1234567A" className="h-11" {...field} />
+                          <Input placeholder="901020-10-1234" className="h-11" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

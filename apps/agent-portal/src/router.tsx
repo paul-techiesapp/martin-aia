@@ -14,6 +14,7 @@ import { Rewards } from './pages/Rewards';
 import { Partners } from './pages/Partners';
 import { PartnerLinks } from './pages/PartnerLinks';
 import { MyAgents } from './pages/MyAgents';
+import { Account } from './pages/Account';
 import { supabase } from './lib/supabase';
 
 const isAuthenticated = async () => {
@@ -95,6 +96,13 @@ const myAgentsRoute = createRoute({
   component: MyAgents,
 });
 
+// Available to every role (Unit Admin, Agent, Partner) for self-service password change
+const accountRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/account',
+  component: Account,
+});
+
 const routeTree = rootRoute.addChildren([
   loginRoute,
   authenticatedRoute.addChildren([
@@ -105,6 +113,7 @@ const routeTree = rootRoute.addChildren([
     partnersRoute,
     partnerLinksRoute,
     myAgentsRoute,
+    accountRoute,
   ]),
 ]);
 

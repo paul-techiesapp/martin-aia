@@ -10,7 +10,7 @@ export const TERMS_AND_CONDITIONS: TermsSection[] = [
   },
   {
     title: "2. Personal Data Collection",
-    body: "Your personal information (name, NRIC, phone number, email address, and occupation) will be collected for event management and verification purposes. This data will be handled in accordance with the Personal Data Protection Act (PDPA) of Singapore.",
+    body: "Your personal information (name, NRIC, phone number, email address, and occupation) will be collected for event management and verification purposes. This data will be handled in accordance with the Personal Data Protection Act 2010 (PDPA) of Malaysia.",
   },
   {
     title: "3. Photography & Recording",

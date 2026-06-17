@@ -33,16 +33,21 @@ import { format, parseISO } from 'date-fns';
 import { useAuth } from '../hooks/useAuth';
 import { useActiveCampaigns, useCampaignSlots } from '../hooks/useCampaigns';
 import { useMyLinks, useCreateLink } from '../hooks/useAgentLinks';
-import { useRegistrationsBySlot, useRegistrationStats } from '../hooks/useRegistrations';
+import { useRegistrationsBySlot, useRegistrationStats, useUnitRegistrationStats } from '../hooks/useRegistrations';
 import { useSystemSettings } from '../hooks/useSystemSettings';
 import { DEFAULT_CARD_TEMPLATE, DEFAULT_COMPANY_BRANDING } from '@agent-system/shared-types';
 import type { Slot } from '@agent-system/shared-types';
 
 export function MyLinks() {
-  const { agent } = useAuth();
+  const { agent, role } = useAuth();
+  const isUnitAdmin = role === 'agent_admin';
   const { data: campaigns, isLoading: campaignsLoading } = useActiveCampaigns();
   const { data: links, isLoading: linksLoading } = useMyLinks(agent?.id);
-  const { data: stats, isLoading: statsLoading } = useRegistrationStats(agent?.id);
+  // Unit Admins see their whole unit's totals; plain agents see only their own.
+  const { data: ownStats, isLoading: ownStatsLoading } = useRegistrationStats(agent?.id);
+  const { data: unitStats, isLoading: unitStatsLoading } = useUnitRegistrationStats(isUnitAdmin ? agent?.id : undefined);
+  const stats = isUnitAdmin ? unitStats : ownStats;
+  const statsLoading = ownStatsLoading || unitStatsLoading;
   const createLink = useCreateLink();
   const { toast } = useToast();
   const { data: systemSettings } = useSystemSettings();

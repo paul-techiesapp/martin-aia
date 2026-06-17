@@ -135,3 +135,54 @@ export function usePartnerRegistrationStats(partnerId: string | undefined) {
     enabled: !!partnerId,
   });
 }
+
+// Unit Admins (parent agents) roll up reporting across their whole unit: their
+// own registrations plus every sub-agent's. The matching RLS policy
+// ("Unit admins read unit registrations") grants the parent SELECT on sub-agent
+// rows, so this .in(agent_id, [...]) query returns the full unit.
+export function useUnitRegistrationStats(unitAgentId: string | undefined) {
+  return useQuery({
+    queryKey: ['unit-registration-stats', unitAgentId],
+    queryFn: async () => {
+      const { data: subs, error: subsError } = await supabase
+        .from('agents')
+        .select('id')
+        .eq('parent_agent_id', unitAgentId!);
+
+      if (subsError) throw subsError;
+
+      const agentIds = [unitAgentId!, ...(subs?.map((s) => s.id) ?? [])];
+
+      const { data, error } = await supabase
+        .from('registrations')
+        .select('status')
+        .in('agent_id', agentIds);
+
+      if (error) throw error;
+
+      const stats: RegistrationStats = {
+        registered: 0,
+        attended: 0,
+        completed: 0,
+        total: data?.length ?? 0,
+      };
+
+      data?.forEach((r) => {
+        switch (r.status) {
+          case RegistrationStatus.REGISTERED:
+            stats.registered++;
+            break;
+          case RegistrationStatus.ATTENDED:
+            stats.attended++;
+            break;
+          case RegistrationStatus.COMPLETED:
+            stats.completed++;
+            break;
+        }
+      });
+
+      return stats;
+    },
+    enabled: !!unitAgentId,
+  });
+}

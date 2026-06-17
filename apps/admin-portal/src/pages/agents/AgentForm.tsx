@@ -184,7 +184,7 @@ export function AgentForm() {
                     <FormItem>
                       <FormLabel>Phone</FormLabel>
                       <FormControl>
-                        <Input placeholder="+65 9123 4567" {...field} />
+                        <Input placeholder="+60 12-345 6789" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -197,9 +197,9 @@ export function AgentForm() {
                 name="nric"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>NRIC</FormLabel>
+                    <FormLabel>NRIC / MyKad</FormLabel>
                     <FormControl>
-                      <Input placeholder="S1234567A" {...field} />
+                      <Input placeholder="901020-10-1234" {...field} />
                     </FormControl>
                     <FormDescription>
                       National Registration Identity Card number

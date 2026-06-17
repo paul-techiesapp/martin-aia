@@ -19,6 +19,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogCancel,
+  AlertDialogAction,
   Input,
   Label,
   Select,
@@ -38,7 +46,7 @@ import { ArrowLeft, Plus, Trash2, Power, PowerOff, Mail, CalendarPlus, Monitor }
 import { useCampaign, useUpdateCampaignStatus, useUpdateCampaign } from '../../hooks/useCampaigns';
 import { useEmailReminders } from '../../hooks/useEmailReminders';
 import { useSlots, useCreateSlot, useDeleteSlot, useToggleSlotActive } from '../../hooks/useSlots';
-import { useRegistrationsBySlot } from '../../hooks/useRegistrations';
+import { useRegistrationsBySlot, useDeleteRegistration } from '../../hooks/useRegistrations';
 import { CampaignStatus, getEffectiveTemplate, DEFAULT_CARD_TEMPLATE } from '@agent-system/shared-types';
 import type { CardTemplate, Slot } from '@agent-system/shared-types';
 import { useState, useEffect } from 'react';
@@ -72,6 +80,21 @@ function SlotRow({
 }) {
   const { data: registrations, isLoading: isLoadingRegistrations } = useRegistrationsBySlot(slot.id);
   const count = registrations?.length ?? 0;
+  const deleteRegistration = useDeleteRegistration();
+  const { toast } = useToast();
+  const [regToDelete, setRegToDelete] = useState<{ id: string; name: string } | null>(null);
+
+  const handleConfirmDelete = async () => {
+    if (!regToDelete) return;
+    try {
+      await deleteRegistration.mutateAsync(regToDelete.id);
+      toast({ title: 'Registration removed', description: `${regToDelete.name || 'The registration'} has been deleted.` });
+    } catch (err: any) {
+      toast({ title: 'Failed to delete', description: err.message, variant: 'error' });
+    } finally {
+      setRegToDelete(null);
+    }
+  };
 
   return (
     <>
@@ -171,6 +194,7 @@ function SlotRow({
                       <TableHead>Agent</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -191,6 +215,17 @@ function SlotRow({
                             {reg.status}
                           </Badge>
                         </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="size-8 p-0"
+                            onClick={() => setRegToDelete({ id: reg.id, name: reg.invitee_name ?? '' })}
+                            aria-label="Delete registration"
+                          >
+                            <Trash2 className="size-4 text-red-500" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -200,6 +235,25 @@ function SlotRow({
           </TableCell>
         </TableRow>
       )}
+
+      <AlertDialog open={!!regToDelete} onOpenChange={(open) => !open && setRegToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this registration?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes {regToDelete?.name ? `${regToDelete.name}'s` : 'this'} registration, including
+              any check-in / attendance and reward records, and frees their NRIC and phone so they can register again.
+              This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-red-600 hover:bg-red-700">
+              Delete registration
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

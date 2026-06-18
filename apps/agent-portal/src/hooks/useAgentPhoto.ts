@@ -23,11 +23,13 @@ export function useMyAgentPhoto(userId: string | undefined) {
 }
 
 async function clearFolder(userId: string) {
-  const { data: existing } = await supabase.storage.from(BUCKET).list(userId);
+  const { data: existing, error: listError } = await supabase.storage.from(BUCKET).list(userId);
+  if (listError) throw listError;
   if (existing && existing.length > 0) {
-    await supabase.storage
+    const { error: removeError } = await supabase.storage
       .from(BUCKET)
       .remove(existing.map((f) => `${userId}/${f.name}`));
+    if (removeError) throw removeError;
   }
 }
 
@@ -45,7 +47,9 @@ export function useUploadAgentPhoto() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('You are not signed in.');
 
-      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      // Sanitize to [a-z0-9] only: filenames are browser-provided and could carry
+      // whitespace/'@'/odd chars that the set_my_agent_photo URL guard rejects.
+      const ext = ((file.name.split('.').pop() ?? 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '')) || 'jpg';
       await clearFolder(user.id); // remove any prior photo (covers ext changes)
 
       const path = `${user.id}/profile.${ext}`;

@@ -123,6 +123,7 @@ export interface Agent {
   parent_agent_id: string | null;
   is_auto_invite: boolean;
   status: AgentStatus;
+  photo_url: string | null;
   created_at: string;
   updated_at: string;
 }

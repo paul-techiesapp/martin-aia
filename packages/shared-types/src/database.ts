@@ -87,6 +87,7 @@ export interface Campaign {
   checkout_config?: CheckoutConfig;
   card_template_overrides?: Partial<CardTemplate> | null;
   max_headcount: number | null;
+  commission_cap: number | null;
 }
 
 export interface Slot {

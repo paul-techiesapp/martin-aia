@@ -35,7 +35,7 @@ import { useActiveCampaigns, useCampaignSlots } from '../hooks/useCampaigns';
 import { useMyLinks, useCreateLink } from '../hooks/useAgentLinks';
 import { useRegistrationsBySlot, useRegistrationStats, useUnitRegistrationStats } from '../hooks/useRegistrations';
 import { useSystemSettings } from '../hooks/useSystemSettings';
-import { DEFAULT_CARD_TEMPLATE, DEFAULT_COMPANY_BRANDING } from '@agent-system/shared-types';
+import { DEFAULT_CARD_TEMPLATE, DEFAULT_COMPANY_BRANDING, getEffectiveTemplate } from '@agent-system/shared-types';
 import type { Slot } from '@agent-system/shared-types';
 
 export function MyLinks() {
@@ -138,7 +138,12 @@ export function MyLinks() {
       }));
 
       const branding = systemSettings?.company_branding ?? DEFAULT_COMPANY_BRANDING;
-      const template = systemSettings?.card_template ?? DEFAULT_CARD_TEMPLATE;
+      // Honor any per-campaign card template overrides (panel/accent/text colors,
+      // subtitle, instruction, etc.) instead of always using the system default.
+      const template = getEffectiveTemplate(
+        systemSettings?.card_template ?? DEFAULT_CARD_TEMPLATE,
+        link.slot?.campaign?.card_template_overrides ?? null,
+      );
       const doc = await generateBulkInvitationCards(invitationData, template, branding);
       doc.save(`invitation-cards-${link.slot.campaign.name}.pdf`);
       toast({ title: `${regs.length} card${regs.length > 1 ? 's' : ''} downloaded` });

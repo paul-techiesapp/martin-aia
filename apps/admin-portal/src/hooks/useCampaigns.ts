@@ -73,6 +73,9 @@ export function useUpdateCampaign() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
       queryClient.invalidateQueries({ queryKey: ['campaigns', data.id] });
+      // PDF Export embeds campaign.card_template_overrides in its own query, so
+      // refresh it too — otherwise freshly-saved card colors render stale there.
+      queryClient.invalidateQueries({ queryKey: ['registrations-for-pdf'] });
     },
   });
 }

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { cn } from '../../lib/utils';
 import { Badge, getStatusVariant } from './badge';
+import { Users } from 'lucide-react';
 
 export interface InvitationCardProps {
   /** Event/campaign name */
@@ -23,6 +24,11 @@ export interface InvitationCardProps {
   inviteeType?: 'agent' | 'business_partner';
   /** Invitation status — when omitted, badge is hidden */
   status?: string;
+  /**
+   * Number of people registered via this link. When provided (and no single
+   * inviteeName is shown), renders a "N registered" label in the bottom row.
+   */
+  registeredCount?: number;
 
   /** Company name displayed on card. Falls back to "RACC Agency". */
   companyName?: string;
@@ -43,6 +49,7 @@ export function InvitationCard({
   inviteeName,
   inviteeType,
   status,
+  registeredCount,
   companyName,
   logoUrl,
   actions,
@@ -54,7 +61,10 @@ export function InvitationCard({
 
   // Show bottom row when there's any content to render below the divider
   const hasBottomRow =
-    inviteeName !== undefined || inviteeType !== undefined || actions !== undefined;
+    inviteeName !== undefined ||
+    inviteeType !== undefined ||
+    actions !== undefined ||
+    registeredCount !== undefined;
 
   return (
     <div
@@ -143,6 +153,11 @@ export function InvitationCard({
                       </div>
                     )}
                   </>
+                ) : registeredCount !== undefined ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600">
+                    <Users className="size-3" />
+                    {registeredCount} registered
+                  </span>
                 ) : inviteeType ? (
                   <span className="text-[10px] text-slate-500 capitalize">
                     {inviteeType.replace('_', ' ')}

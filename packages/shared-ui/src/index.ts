@@ -127,6 +127,10 @@ export type { StatCardProps, StatCardGridProps } from './components/ui/stat-card
 export { generateInvitationCard, generateBulkInvitationCards, formatSlotDate, formatTime } from './utils/pdfGenerator';
 export type { InvitationCardData } from './utils/pdfGenerator';
 
+// Excel Generation
+export { generateRegistrantsWorkbook } from './utils/excelGenerator';
+export type { RegistrantRow, RegistrantsWorkbookMeta } from './utils/excelGenerator';
+
 // Font Utilities
 export { CURATED_FONTS, loadFont, getFontDisplayName } from './utils/fonts';
 

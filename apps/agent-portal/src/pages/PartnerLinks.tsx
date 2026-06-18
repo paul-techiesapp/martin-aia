@@ -16,8 +16,8 @@ import {
   TooltipTrigger,
   useToast,
 } from '@agent-system/shared-ui';
-import { Link2, Copy, Check, MapPin, UserCheck, CheckCircle, Users, FileDown, Loader2 } from 'lucide-react';
-import { generateBulkInvitationCards } from '@agent-system/shared-ui';
+import { Link2, Copy, Check, MapPin, UserCheck, CheckCircle, Users, FileDown, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { generateBulkInvitationCards, generateRegistrantsWorkbook } from '@agent-system/shared-ui';
 import type { InvitationCardData } from '@agent-system/shared-ui';
 import { supabase } from '../lib/supabase';
 import { format, parseISO } from 'date-fns';
@@ -69,6 +69,7 @@ export function PartnerLinks() {
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
   const [creatingSlotId, setCreatingSlotId] = useState<string | null>(null);
   const [downloadingLinkId, setDownloadingLinkId] = useState<string | null>(null);
+  const [exportingLinkId, setExportingLinkId] = useState<string | null>(null);
 
   const { data: slots } = useCampaignSlots(selectedCampaignId ?? '');
 
@@ -152,7 +153,41 @@ export function PartnerLinks() {
     }
   };
 
+  const handleExportRegistrants = async (link: NonNullable<typeof links>[number]) => {
+    if (!link.slot) return;
+    setExportingLinkId(link.id);
+    try {
+      const { data: regs, error } = await supabase
+        .from('registrations')
+        .select(
+          'invitee_name, invitee_nric, invitee_phone, invitee_email, invitee_occupation, status, registered_at',
+        )
+        .eq('agent_link_id', link.id)
+        .order('registered_at', { ascending: true });
+
+      if (error) throw error;
+      if (!regs || regs.length === 0) {
+        toast({ title: 'No registrants', description: 'No one has registered via this link yet.', variant: 'error' });
+        return;
+      }
+
+      await generateRegistrantsWorkbook(regs, {
+        campaignName: link.slot.campaign.name,
+        slotDate: link.slot.start_at,
+      });
+      toast({ title: `${regs.length} registrant${regs.length > 1 ? 's' : ''} exported` });
+    } catch (err: any) {
+      toast({ title: 'Failed to export list', description: err.message, variant: 'error' });
+    } finally {
+      setExportingLinkId(null);
+    }
+  };
+
   const isLoading = campaignsLoading || linksLoading || statsLoading;
+
+  // "My Active Links" lists only links whose event slot has not yet ended.
+  const now = new Date();
+  const activeLinks = links?.filter((l) => !l.slot || parseISO(l.slot.end_at) >= now);
 
   return (
     <div className="flex flex-col gap-4 animate-fade-in">
@@ -316,28 +351,52 @@ export function PartnerLinks() {
       )}
 
       {/* Existing Links Summary */}
-      {links && links.length > 0 && (
+      {activeLinks && activeLinks.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>My Active Links</CardTitle>
             <CardDescription>
-              {links.length} link{links.length !== 1 ? 's' : ''} created
+              {activeLinks.length} link{activeLinks.length !== 1 ? 's' : ''} created
             </CardDescription>
           </CardHeader>
           <CardContent>
             <TooltipProvider>
               <div className="space-y-3">
-                {links.map((link) => (
+                {activeLinks.map((link) => (
                   <InvitationCard
                     key={link.id}
                     eventName={link.slot?.campaign?.name ?? 'Unknown Event'}
                     venue={link.slot?.campaign?.venue ?? '-'}
                     date={link.slot ? parseISO(link.slot.start_at) : new Date()}
                     startTime={link.slot ? format(parseISO(link.slot.start_at), 'HH:mm') : '-'}
+                    registeredCount={link.registration_count}
                     companyName={systemSettings?.company_branding?.companyName}
                     logoUrl={systemSettings?.company_branding?.logoUrl}
                     actions={
                       <div className="flex items-center gap-1">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="size-8 p-0"
+                              onClick={() => handleExportRegistrants(link)}
+                              disabled={exportingLinkId === link.id || link.registration_count === 0}
+                              aria-label="Download registrant list (Excel)"
+                            >
+                              {exportingLinkId === link.id ? (
+                                <Loader2 className="size-4 animate-spin" />
+                              ) : (
+                                <FileSpreadsheet className="size-4" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {link.registration_count === 0
+                              ? 'No registrants yet'
+                              : 'Download registrant list (Excel)'}
+                          </TooltipContent>
+                        </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button

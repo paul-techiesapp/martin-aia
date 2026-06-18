@@ -335,9 +335,12 @@ importers:
       tailwind-merge:
         specifier: ^2.2.0
         version: 2.6.1
+      write-excel-file:
+        specifier: ^4.1.1
+        version: 4.1.1
       zod:
-        specifier: 3.22.4
-        version: 3.22.4
+        specifier: 3.23.8
+        version: 3.23.8
     devDependencies:
       '@types/jsbarcode':
         specifier: ^3.11.4
@@ -2399,6 +2402,10 @@ packages:
     resolution: {integrity: sha512-r6lPcBGxZXlIcymEu7InxDMhdW0KDxpLgoFLcguasxCaJ/SOIZwINatK9KY/tf+ZrlywOKU0UDj3ATXUBfxJXA==}
     engines: {node: '>=8'}
 
+  write-excel-file@4.1.1:
+    resolution: {integrity: sha512-MUnCnNtQrcZek832ZcU24uU0rSphFmKPD1DvIjXOlygVb93CV7Tme6H3jUTkxsMmjB2W7HIzERzjqTi5kui71A==}
+    engines: {node: '>=18'}
+
   ws@8.19.0:
     resolution: {integrity: sha512-blAT2mjOEIi0ZzruJfIhb3nps74PRWTCz1IjglWEEpQl5XS/UNama6u2/rjFkDDouqr4L67ry+1aGIALViWjDg==}
     engines: {node: '>=10.0.0'}
@@ -2427,9 +2434,6 @@ packages:
 
   yoga-layout@2.0.1:
     resolution: {integrity: sha512-tT/oChyDXelLo2A+UVnlW9GU7CsvFMaEnd9kVFsaiCQonFAXd3xrHhkLYu+suwwosrAEQ746xBU+HvYtm1Zs2Q==}
-
-  zod@3.22.4:
-    resolution: {integrity: sha512-iC+8Io04lddc+mVqQ9AZ7OQ2MrUKGN+oIQyq1vemgt46jwCwLfhq7/pwnBnNXXXZb8VTVLKwp9EDkx+ryxIWmg==}
 
   zod@3.23.8:
     resolution: {integrity: sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==}
@@ -4473,6 +4477,10 @@ snapshots:
       string-width: 4.2.3
       strip-ansi: 6.0.1
 
+  write-excel-file@4.1.1:
+    dependencies:
+      fflate: 0.8.2
+
   ws@8.19.0: {}
 
   y18n@4.0.3: {}
@@ -4499,7 +4507,5 @@ snapshots:
       yargs-parser: 18.1.3
 
   yoga-layout@2.0.1: {}
-
-  zod@3.22.4: {}
 
   zod@3.23.8: {}

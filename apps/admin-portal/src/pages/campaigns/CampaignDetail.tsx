@@ -549,7 +549,7 @@ export function CampaignDetail() {
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -595,6 +595,18 @@ export function CampaignDetail() {
           <CardContent>
             <p className="font-semibold text-foreground">
               {campaign.max_headcount ? `${campaign.max_headcount} max` : 'Unlimited'}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Commission Cap
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="font-semibold text-foreground">
+              {campaign.commission_cap ? `${campaign.commission_cap} invitees` : 'No cap'}
             </p>
           </CardContent>
         </Card>

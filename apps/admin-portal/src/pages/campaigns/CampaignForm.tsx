@@ -41,6 +41,10 @@ const campaignSchema = z.object({
     (val) => (val === '' || val === null || val === undefined ? null : Number(val)),
     z.number().int().positive().nullable()
   ),
+  commission_cap: z.preprocess(
+    (val) => (val === '' || val === null || val === undefined ? null : Number(val)),
+    z.number().int().positive().nullable()
+  ),
 });
 
 type CampaignFormData = z.infer<typeof campaignSchema>;
@@ -64,6 +68,7 @@ export function CampaignForm() {
       registration_type: InvitationType.BUSINESS_OPPORTUNITY,
       status: CampaignStatus.DRAFT,
       max_headcount: null,
+      commission_cap: null,
     },
   });
 
@@ -77,13 +82,18 @@ export function CampaignForm() {
         registration_type: campaign.registration_type,
         status: campaign.status,
         max_headcount: campaign.max_headcount,
+        commission_cap: campaign.commission_cap,
       });
     }
   }, [campaign, form]);
 
   const onSubmit = async (data: CampaignFormData) => {
     try {
-      const payload = { ...data, max_headcount: data.max_headcount || null };
+      const payload = {
+        ...data,
+        max_headcount: data.max_headcount || null,
+        commission_cap: data.commission_cap || null,
+      };
       if (isEditing && campaignId) {
         await updateCampaign.mutateAsync({ id: campaignId, ...payload });
       } else {
@@ -270,6 +280,31 @@ export function CampaignForm() {
                     </FormControl>
                     <FormDescription>
                       Maximum total attendees across all slots. Leave empty for unlimited.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="commission_cap"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Commission Cap (first X invitees)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="Leave empty for no cap"
+                        value={field.value ?? ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          field.onChange(val === '' ? null : parseInt(val));
+                        }}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Only the first X invitees who complete the event earn a commission for their agent. Leave empty so every completion earns commission.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

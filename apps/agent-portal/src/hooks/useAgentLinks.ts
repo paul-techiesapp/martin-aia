@@ -17,11 +17,11 @@ interface AgentLinkWithSlotCampaign extends AgentLink {
   registration_count: number;
 }
 
-export function useMyLinks(agentId: string | undefined) {
+export function useMyLinks(agentId: string | undefined, includeInactive = false) {
   return useQuery({
-    queryKey: ['my-links', agentId],
+    queryKey: ['my-links', agentId, includeInactive],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('agent_links')
         .select(`
           *,
@@ -33,9 +33,13 @@ export function useMyLinks(agentId: string | undefined) {
           )
         `)
         .eq('agent_id', agentId!)
-        .is('partner_id', null)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
+        .is('partner_id', null);
+
+      if (!includeInactive) {
+        query = query.eq('is_active', true);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
 
@@ -131,11 +135,11 @@ export function useCreateLink() {
   });
 }
 
-export function usePartnerLinks(partnerId: string | undefined) {
+export function usePartnerLinks(partnerId: string | undefined, includeInactive = false) {
   return useQuery({
-    queryKey: ['partner-links', partnerId],
+    queryKey: ['partner-links', partnerId, includeInactive],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('agent_links')
         .select(`
           *,
@@ -146,9 +150,13 @@ export function usePartnerLinks(partnerId: string | undefined) {
             campaign:campaigns(id, name, venue, card_template_overrides)
           )
         `)
-        .eq('partner_id', partnerId!)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
+        .eq('partner_id', partnerId!);
+
+      if (!includeInactive) {
+        query = query.eq('is_active', true);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
 

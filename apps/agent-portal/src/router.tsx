@@ -10,6 +10,7 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Campaigns } from './pages/Campaigns';
 import { MyLinks } from './pages/MyLinks';
+import { AllLinks } from './pages/AllLinks';
 import { Rewards } from './pages/Rewards';
 import { Partners } from './pages/Partners';
 import { PartnerLinks } from './pages/PartnerLinks';
@@ -86,6 +87,12 @@ const myLinksRoute = createRoute({
   component: MyLinks,
 });
 
+const allLinksRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/all-links',
+  component: AllLinks,
+});
+
 const rewardsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/rewards',
@@ -126,6 +133,7 @@ const routeTree = rootRoute.addChildren([
     indexRoute,
     campaignsRoute,
     myLinksRoute,
+    allLinksRoute,
     rewardsRoute,
     partnersRoute,
     partnerLinksRoute,

@@ -25,7 +25,8 @@ import {
   TooltipTrigger,
   useToast,
 } from '@agent-system/shared-ui';
-import { Link2, Copy, Check, MapPin, UserCheck, CheckCircle, Users, FileDown, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { Link2, Copy, Check, MapPin, UserCheck, CheckCircle, Users, FileDown, FileSpreadsheet, Loader2, ArrowRight } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
 import { generateBulkInvitationCards, generateRegistrantsWorkbook } from '@agent-system/shared-ui';
 import type { InvitationCardData } from '@agent-system/shared-ui';
 import { supabase } from '../lib/supabase';
@@ -193,9 +194,17 @@ export function MyLinks() {
 
   return (
     <div className="flex flex-col gap-4 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">My Links</h1>
-        <p className="text-sm text-muted-foreground">Generate and share registration links for events</p>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">My Links</h1>
+          <p className="text-sm text-muted-foreground">Generate and share registration links for events</p>
+        </div>
+        <Link
+          to="/all-links"
+          className="inline-flex items-center gap-1 whitespace-nowrap text-sm font-medium text-sky-600 hover:text-sky-700 mt-1"
+        >
+          View all links <ArrowRight className="size-4" />
+        </Link>
       </div>
 
       <StatCardGrid columns={3}>

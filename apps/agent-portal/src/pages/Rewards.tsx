@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Card,
@@ -15,6 +16,11 @@ import {
   StatCard,
   StatCardGrid,
   TableSkeleton,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@agent-system/shared-ui';
 import { Banknote, TrendingUp, Clock, CheckCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
@@ -74,6 +80,28 @@ export function Rewards() {
     enabled: !!agent?.id,
   });
 
+  // Event filter for the Reward History table
+  const [eventFilter, setEventFilter] = useState<string>('all');
+
+  // Unique events derived from the agent's completed registrations
+  const eventOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const reg of completedRegistrations ?? []) {
+      const campaign = reg.slot?.campaign;
+      if (campaign?.id) {
+        map.set(campaign.id, campaign.name ?? 'Untitled Event');
+      }
+    }
+    return Array.from(map, ([id, name]) => ({ id, name }));
+  }, [completedRegistrations]);
+
+  const filteredRegistrations = useMemo(() => {
+    if (eventFilter === 'all') return completedRegistrations ?? [];
+    return (completedRegistrations ?? []).filter(
+      (reg) => reg.slot?.campaign?.id === eventFilter
+    );
+  }, [completedRegistrations, eventFilter]);
+
   const rewardAmount = agent?.tier?.reward_amount ?? 0;
   const completedCount = stats?.completed ?? 0;
 
@@ -127,11 +155,28 @@ export function Rewards() {
       </StatCardGrid>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Reward History</CardTitle>
-          <CardDescription>
-            Your completed attendances and earned rewards
-          </CardDescription>
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1.5">
+            <CardTitle>Reward History</CardTitle>
+            <CardDescription>
+              Your completed attendances and earned rewards
+            </CardDescription>
+          </div>
+          {eventOptions.length > 0 && (
+            <Select value={eventFilter} onValueChange={setEventFilter}>
+              <SelectTrigger className="w-full sm:w-[240px]">
+                <SelectValue placeholder="Filter by event" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All events</SelectItem>
+                {eventOptions.map((event) => (
+                  <SelectItem key={event.id} value={event.id}>
+                    {event.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -139,6 +184,10 @@ export function Rewards() {
           ) : !completedRegistrations || completedRegistrations.length === 0 ? (
             <p className="text-muted-foreground">
               No completed attendances yet. Rewards are earned when your invitees complete full attendance (check-in and check-out).
+            </p>
+          ) : filteredRegistrations.length === 0 ? (
+            <p className="text-muted-foreground">
+              No completed attendances for the selected event.
             </p>
           ) : (
             <div className="overflow-auto rounded-md border">
@@ -153,7 +202,7 @@ export function Rewards() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {completedRegistrations.map((reg) => (
+                {filteredRegistrations.map((reg) => (
                   <TableRow key={reg.id}>
                     <TableCell className="font-medium">
                       {reg.slot?.campaign?.name ?? '-'}

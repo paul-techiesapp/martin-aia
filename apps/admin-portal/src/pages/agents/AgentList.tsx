@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import {
+  Avatar,
   Button,
   Table,
   TableBody,
@@ -229,7 +230,12 @@ export function AgentList() {
               <TableBody>
                 {agents?.map((agent) => (
                   <TableRow key={agent.id}>
-                    <TableCell className="font-medium">{agent.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2.5">
+                        <Avatar src={agent.photo_url} name={agent.name} size="sm" />
+                        <span>{agent.name}</span>
+                      </div>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">{agent.agent_code}</TableCell>
                     <TableCell className="text-muted-foreground">{agent.email}</TableCell>
                     <TableCell className="text-muted-foreground">{agent.phone}</TableCell>

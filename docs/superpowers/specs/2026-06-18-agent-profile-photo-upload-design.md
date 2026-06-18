@@ -48,9 +48,12 @@ Non-goals:
     -- would accept an attacker host (e.g. https://evil.com/storage/v1/object/
     -- public/agent-photos/x) that then loads in an admin's browser via <img>.
     IF p_url IS NOT NULL
-       AND p_url !~ (
-         '^https?://(localhost|127\.0\.0\.1|[a-z0-9-]+\.supabase\.co)(:[0-9]+)?'
-         || '/storage/v1/object/public/agent-photos/' || auth.uid()::text || '/'
+       AND (
+         p_url ~ '[[:space:]@]'   -- block CR/LF and userinfo host-spoofing
+         OR p_url !~ (
+           '^https?://(localhost|127\.0\.0\.1|[a-z0-9-]+\.supabase\.co)(:[0-9]+)?'
+           || '/storage/v1/object/public/agent-photos/' || auth.uid()::text || '/[^/]+$'
+         )
        ) THEN
       RAISE EXCEPTION 'Invalid photo URL';
     END IF;

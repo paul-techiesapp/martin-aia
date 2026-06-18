@@ -44,13 +44,20 @@ BEGIN
   -- Reject anything that is not a public URL for THIS project's agent-photos
   -- bucket inside the caller's own uid folder. An unanchored LIKE '%...%' would
   -- accept e.g. https://evil.com/storage/v1/object/public/agent-photos/x, which
-  -- would then load in an admin's browser via <img src>. Anchor the host to
-  -- localhost / *.supabase.co and pin the path to auth.uid() so only our own
-  -- storage origin and the caller's own folder pass. NULL clears the photo.
+  -- would then load in an admin's browser via <img src>. We:
+  --   * reject any whitespace or '@' first — blocks CR/LF tricks and userinfo
+  --     host-spoofing (https://x.supabase.co@evil.com/...); real URLs have neither;
+  --   * anchor the host to localhost / *.supabase.co, pin the path to the
+  --     caller's own auth.uid() folder, and require a filename segment ending
+  --     the string ('/[^/]+$') so nothing can trail after the object name.
+  -- NULL clears the photo.
   IF p_url IS NOT NULL
-     AND p_url !~ (
-       '^https?://(localhost|127\.0\.0\.1|[a-z0-9-]+\.supabase\.co)(:[0-9]+)?'
-       || '/storage/v1/object/public/agent-photos/' || auth.uid()::text || '/'
+     AND (
+       p_url ~ '[[:space:]@]'
+       OR p_url !~ (
+         '^https?://(localhost|127\.0\.0\.1|[a-z0-9-]+\.supabase\.co)(:[0-9]+)?'
+         || '/storage/v1/object/public/agent-photos/' || auth.uid()::text || '/[^/]+$'
+       )
      ) THEN
     RAISE EXCEPTION 'Invalid photo URL';
   END IF;

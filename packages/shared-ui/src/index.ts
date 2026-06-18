@@ -75,6 +75,8 @@ export {
 
 // New UI Components
 export { Badge, badgeVariants, getStatusVariant } from './components/ui/badge';
+export { Avatar } from './components/ui/avatar';
+export type { AvatarProps } from './components/ui/avatar';
 export { Skeleton, SkeletonGroup, StatCardSkeleton, TableSkeleton } from './components/ui/skeleton';
 export { Toast, toastVariants } from './components/ui/toast';
 export { Toaster } from './components/ui/toaster';

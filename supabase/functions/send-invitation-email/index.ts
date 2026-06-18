@@ -193,11 +193,15 @@ async function generateInvitationPdf(
   // Date display
   if (template.visibleElements.includes("date")) {
     const panelText = hexToRgb(template.panelTextColor);
-    doc.setTextColor(panelText.r, panelText.g, panelText.b);
+
+    // Day number in the accent color (mirrors the in-app card); month/year and
+    // time stay in the panel text color for legibility on the dark panel.
+    doc.setTextColor(accent.r, accent.g, accent.b);
     doc.setFontSize(22);
     doc.setFont(fontFamily, "bold");
     doc.text(dayNum, leftW / 2, 55, { align: "center" });
 
+    doc.setTextColor(panelText.r, panelText.g, panelText.b);
     doc.setFontSize(9);
     doc.setFont(fontFamily, "bold");
     doc.text(monthYear, leftW / 2, 63, { align: "center" });
@@ -262,9 +266,9 @@ async function generateInvitationPdf(
     );
   }
 
-  // Dashed divider
+  // Dashed divider — in the accent color (mirrors the in-app card)
   const dividerY = nameEndY + 10;
-  doc.setDrawColor(226, 232, 240);
+  doc.setDrawColor(accent.r, accent.g, accent.b);
   doc.setLineDashPattern([1, 1], 0);
   doc.line(rightX, dividerY, rightX + rightW, dividerY);
   doc.setLineDashPattern([], 0);
@@ -447,7 +451,7 @@ Deno.serve(async (req) => {
     // 5. Fetch slot + campaign
     const { data: slot, error: slotError } = await supabase
       .from("slots")
-      .select("id, start_at, end_at, campaign:campaigns(id, name, venue)")
+      .select("id, start_at, end_at, campaign:campaigns(id, name, venue, card_template_overrides)")
       .eq("id", registration.slot_id)
       .single();
 
@@ -475,9 +479,19 @@ Deno.serve(async (req) => {
       ? { ...DEFAULT_BRANDING, ...settings.company_branding }
       : { ...DEFAULT_BRANDING };
 
-    const template: CardTemplate = settings?.card_template
+    const baseTemplate: CardTemplate = settings?.card_template
       ? { ...DEFAULT_TEMPLATE, ...settings.card_template }
       : { ...DEFAULT_TEMPLATE };
+
+    // Apply per-campaign card template overrides on top of the system default,
+    // mirroring getEffectiveTemplate() used by the in-app download paths so the
+    // emailed card matches what the admin configured for the campaign.
+    const campaignOverrides = (campaign?.card_template_overrides ?? null) as
+      | Partial<CardTemplate>
+      | null;
+    const template: CardTemplate = campaignOverrides
+      ? { ...baseTemplate, ...campaignOverrides }
+      : baseTemplate;
 
     // 7. Resolve link_code for the reference token display
     const tokenRef = link_code

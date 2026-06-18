@@ -151,11 +151,17 @@ async function drawInvitationCard(
   // Date display
   if (template.visibleElements.includes('date')) {
     const panelText = hexToRgb(template.panelTextColor);
-    doc.setTextColor(panelText.r, panelText.g, panelText.b);
+    const accent = hexToRgb(template.accentColor);
+
+    // The large day number uses the accent color so the template's accent
+    // choice is actually visible on the card. Month/year and time stay in the
+    // panel text color for legibility on the dark panel.
+    doc.setTextColor(accent.r, accent.g, accent.b);
     doc.setFontSize(22);
     doc.setFont(template.fontFamily, 'bold');
     doc.text(dayNum, leftW / 2, 55, { align: 'center' });
 
+    doc.setTextColor(panelText.r, panelText.g, panelText.b);
     doc.setFontSize(9);
     doc.setFont(template.fontFamily, 'bold');
     doc.text(monthYear, leftW / 2, 63, { align: 'center' });
@@ -208,9 +214,11 @@ async function drawInvitationCard(
     doc.text('Scan for check-in', qrX + template.qrSize / 2, qrY + template.qrSize + 3, { align: 'center' });
   }
 
-  // Dashed divider
+  // Dashed divider — drawn in the accent color so the template accent is
+  // reflected on the right (light) side of the card as well.
   const dividerY = nameEndY + 10;
-  doc.setDrawColor(226, 232, 240);
+  const dividerAccent = hexToRgb(template.accentColor);
+  doc.setDrawColor(dividerAccent.r, dividerAccent.g, dividerAccent.b);
   doc.setLineDashPattern([1, 1], 0);
   doc.line(rightX, dividerY, rightX + rightW, dividerY);
   doc.setLineDashPattern([], 0);

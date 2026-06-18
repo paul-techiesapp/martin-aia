@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-import type { AgentLink } from '@agent-system/shared-types';
+import type { AgentLink, CardTemplate } from '@agent-system/shared-types';
 
 interface AgentLinkWithSlotCampaign extends AgentLink {
   slot: {
@@ -11,6 +11,7 @@ interface AgentLinkWithSlotCampaign extends AgentLink {
       id: string;
       name: string;
       venue: string;
+      card_template_overrides?: Partial<CardTemplate> | null;
     };
   };
   registration_count: number;
@@ -28,7 +29,7 @@ export function useMyLinks(agentId: string | undefined) {
             id,
             start_at,
             end_at,
-            campaign:campaigns(id, name, venue)
+            campaign:campaigns(id, name, venue, card_template_overrides)
           )
         `)
         .eq('agent_id', agentId!)
@@ -142,7 +143,7 @@ export function usePartnerLinks(partnerId: string | undefined) {
             id,
             start_at,
             end_at,
-            campaign:campaigns(id, name, venue)
+            campaign:campaigns(id, name, venue, card_template_overrides)
           )
         `)
         .eq('partner_id', partnerId!)

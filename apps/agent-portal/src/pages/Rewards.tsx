@@ -162,21 +162,19 @@ export function Rewards() {
               Your completed attendances and earned rewards
             </CardDescription>
           </div>
-          {eventOptions.length > 0 && (
-            <Select value={eventFilter} onValueChange={setEventFilter}>
-              <SelectTrigger className="w-full sm:w-[240px]">
-                <SelectValue placeholder="Filter by event" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All events</SelectItem>
-                {eventOptions.map((event) => (
-                  <SelectItem key={event.id} value={event.id}>
-                    {event.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          <Select value={eventFilter} onValueChange={setEventFilter}>
+            <SelectTrigger className="w-full sm:w-[240px]">
+              <SelectValue placeholder="Filter by event" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All events</SelectItem>
+              {eventOptions.map((event) => (
+                <SelectItem key={event.id} value={event.id}>
+                  {event.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </CardHeader>
         <CardContent>
           {isLoading ? (

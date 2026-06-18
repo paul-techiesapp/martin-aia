@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,9 +18,11 @@ import {
   FormMessage,
   useToast,
   supabase,
+  Avatar,
 } from '@agent-system/shared-ui';
-import { KeyRound } from 'lucide-react';
+import { KeyRound, Camera } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useMyAgentPhoto, useUploadAgentPhoto, useRemoveAgentPhoto } from '../hooks/useAgentPhoto';
 
 const passwordSchema = z
   .object({
@@ -42,6 +45,41 @@ export function Account() {
     resolver: zodResolver(passwordSchema),
     defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' },
   });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { data: photoUrl } = useMyAgentPhoto(user?.id);
+  const uploadPhoto = useUploadAgentPhoto();
+  const removePhoto = useRemoveAgentPhoto();
+  const photoBusy = uploadPhoto.isPending || removePhoto.isPending;
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // let the user re-pick the same file later
+    if (!file) return;
+    try {
+      await uploadPhoto.mutateAsync(file);
+      toast({ title: 'Photo updated', description: 'Your profile photo has been saved.' });
+    } catch (err) {
+      toast({
+        title: 'Could not upload photo',
+        description: err instanceof Error ? err.message : 'Please try again.',
+        variant: 'error',
+      });
+    }
+  };
+
+  const handlePhotoRemove = async () => {
+    try {
+      await removePhoto.mutateAsync();
+      toast({ title: 'Photo removed' });
+    } catch (err) {
+      toast({
+        title: 'Could not remove photo',
+        description: err instanceof Error ? err.message : 'Please try again.',
+        variant: 'error',
+      });
+    }
+  };
 
   const displayName = role === 'partner' ? partner?.name : agent?.name;
 
@@ -90,6 +128,46 @@ export function Account() {
           </CardDescription>
         </CardHeader>
       </Card>
+
+      {agent && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Camera className="size-4" />
+              Profile Photo
+            </CardTitle>
+            <CardDescription>
+              Upload a photo so your team can recognize you. JPG, PNG, or WebP up to 2 MB.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <Avatar src={photoUrl} name={agent.name} size="lg" />
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={handlePhotoChange}
+                />
+                <Button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={photoBusy}
+                >
+                  {uploadPhoto.isPending ? 'Uploading…' : photoUrl ? 'Change Photo' : 'Upload Photo'}
+                </Button>
+                {photoUrl && (
+                  <Button type="button" variant="outline" onClick={handlePhotoRemove} disabled={photoBusy}>
+                    {removePhoto.isPending ? 'Removing…' : 'Remove'}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

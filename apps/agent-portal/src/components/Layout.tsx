@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
-import { cn, Button, Sheet, SheetContent, SheetTrigger, Logo } from '@agent-system/shared-ui';
+import { cn, Button, Sheet, SheetContent, SheetTrigger, Logo, Avatar } from '@agent-system/shared-ui';
 import { LayoutDashboard, CalendarDays, Link2, Award, LogOut, Menu, Users, UserCog, KeyRound } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useMyAgentPhoto } from '../hooks/useAgentPhoto';
 
 const agentAdminNavigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -30,7 +31,8 @@ const partnerNavigation = [
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const { agent, partner, role, isLoading, session, signOut } = useAuth();
+  const { agent, partner, role, isLoading, session, signOut, user } = useAuth();
+  const { data: photoUrl } = useMyAgentPhoto(user?.id);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Authenticated but not linked to any agent/partner profile. Previously the
@@ -123,6 +125,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   </Button>
                 </SheetTrigger>
               </Sheet>
+              {role !== 'partner' && <Avatar src={photoUrl} name={displayName} size="sm" />}
               {displayName && (
                 <p className="text-sm text-muted-foreground">
                   Welcome, <span className="font-medium text-foreground">{displayName}</span>

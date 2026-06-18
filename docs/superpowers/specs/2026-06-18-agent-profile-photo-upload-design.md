@@ -43,8 +43,18 @@ Non-goals:
   SET search_path = public
   AS $$
   BEGIN
-    -- Accept only a null (clear) or a URL pointing at our own agent-photos bucket.
-    IF p_url IS NOT NULL AND p_url NOT LIKE '%/storage/v1/object/public/agent-photos/%' THEN
+    -- Accept only NULL (clear) or a public URL for THIS project's agent-photos
+    -- bucket inside the caller's own uid folder. An unanchored LIKE '%...%'
+    -- would accept an attacker host (e.g. https://evil.com/storage/v1/object/
+    -- public/agent-photos/x) that then loads in an admin's browser via <img>.
+    IF p_url IS NOT NULL
+       AND (
+         p_url ~ '[[:space:]@]'   -- block CR/LF and userinfo host-spoofing
+         OR p_url !~ (
+           '^https?://(localhost|127\.0\.0\.1|[a-z0-9-]+\.supabase\.co)(:[0-9]+)?'
+           || '/storage/v1/object/public/agent-photos/' || auth.uid()::text || '/[^/]+$'
+         )
+       ) THEN
       RAISE EXCEPTION 'Invalid photo URL';
     END IF;
     UPDATE agents
@@ -54,7 +64,7 @@ Non-goals:
   $$;
   GRANT EXECUTE ON FUNCTION set_my_agent_photo(text) TO authenticated;
   ```
-  Passing `NULL` clears the photo (used by "Remove photo"). The `LIKE` guard prevents storing arbitrary text as a photo URL.
+  Passing `NULL` clears the photo (used by "Remove photo"). The guard anchors the host (`localhost`/`*.supabase.co`) and pins the path to `auth.uid()`'s own folder, so an agent cannot store an arbitrary external URL (which would otherwise load in an admin's browser) — defense in depth matching the storage RLS.
 
 ### 2. shared-types — `packages/shared-types/src/database.ts`
 

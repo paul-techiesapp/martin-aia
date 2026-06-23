@@ -6,6 +6,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Slot times are stored as TIMESTAMPTZ (UTC instants). Edge Functions run in
+// UTC, so all display formatting must explicitly target the event's timezone,
+// otherwise times render 8 hours early. en-SG sets the locale, NOT the timezone.
+const EVENT_TIME_ZONE = "Asia/Singapore";
+
 function formatDate(isoDatetime: string): string {
   const date = new Date(isoDatetime);
   return date.toLocaleDateString("en-SG", {
@@ -13,6 +18,7 @@ function formatDate(isoDatetime: string): string {
     year: "numeric",
     month: "long",
     day: "numeric",
+    timeZone: EVENT_TIME_ZONE,
   });
 }
 
@@ -22,6 +28,7 @@ function formatTime(isoDatetime: string): string {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
+    timeZone: EVENT_TIME_ZONE,
   });
 }
 

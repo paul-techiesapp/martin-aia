@@ -50,7 +50,10 @@ export enum AgentStatus {
 export enum RewardStatus {
   PENDING = 'pending',
   CONFIRMED = 'confirmed',
+  /** Reward has been sent/issued to the agent. Displayed as "Issued" in the UI. */
   PAID = 'paid',
+  /** Issuing the reward failed; see Reward.failure_reason. */
+  FAILED = 'failed',
 }
 
 export enum TierRequestStatus {

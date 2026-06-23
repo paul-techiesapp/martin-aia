@@ -21,6 +21,12 @@ import {
   Button,
   StatCard,
   StatCardGrid,
+  Badge,
+  getStatusVariant,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
   chartColors,
 } from '@agent-system/shared-ui';
 import {
@@ -38,7 +44,31 @@ import {
 } from 'recharts';
 import { Download, TrendingUp, Users, CalendarDays, Banknote } from 'lucide-react';
 import { useCampaigns } from '../hooks/useCampaigns';
+import { useEventAttendees, useTeamPerformance } from '../hooks/useReports';
 import { supabase } from '../lib/supabase';
+
+function fmtDate(value: string | null): string {
+  if (!value) return '—';
+  return new Date(value).toLocaleDateString('en-SG', { dateStyle: 'medium' });
+}
+
+function fmtTime(value: string | null): string {
+  if (!value) return '—';
+  return new Date(value).toLocaleString('en-SG', { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+function downloadCsv(filename: string, rows: (string | number)[][]) {
+  const csv = rows
+    .map((row) => row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${filename}-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export function Reports() {
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>('all');
@@ -66,11 +96,11 @@ export function Reports() {
 
       // Get invitation stats
       const { count: totalInvitations } = await supabase
-        .from('invitations')
+        .from('registrations')
         .select('*', { count: 'exact', head: true });
 
       const { count: registeredInvitations } = await supabase
-        .from('invitations')
+        .from('registrations')
         .select('*', { count: 'exact', head: true })
         .in('status', ['registered', 'attended', 'completed']);
 
@@ -122,20 +152,20 @@ export function Reports() {
         const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString().split('T')[0];
 
         const { count: sent } = await supabase
-          .from('invitations')
+          .from('registrations')
           .select('*', { count: 'exact', head: true })
           .gte('created_at', startOfMonth)
           .lte('created_at', endOfMonth);
 
         const { count: registered } = await supabase
-          .from('invitations')
+          .from('registrations')
           .select('*', { count: 'exact', head: true })
           .gte('created_at', startOfMonth)
           .lte('created_at', endOfMonth)
           .in('status', ['registered', 'attended', 'completed']);
 
         const { count: attended } = await supabase
-          .from('invitations')
+          .from('registrations')
           .select('*', { count: 'exact', head: true })
           .gte('created_at', startOfMonth)
           .lte('created_at', endOfMonth)
@@ -159,19 +189,19 @@ export function Reports() {
     queryFn: async () => {
       const { data: agents } = await supabase
         .from('agents')
-        .select('id, full_name')
+        .select('id, name')
         .limit(5);
 
       if (!agents) return [];
 
       const agentStats = await Promise.all(agents.map(async (agent) => {
         const { count: invitations } = await supabase
-          .from('invitations')
+          .from('registrations')
           .select('*', { count: 'exact', head: true })
           .eq('agent_id', agent.id);
 
         const { count: attendance } = await supabase
-          .from('invitations')
+          .from('registrations')
           .select('*', { count: 'exact', head: true })
           .eq('agent_id', agent.id)
           .in('status', ['attended', 'completed']);
@@ -179,7 +209,7 @@ export function Reports() {
         const rate = invitations ? Math.round((attendance || 0) / invitations * 100) : 0;
 
         return {
-          name: agent.full_name,
+          name: agent.name,
           invitations: invitations || 0,
           attendance: attendance || 0,
           rate: `${rate}%`,
@@ -189,6 +219,10 @@ export function Reports() {
       return agentStats.sort((a, b) => b.invitations - a.invitations);
     },
   });
+
+  // Per-attendee report (#2) and team performance (#3), scoped to the selected event
+  const { data: attendees, isLoading: attendeesLoading } = useEventAttendees(selectedCampaignId);
+  const { data: teams, isLoading: teamsLoading } = useTeamPerformance(selectedCampaignId);
 
   // Attendance breakdown for pie chart
   const attendanceData = [
@@ -266,6 +300,14 @@ export function Reports() {
         </div>
       </div>
 
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="attendees">Attendees</TabsTrigger>
+          <TabsTrigger value="teams">Team Performance</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="flex flex-col gap-3 mt-4">
       {/* Summary Cards */}
       <StatCardGrid columns={4}>
         <StatCard
@@ -474,6 +516,208 @@ export function Reports() {
           </CardContent>
         </Card>
       </div>
+        </TabsContent>
+
+        {/* Attendees tab (#2): per-attendee report for the selected event */}
+        <TabsContent value="attendees" className="mt-4">
+          <Card>
+            <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-1.5">
+                <CardTitle>Event Attendee Report</CardTitle>
+                <CardDescription>
+                  Registrants {selectedCampaignId === 'all' ? 'across all events' : 'for the selected event'} ·{' '}
+                  {attendees?.length ?? 0} total
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!attendees?.length}
+                onClick={() =>
+                  downloadCsv('attendees', [
+                    ['Name', 'NRIC', 'Phone', 'Agent', 'Unit', 'Status', 'Registered', 'Check-in', 'Check-out'],
+                    ...(attendees ?? []).map((a) => [
+                      a.name ?? '',
+                      a.nric ?? '',
+                      a.phone ?? '',
+                      a.agentName ?? '',
+                      a.unitName ?? '',
+                      a.status,
+                      fmtDate(a.registeredAt),
+                      fmtTime(a.checkinTime),
+                      fmtTime(a.checkoutTime),
+                    ]),
+                  ])
+                }
+              >
+                <Download className="size-4 mr-1.5" />
+                Export
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {attendeesLoading ? (
+                <p className="text-muted-foreground text-center py-6">Loading attendees…</p>
+              ) : (
+                <div className="overflow-auto rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead>Name</TableHead>
+                        <TableHead>NRIC</TableHead>
+                        <TableHead>Phone</TableHead>
+                        <TableHead>Agent</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(attendees ?? []).length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
+                            No registrations found for this selection.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        attendees!.map((a) => (
+                          <TableRow key={a.id}>
+                            <TableCell className="font-medium">{a.name ?? '—'}</TableCell>
+                            <TableCell className="text-muted-foreground">{a.nric ?? '—'}</TableCell>
+                            <TableCell className="text-muted-foreground">{a.phone ?? '—'}</TableCell>
+                            <TableCell className="text-muted-foreground">{a.agentName ?? '—'}</TableCell>
+                            <TableCell>
+                              <Badge variant={getStatusVariant(a.status)} className="capitalize">
+                                {a.status}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Team Performance tab (#3): attendance grouped by team (unit) */}
+        <TabsContent value="teams" className="mt-4">
+          <div className="flex flex-col gap-3">
+            <Card>
+              <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-1.5">
+                  <CardTitle>Team Performance</CardTitle>
+                  <CardDescription>
+                    Registrations &amp; attendance grouped by unit · {teams?.length ?? 0} team
+                    {(teams?.length ?? 0) === 1 ? '' : 's'}
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!teams?.length}
+                  onClick={() =>
+                    downloadCsv('team-attendees', [
+                      ['Team', 'Attendee', 'Contact', 'Unit', 'Agent', 'Registered', 'Check-in', 'Check-out', 'Attended'],
+                      ...(teams ?? []).flatMap((t) =>
+                        t.attendees.map((at) => [
+                          t.teamName,
+                          at.name ?? '',
+                          at.phone ?? '',
+                          at.unitName ?? '',
+                          at.agentName ?? '',
+                          fmtDate(at.registeredAt),
+                          fmtTime(at.checkinTime),
+                          fmtTime(at.checkoutTime),
+                          at.attended ? 'Yes' : 'No',
+                        ])
+                      ),
+                    ])
+                  }
+                >
+                  <Download className="size-4 mr-1.5" />
+                  Export
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {teamsLoading ? (
+                  <p className="text-muted-foreground text-center py-6">Loading teams…</p>
+                ) : (
+                  <div className="overflow-auto rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead>Team Name</TableHead>
+                          <TableHead className="text-right">Total Registrations</TableHead>
+                          <TableHead className="text-right">Total Attendees</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(teams ?? []).length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={3} className="text-center text-muted-foreground py-6">
+                              No team activity found for this selection.
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          teams!.map((t) => (
+                            <TableRow key={t.teamId}>
+                              <TableCell className="font-medium">{t.teamName}</TableCell>
+                              <TableCell className="text-right text-muted-foreground">{t.totalRegistrations}</TableCell>
+                              <TableCell className="text-right font-medium text-emerald-600">{t.totalAttendees}</TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Per-team attendee detail */}
+            {!teamsLoading &&
+              (teams ?? []).map((t) => (
+                <Card key={t.teamId}>
+                  <CardHeader>
+                    <CardTitle className="text-base">{t.teamName}</CardTitle>
+                    <CardDescription>
+                      {t.totalRegistrations} registration{t.totalRegistrations === 1 ? '' : 's'} · {t.totalAttendees}{' '}
+                      attended
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-auto rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="hover:bg-transparent">
+                            <TableHead>Attendee Name</TableHead>
+                            <TableHead>Contact Number</TableHead>
+                            <TableHead>Unit Name</TableHead>
+                            <TableHead>Registration Date</TableHead>
+                            <TableHead>Check-in Time</TableHead>
+                            <TableHead>Check-out Time</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {t.attendees.map((at) => (
+                            <TableRow key={at.registrationId}>
+                              <TableCell className="font-medium">{at.name ?? '—'}</TableCell>
+                              <TableCell className="text-muted-foreground">{at.phone ?? '—'}</TableCell>
+                              <TableCell className="text-muted-foreground">{at.unitName ?? '—'}</TableCell>
+                              <TableCell className="text-muted-foreground">{fmtDate(at.registeredAt)}</TableCell>
+                              <TableCell className="text-muted-foreground">{fmtTime(at.checkinTime)}</TableCell>
+                              <TableCell className="text-muted-foreground">{fmtTime(at.checkoutTime)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

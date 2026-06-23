@@ -57,6 +57,12 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
     : { r: 0, g: 0, b: 0 };
 }
 
+// Slot times are stored as TIMESTAMPTZ (UTC instants). Edge Functions run in
+// UTC, so all display formatting must explicitly target the event's timezone,
+// otherwise times render 8 hours early. en-SG sets the locale (style), NOT the
+// timezone — those are independent.
+const EVENT_TIME_ZONE = "Asia/Singapore";
+
 function formatDate(isoDatetime: string): string {
   const date = new Date(isoDatetime);
   return date.toLocaleDateString("en-SG", {
@@ -64,6 +70,7 @@ function formatDate(isoDatetime: string): string {
     year: "numeric",
     month: "long",
     day: "numeric",
+    timeZone: EVENT_TIME_ZONE,
   });
 }
 
@@ -73,14 +80,17 @@ function formatTime(isoDatetime: string): string {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
+    timeZone: EVENT_TIME_ZONE,
   });
 }
 
 function formatShortTime(isoDatetime: string): string {
-  const date = new Date(isoDatetime);
-  const h = date.getHours().toString().padStart(2, "0");
-  const m = date.getMinutes().toString().padStart(2, "0");
-  return `${h}:${m}`;
+  return new Date(isoDatetime).toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: EVENT_TIME_ZONE,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -152,11 +162,19 @@ async function generateInvitationPdf(
   const fontFamily = "helvetica";
 
   const slotDate = new Date(data.slotDate);
-  const dayNum = slotDate.getDate().toString();
+  const dayNum = slotDate.toLocaleString("en", {
+    day: "numeric",
+    timeZone: EVENT_TIME_ZONE,
+  });
   const monthYear =
-    slotDate.toLocaleString("en", { month: "short" }).toUpperCase() +
+    slotDate
+      .toLocaleString("en", { month: "short", timeZone: EVENT_TIME_ZONE })
+      .toUpperCase() +
     " " +
-    slotDate.getFullYear();
+    slotDate.toLocaleString("en", {
+      year: "numeric",
+      timeZone: EVENT_TIME_ZONE,
+    });
 
   // --- Page background ---
   doc.setFillColor(248, 250, 252);

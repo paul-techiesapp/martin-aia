@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
 import { cn, Button, Sheet, SheetContent, SheetTrigger, Logo, Avatar } from '@agent-system/shared-ui';
-import { LayoutDashboard, CalendarDays, Link2, Award, LogOut, Menu, Users, UserCog, KeyRound } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Link2, Award, LogOut, Menu, Users, UserCog, KeyRound, ClipboardList } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useMyAgentPhoto } from '../hooks/useAgentPhoto';
 
@@ -11,6 +11,7 @@ const agentAdminNavigation = [
   { name: 'My Links', href: '/my-links', icon: Link2 },
   { name: 'Rewards', href: '/rewards', icon: Award },
   { name: 'My Agents', href: '/my-agents', icon: UserCog },
+  { name: 'Team Report', href: '/team-report', icon: ClipboardList },
   { name: 'Partners', href: '/partners', icon: Users },
   { name: 'Account', href: '/account', icon: KeyRound },
 ];

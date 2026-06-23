@@ -26,7 +26,24 @@ import { Banknote, TrendingUp, Clock, CheckCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useRegistrationStats } from '../hooks/useRegistrations';
 import { supabase } from '../lib/supabase';
-import { RegistrationStatus } from '@agent-system/shared-types';
+import { RegistrationStatus, RewardStatus } from '@agent-system/shared-types';
+
+function fmtDateTime(value: string | null): string {
+  if (!value) return '';
+  return new Date(value).toLocaleString('en-SG', { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+/** Display label + badge variant for a reward status. 'paid' === Issued/Sent. */
+function rewardDisplay(status: RewardStatus | undefined): { label: string; variant: 'pending' | 'paid' | 'error' } {
+  switch (status) {
+    case RewardStatus.PAID:
+      return { label: 'Issued', variant: 'paid' };
+    case RewardStatus.FAILED:
+      return { label: 'Failed', variant: 'error' };
+    default:
+      return { label: 'Pending', variant: 'pending' };
+  }
+}
 
 export function Rewards() {
   const { agent } = useAuth();
@@ -80,6 +97,35 @@ export function Rewards() {
     enabled: !!agent?.id,
   });
 
+  // Real reward rows (status + issued date), keyed by registration id so the
+  // history table can show the actual issuance status the admin set.
+  const { data: rewardRows } = useQuery({
+    queryKey: ['agent-reward-rows', agent?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('rewards')
+        .select('amount, status, issued_at, attendance:attendance(registration_id)')
+        .eq('agent_id', agent!.id);
+      if (error) throw error;
+      return data as unknown as {
+        amount: number;
+        status: RewardStatus;
+        issued_at: string | null;
+        attendance: { registration_id: string } | null;
+      }[];
+    },
+    enabled: !!agent?.id,
+  });
+
+  const rewardByRegistration = useMemo(() => {
+    const map = new Map<string, { amount: number; status: RewardStatus; issued_at: string | null }>();
+    for (const r of rewardRows ?? []) {
+      const regId = r.attendance?.registration_id;
+      if (regId) map.set(regId, { amount: r.amount, status: r.status, issued_at: r.issued_at });
+    }
+    return map;
+  }, [rewardRows]);
+
   // Event filter for the Reward History table
   const [eventFilter, setEventFilter] = useState<string>('all');
 
@@ -106,9 +152,13 @@ export function Rewards() {
   const completedCount = stats?.completed ?? 0;
 
   // Use database rewards if available, otherwise calculate from completed registrations
-  const totalEarned = rewardsData?.total || (completedCount * rewardAmount);
-  const pendingRewards = rewardsData?.pending || (completedCount * rewardAmount);
-  const confirmedRewards = rewardsData?.confirmed || 0;
+  // Use real reward figures when any reward rows exist; otherwise fall back to a
+  // tier-rate estimate. Gating on row existence (not truthiness) so a genuine 0
+  // — e.g. once every reward has been Issued — is not overridden by the estimate.
+  const hasRewardRows = (rewardRows?.length ?? 0) > 0;
+  const totalEarned = hasRewardRows ? (rewardsData?.total ?? 0) : completedCount * rewardAmount;
+  const pendingRewards = hasRewardRows ? (rewardsData?.pending ?? 0) : completedCount * rewardAmount;
+  const issuedRewards = rewardsData?.paid ?? 0;
 
   const isLoading = statsLoading || rewardsLoading || registrationsLoading;
 
@@ -137,11 +187,11 @@ export function Rewards() {
           loading={isLoading}
         />
         <StatCard
-          title="Confirmed"
-          value={`RM${confirmedRewards.toFixed(2)}`}
+          title="Issued"
+          value={`RM${issuedRewards.toFixed(2)}`}
           icon={CheckCircle}
           iconColor="sky"
-          description="Ready for payout"
+          description="Sent to you"
           loading={isLoading}
         />
         <StatCard
@@ -200,23 +250,31 @@ export function Rewards() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredRegistrations.map((reg) => (
-                  <TableRow key={reg.id}>
-                    <TableCell className="font-medium">
-                      {reg.slot?.campaign?.name ?? '-'}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{reg.invitee_name}</TableCell>
-                    <TableCell className="capitalize text-muted-foreground">
-                      {reg.capacity_type.replace('_', ' ')}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold text-emerald-600">
-                      RM{rewardAmount.toFixed(2)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="pending">Pending</Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {filteredRegistrations.map((reg) => {
+                  const reward = rewardByRegistration.get(reg.id);
+                  const display = rewardDisplay(reward?.status);
+                  const amount = reward?.amount ?? rewardAmount;
+                  return (
+                    <TableRow key={reg.id}>
+                      <TableCell className="font-medium">
+                        {reg.slot?.campaign?.name ?? '-'}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{reg.invitee_name}</TableCell>
+                      <TableCell className="capitalize text-muted-foreground">
+                        {reg.capacity_type.replace('_', ' ')}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold text-emerald-600">
+                        RM{amount.toFixed(2)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={display.variant}>{display.label}</Badge>
+                        {reward?.status === RewardStatus.PAID && reward.issued_at && (
+                          <div className="text-xs text-muted-foreground mt-1">{fmtDateTime(reward.issued_at)}</div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
             </div>

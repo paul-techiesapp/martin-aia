@@ -222,6 +222,10 @@ export interface Reward {
   amount: number;
   capacity_type: CapacityType;
   status: RewardStatus;
+  /** Timestamp the reward was marked Issued/Sent (status = 'paid'); null otherwise. */
+  issued_at: string | null;
+  /** Reason captured when a reward is marked Failed; null otherwise. */
+  failure_reason: string | null;
   created_at: string;
   updated_at: string;
 }

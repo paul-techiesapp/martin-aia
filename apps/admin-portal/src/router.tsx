@@ -17,6 +17,7 @@ import { AgentList } from './pages/agents/AgentList';
 import { AgentForm } from './pages/agents/AgentForm';
 import { TierList } from './pages/tiers/TierList';
 import { Reports } from './pages/Reports';
+import { Rewards } from './pages/Rewards';
 import { PdfExport } from './pages/PdfExport';
 import { VenueDisplay } from './pages/VenueDisplay';
 import { CheckInScanner } from './pages/CheckInScanner';
@@ -126,6 +127,13 @@ const reportsRoute = createRoute({
   component: Reports,
 });
 
+// Rewards route
+const rewardsRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/rewards',
+  component: Rewards,
+});
+
 // PDF Export route
 const pdfExportRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
@@ -178,6 +186,7 @@ const routeTree = rootRoute.addChildren([
     editAgentRoute,
     tiersRoute,
     reportsRoute,
+    rewardsRoute,
     pdfExportRoute,
     checkInScannerRoute,
     settingsRoute,

@@ -15,6 +15,7 @@ import { Rewards } from './pages/Rewards';
 import { Partners } from './pages/Partners';
 import { PartnerLinks } from './pages/PartnerLinks';
 import { MyAgents } from './pages/MyAgents';
+import { TeamReport } from './pages/TeamReport';
 import { Account } from './pages/Account';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
@@ -118,6 +119,12 @@ const myAgentsRoute = createRoute({
   component: MyAgents,
 });
 
+const teamReportRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/team-report',
+  component: TeamReport,
+});
+
 // Available to every role (Unit Admin, Agent, Partner) for self-service password change
 const accountRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
@@ -138,6 +145,7 @@ const routeTree = rootRoute.addChildren([
     partnersRoute,
     partnerLinksRoute,
     myAgentsRoute,
+    teamReportRoute,
     accountRoute,
   ]),
 ]);

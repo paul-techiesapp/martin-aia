@@ -40,6 +40,7 @@ import {
   useToast,
   DatePicker,
   Checkbox,
+  formatSlotTime,
 } from '@agent-system/shared-ui';
 import { format, parseISO, eachDayOfInterval, getDay } from 'date-fns';
 import { ArrowLeft, Plus, Trash2, Power, PowerOff, Mail, CalendarPlus, Monitor } from 'lucide-react';
@@ -103,7 +104,7 @@ function SlotRow({
           {format(parseISO(slot.start_at), 'd MMM yyyy')}
         </TableCell>
         <TableCell className="text-muted-foreground">
-          {format(parseISO(slot.start_at), 'HH:mm')} - {format(parseISO(slot.end_at), 'HH:mm')}
+          {formatSlotTime(slot.start_at)} - {formatSlotTime(slot.end_at)}
         </TableCell>
         <TableCell className="text-muted-foreground">{slot.checkin_window_minutes} mins</TableCell>
         <TableCell className="text-muted-foreground">{slot.checkout_window_minutes} mins</TableCell>
@@ -174,7 +175,7 @@ function SlotRow({
           <TableCell colSpan={7} className="bg-muted/50 p-0">
             <div className="p-4">
               <h4 className="text-sm font-semibold text-foreground mb-3">
-                Registrations for {format(parseISO(slot.start_at), 'd MMM yyyy, HH:mm')}
+                Registrations for {format(parseISO(slot.start_at), 'd MMM yyyy')}, {formatSlotTime(slot.start_at)}
               </h4>
               {isLoadingRegistrations ? (
                 <div className="space-y-2">
@@ -459,7 +460,7 @@ export function CampaignDetail() {
 
     setReminderSlot({
       id: slot.id,
-      label: format(parseISO(slot.start_at), 'd MMM yyyy, HH:mm'),
+      label: `${format(parseISO(slot.start_at), 'd MMM yyyy')}, ${formatSlotTime(slot.start_at)}`,
       count: count ?? 0,
     });
   };

@@ -5,6 +5,13 @@ import type { CardTemplate, CompanyBranding } from '@agent-system/shared-types';
 import { loadFont } from './fonts';
 import bundledLogoSrc from '../assets/logo.png';
 
+// All events are Singapore events. Slot start_at/end_at are stored as
+// TIMESTAMPTZ (UTC instants), so any display must be pinned to the event's
+// timezone rather than the viewer's device timezone — otherwise the same card
+// renders different times on a UTC device (or the email's UTC edge runtime)
+// than on an SGT device. See formatSlotTime / formatSlotDate below.
+export const EVENT_TIME_ZONE = 'Asia/Singapore';
+
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result
@@ -105,8 +112,11 @@ async function drawInvitationCard(
   loadFont(doc, template.fontFamily);
 
   const slotDate = new Date(data.slotDate);
-  const dayNum = slotDate.getDate().toString();
-  const monthYear = slotDate.toLocaleString('en', { month: 'short' }).toUpperCase() + ' ' + slotDate.getFullYear();
+  const dayNum = slotDate.toLocaleString('en', { day: 'numeric', timeZone: EVENT_TIME_ZONE });
+  const monthYear =
+    slotDate.toLocaleString('en', { month: 'short', timeZone: EVENT_TIME_ZONE }).toUpperCase() +
+    ' ' +
+    slotDate.toLocaleString('en', { year: 'numeric', timeZone: EVENT_TIME_ZONE });
 
   // --- Page background ---
   doc.setFillColor(248, 250, 252);
@@ -307,9 +317,31 @@ export async function generateBulkInvitationCards(
 
 export function formatSlotDate(isoDatetime: string): string {
   const date = new Date(isoDatetime);
-  return date.toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  return date.toLocaleDateString('en-MY', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: EVENT_TIME_ZONE,
+  });
 }
 
 export function formatTime(timeString: string): string {
   return timeString.slice(0, 5);
+}
+
+/**
+ * Format a slot's ISO timestamp (TIMESTAMPTZ / UTC instant) as HH:mm in the
+ * event timezone (Asia/Singapore), independent of the viewer's device
+ * timezone. Use this everywhere a slot start/end time is displayed — passing
+ * the raw ISO string, NOT a date-fns format() result (which renders in device
+ * local time and shows UTC on non-SGT devices / the email's UTC runtime).
+ */
+export function formatSlotTime(isoDatetime: string): string {
+  return new Date(isoDatetime).toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: EVENT_TIME_ZONE,
+  });
 }

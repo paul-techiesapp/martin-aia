@@ -4,6 +4,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { format, parseISO } from 'date-fns';
 import { supabase } from '../lib/supabase';
 import { getCurrentSlotPhase, type SlotPhase } from '../lib/slot-time';
+import { formatSlotTime } from '@agent-system/shared-ui';
 
 interface SlotData {
   id: string;
@@ -187,7 +188,7 @@ export function Display() {
 
       <h1 className="text-2xl font-bold text-white mt-3">{slot?.campaign.name}</h1>
       <p className="text-sm text-slate-500">
-        {slot?.campaign.venue} &bull; {slot ? format(parseISO(slot.start_at), 'd MMM yyyy, HH:mm') : ''} – {slot ? format(parseISO(slot.end_at), 'HH:mm') : ''}
+        {slot?.campaign.venue} &bull; {slot ? `${format(parseISO(slot.start_at), 'd MMM yyyy')}, ${formatSlotTime(slot.start_at)}` : ''} – {slot ? formatSlotTime(slot.end_at) : ''}
       </p>
 
       {isActive && qrUrl ? (

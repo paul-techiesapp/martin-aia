@@ -18,7 +18,7 @@ import {
 } from '@agent-system/shared-ui';
 import { Link2, Copy, Check, MapPin, UserCheck, CheckCircle, Users, FileDown, FileSpreadsheet, Loader2, ArrowRight } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
-import { generateBulkInvitationCards, generateRegistrantsWorkbook } from '@agent-system/shared-ui';
+import { generateBulkInvitationCards, generateRegistrantsWorkbook, formatSlotTime } from '@agent-system/shared-ui';
 import type { InvitationCardData } from '@agent-system/shared-ui';
 import { supabase } from '../lib/supabase';
 import { format, parseISO } from 'date-fns';
@@ -130,8 +130,8 @@ export function PartnerLinks() {
         venue: link.slot.campaign.venue,
         dayOfWeek: format(parseISO(link.slot.start_at), 'EEE'),
         slotDate: link.slot.start_at,
-        startTime: format(parseISO(link.slot.start_at), 'HH:mm'),
-        endTime: format(parseISO(link.slot.end_at), 'HH:mm'),
+        startTime: formatSlotTime(link.slot.start_at),
+        endTime: formatSlotTime(link.slot.end_at),
         uniqueToken: link.link_code,
         registrationId: reg.id,
         registrationUrl: `${publicPagesUrl}/public/register/${link.link_code}`,
@@ -313,7 +313,7 @@ export function PartnerLinks() {
                           {format(parseISO(slot.start_at), 'd MMM yyyy')}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {format(parseISO(slot.start_at), 'HH:mm')} - {format(parseISO(slot.end_at), 'HH:mm')}
+                          {formatSlotTime(slot.start_at)} - {formatSlotTime(slot.end_at)}
                         </div>
                         {existingLink && (
                           <div className="mt-1 text-sm text-sky-600">
@@ -377,7 +377,7 @@ export function PartnerLinks() {
                     eventName={link.slot?.campaign?.name ?? 'Unknown Event'}
                     venue={link.slot?.campaign?.venue ?? '-'}
                     date={link.slot ? parseISO(link.slot.start_at) : new Date()}
-                    startTime={link.slot ? format(parseISO(link.slot.start_at), 'HH:mm') : '-'}
+                    startTime={link.slot ? formatSlotTime(link.slot.start_at) : '-'}
                     registeredCount={link.registration_count}
                     companyName={systemSettings?.company_branding?.companyName}
                     logoUrl={systemSettings?.company_branding?.logoUrl}

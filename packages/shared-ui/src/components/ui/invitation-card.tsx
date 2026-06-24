@@ -10,9 +10,9 @@ export interface InvitationCardProps {
   venue: string;
   /** Parsed slot start date — caller uses parseISO(slot.start_at) */
   date: Date;
-  /** Pre-formatted start time — caller uses format(parseISO(slot.start_at), 'HH:mm') */
+  /** Pre-formatted start time — caller uses formatSlotTime(slot.start_at) (Asia/Singapore) */
   startTime: string;
-  /** Pre-formatted end time — optional, used in PDF context */
+  /** Pre-formatted end time — optional, used in PDF context. Use formatSlotTime(slot.end_at). */
   endTime?: string;
 
   /**
@@ -55,9 +55,13 @@ export function InvitationCard({
   actions,
   className,
 }: InvitationCardProps) {
-  const day = date.getDate();
-  const month = date.toLocaleString('en', { month: 'short' }).toUpperCase();
-  const year = date.getFullYear();
+  // All events are Singapore events; render the date in the event timezone so
+  // it is correct regardless of the viewer's device timezone. The `date` prop
+  // is the exact UTC instant (parseISO(slot.start_at)).
+  const EVENT_TIME_ZONE = 'Asia/Singapore';
+  const day = date.toLocaleString('en', { day: 'numeric', timeZone: EVENT_TIME_ZONE });
+  const month = date.toLocaleString('en', { month: 'short', timeZone: EVENT_TIME_ZONE }).toUpperCase();
+  const year = date.toLocaleString('en', { year: 'numeric', timeZone: EVENT_TIME_ZONE });
 
   // Show bottom row when there's any content to render below the divider
   const hasBottomRow =

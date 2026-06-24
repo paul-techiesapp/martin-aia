@@ -35,6 +35,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   TableSkeleton,
+  formatSlotTime,
 } from '@agent-system/shared-ui';
 import { Plus, Trash2, Printer, QrCode, Check, X } from 'lucide-react';
 import { useCampaigns } from '../hooks/useCampaigns';
@@ -155,7 +156,7 @@ export function PinCodes() {
                 <SelectContent>
                   {slots?.filter(s => s.is_active).map((slot) => (
                     <SelectItem key={slot.id} value={slot.id}>
-                      {format(parseISO(slot.start_at), 'd MMM yyyy, HH:mm')} - {format(parseISO(slot.end_at), 'HH:mm')}
+                      {format(parseISO(slot.start_at), 'd MMM yyyy')}, {formatSlotTime(slot.start_at)} - {formatSlotTime(slot.end_at)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -189,7 +190,7 @@ export function PinCodes() {
                     <QRCodeSVG value={checkinUrl} size={256} />
                     <p className="text-sm text-muted-foreground text-center">
                       {selectedCampaign?.name}<br />
-                      {selectedSlot ? format(parseISO(selectedSlot.start_at), 'd MMM yyyy, HH:mm') : ''}
+                      {selectedSlot ? `${format(parseISO(selectedSlot.start_at), 'd MMM yyyy')}, ${formatSlotTime(selectedSlot.start_at)}` : ''}
                     </p>
                   </div>
                   <DialogFooter>
@@ -216,7 +217,7 @@ export function PinCodes() {
                     <QRCodeSVG value={checkoutUrl} size={256} />
                     <p className="text-sm text-muted-foreground text-center">
                       {selectedCampaign?.name}<br />
-                      {selectedSlot ? `ends ${format(parseISO(selectedSlot.end_at), 'HH:mm')}` : ''}
+                      {selectedSlot ? `ends ${formatSlotTime(selectedSlot.end_at)}` : ''}
                     </p>
                   </div>
                   <DialogFooter>

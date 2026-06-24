@@ -22,6 +22,7 @@ import {
   ScrollArea,
   Checkbox,
   Logo,
+  formatSlotTime,
 } from '@agent-system/shared-ui';
 import { CalendarDays, MapPin, Clock, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -223,8 +224,8 @@ export function Register() {
             <div className="bg-muted p-4 rounded-xl text-left border">
               <p className="font-semibold text-foreground">{agentLink?.slot.campaign.name}</p>
               <p className="text-sm text-muted-foreground">
-                {agentLink?.slot.start_at ? format(parseISO(agentLink.slot.start_at), 'EEE d MMM yyyy, HH:mm') : ''} -{' '}
-                {agentLink?.slot.end_at ? format(parseISO(agentLink.slot.end_at), 'HH:mm') : ''}
+                {agentLink?.slot.start_at ? `${format(parseISO(agentLink.slot.start_at), 'EEE d MMM yyyy')}, ${formatSlotTime(agentLink.slot.start_at)}` : ''} -{' '}
+                {agentLink?.slot.end_at ? formatSlotTime(agentLink.slot.end_at) : ''}
               </p>
               <p className="text-sm text-muted-foreground">{agentLink?.slot.campaign.venue}</p>
             </div>
@@ -257,8 +258,8 @@ export function Register() {
             <div className="flex items-center gap-2 text-sm text-muted-foreground ml-10">
               <Clock className="size-4" />
               <span>
-                {agentLink?.slot.start_at ? format(parseISO(agentLink.slot.start_at), 'EEE d MMM yyyy, HH:mm') : ''} -{' '}
-                {agentLink?.slot.end_at ? format(parseISO(agentLink.slot.end_at), 'HH:mm') : ''}
+                {agentLink?.slot.start_at ? `${format(parseISO(agentLink.slot.start_at), 'EEE d MMM yyyy')}, ${formatSlotTime(agentLink.slot.start_at)}` : ''} -{' '}
+                {agentLink?.slot.end_at ? formatSlotTime(agentLink.slot.end_at) : ''}
               </span>
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground ml-10">

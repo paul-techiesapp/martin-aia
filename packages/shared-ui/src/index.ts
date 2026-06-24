@@ -126,7 +126,7 @@ export type { SidebarItem, AppSidebarProps, SidebarLayoutProps } from './compone
 export type { StatCardProps, StatCardGridProps } from './components/ui/stat-card';
 
 // PDF Generation
-export { generateInvitationCard, generateBulkInvitationCards, formatSlotDate, formatTime } from './utils/pdfGenerator';
+export { generateInvitationCard, generateBulkInvitationCards, formatSlotDate, formatTime, formatSlotTime } from './utils/pdfGenerator';
 export type { InvitationCardData } from './utils/pdfGenerator';
 
 // Excel Generation

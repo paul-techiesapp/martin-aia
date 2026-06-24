@@ -15,6 +15,7 @@ import {
   useToast,
   generateBulkInvitationCards,
   generateRegistrantsWorkbook,
+  formatSlotTime,
 } from '@agent-system/shared-ui';
 import type { InvitationCardData } from '@agent-system/shared-ui';
 import { Link } from '@tanstack/react-router';
@@ -74,8 +75,8 @@ export function AllLinks() {
         venue: link.slot.campaign.venue,
         dayOfWeek: format(parseISO(link.slot.start_at), 'EEE'),
         slotDate: link.slot.start_at,
-        startTime: format(parseISO(link.slot.start_at), 'HH:mm'),
-        endTime: format(parseISO(link.slot.end_at), 'HH:mm'),
+        startTime: formatSlotTime(link.slot.start_at),
+        endTime: formatSlotTime(link.slot.end_at),
         uniqueToken: link.link_code,
         registrationId: reg.id,
         registrationUrl: `${publicPagesUrl}/public/register/${link.link_code}`,
@@ -183,7 +184,7 @@ export function AllLinks() {
                       eventName={link.slot?.campaign?.name ?? 'Unknown Event'}
                       venue={link.slot?.campaign?.venue ?? '-'}
                       date={link.slot ? parseISO(link.slot.start_at) : new Date()}
-                      startTime={link.slot ? format(parseISO(link.slot.start_at), 'HH:mm') : '-'}
+                      startTime={link.slot ? formatSlotTime(link.slot.start_at) : '-'}
                       status={ended ? 'Ended' : undefined}
                       registeredCount={link.registration_count}
                       companyName={systemSettings?.company_branding?.companyName}

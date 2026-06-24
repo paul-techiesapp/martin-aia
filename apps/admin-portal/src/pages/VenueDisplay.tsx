@@ -3,6 +3,7 @@ import { useParams } from '@tanstack/react-router';
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '../lib/supabase';
 import { format, parseISO } from 'date-fns';
+import { formatSlotTime } from '@agent-system/shared-ui';
 
 interface SlotData {
   id: string;
@@ -93,7 +94,7 @@ export function VenueDisplay() {
       </div>
       <h1 className="text-2xl font-bold text-white mt-3">{slot.campaign.name}</h1>
       <p className="text-sm text-slate-500 mt-1">
-        {slot.campaign.venue} &bull; {format(parseISO(slot.start_at), 'd MMM yyyy, HH:mm')} – {format(parseISO(slot.end_at), 'HH:mm')}
+        {slot.campaign.venue} &bull; {format(parseISO(slot.start_at), 'd MMM yyyy')}, {formatSlotTime(slot.start_at)} – {formatSlotTime(slot.end_at)}
       </p>
 
       {isCheckoutActive && qrUrl ? (

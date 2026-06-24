@@ -8,6 +8,7 @@ import {
   Button,
   Skeleton,
   useToast,
+  formatSlotTime,
 } from '@agent-system/shared-ui';
 import { MapPin, Link2, Copy, Check } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
@@ -160,7 +161,7 @@ export function Campaigns() {
                           {format(parseISO(slot.start_at), 'd MMM yyyy')}
                         </span>
                         <span className="text-muted-foreground">
-                          {format(parseISO(slot.start_at), 'HH:mm')} – {format(parseISO(slot.end_at), 'HH:mm')}
+                          {formatSlotTime(slot.start_at)} – {formatSlotTime(slot.end_at)}
                         </span>
                         {existingLink && (
                           <span className="text-xs text-sky-600">

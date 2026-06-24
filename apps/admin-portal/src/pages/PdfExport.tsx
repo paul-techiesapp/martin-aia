@@ -15,7 +15,7 @@ import {
 } from '@agent-system/shared-ui';
 import { FileDown, FileText, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { generateBulkInvitationCards } from '@agent-system/shared-ui';
+import { generateBulkInvitationCards, formatSlotTime } from '@agent-system/shared-ui';
 import { format, parseISO } from 'date-fns';
 import { useSystemSettings } from '../hooks/useSystemSettings';
 import { getEffectiveTemplate, DEFAULT_CARD_TEMPLATE, DEFAULT_COMPANY_BRANDING } from '@agent-system/shared-types';
@@ -125,8 +125,8 @@ export function PdfExport() {
         venue: reg.slot.campaign.venue,
         dayOfWeek: format(parseISO(reg.slot.start_at), 'EEE'),
         slotDate: reg.slot.start_at,
-        startTime: format(parseISO(reg.slot.start_at), 'HH:mm'),
-        endTime: format(parseISO(reg.slot.end_at), 'HH:mm'),
+        startTime: formatSlotTime(reg.slot.start_at),
+        endTime: formatSlotTime(reg.slot.end_at),
         uniqueToken: reg.agent_link?.link_code ?? reg.id,
         registrationId: reg.id,
         registrationUrl: reg.agent_link
@@ -203,7 +203,7 @@ export function PdfExport() {
                 <SelectContent>
                   {slots.map((slot) => (
                     <SelectItem key={slot.id} value={slot.id}>
-                      {format(parseISO(slot.start_at), 'EEE d MMM, HH:mm')} - {format(parseISO(slot.end_at), 'HH:mm')}
+                      {format(parseISO(slot.start_at), 'EEE d MMM')}, {formatSlotTime(slot.start_at)} - {formatSlotTime(slot.end_at)}
                     </SelectItem>
                   ))}
                 </SelectContent>

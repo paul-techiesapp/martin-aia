@@ -88,6 +88,8 @@ export interface Campaign {
   card_template_overrides?: Partial<CardTemplate> | null;
   max_headcount: number | null;
   commission_cap: number | null;
+  /** Whether invitees must provide their NRIC when registering for this event. */
+  nric_required: boolean;
 }
 
 export interface Slot {

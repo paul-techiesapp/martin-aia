@@ -1,6 +1,7 @@
 // supabase/functions/verify-checkout-otp/index.ts
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { phonesMatch } from '../_shared/phone-utils.ts';
+import { nricsMatch } from '../_shared/nric-utils.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,25 +27,30 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 1. Look up registration by NRIC
-    const { data: registration } = await supabase
+    // 1. Look up registration by NRIC (format-agnostic). NRIC is stored exactly
+    // as typed at registration (dashes/spaces vary), so match on the canonical
+    // form instead of an exact string the attendee must reproduce.
+    const { data: slotRegs } = await supabase
       .from('registrations')
-      .select('id, status, invitee_email, invitee_phone')
-      .eq('slot_id', slot_id)
-      .eq('invitee_nric', nric)
-      .single();
+      .select('id, status, invitee_email, invitee_phone, invitee_nric')
+      .eq('slot_id', slot_id);
 
-    if (!registration) {
+    const nricMatches = (slotRegs ?? []).filter((r) => nricsMatch(r.invitee_nric, nric));
+
+    if (nricMatches.length === 0) {
       return new Response(
         JSON.stringify({ error: 'registration_not_found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // 1b. Cross-check second identifier
-    const emailMatch = registration.invitee_email && registration.invitee_email.toLowerCase() === identifier.toLowerCase();
-    const phoneMatch = phonesMatch(registration.invitee_phone, identifier);
-    if (!emailMatch && !phoneMatch) {
+    // 1b. Cross-check second identifier among NRIC matches
+    const registration = nricMatches.find((r) => {
+      const emailMatch = r.invitee_email && r.invitee_email.toLowerCase() === identifier.toLowerCase();
+      return emailMatch || phonesMatch(r.invitee_phone, identifier);
+    });
+
+    if (!registration) {
       return new Response(
         JSON.stringify({ error: 'identifier_mismatch', message: 'The email/phone does not match the registration for this NRIC.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

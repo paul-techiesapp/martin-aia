@@ -23,6 +23,7 @@ import {
   FormLabel,
   FormMessage,
   DatePicker,
+  Switch,
 } from '@agent-system/shared-ui';
 import { ArrowLeft } from 'lucide-react';
 import { parseISO, format } from 'date-fns';
@@ -45,6 +46,7 @@ const campaignSchema = z.object({
     (val) => (val === '' || val === null || val === undefined ? null : Number(val)),
     z.number().int().positive().nullable()
   ),
+  nric_required: z.boolean(),
 });
 
 type CampaignFormData = z.infer<typeof campaignSchema>;
@@ -69,6 +71,7 @@ export function CampaignForm() {
       status: CampaignStatus.DRAFT,
       max_headcount: null,
       commission_cap: null,
+      nric_required: true,
     },
   });
 
@@ -83,6 +86,7 @@ export function CampaignForm() {
         status: campaign.status,
         max_headcount: campaign.max_headcount,
         commission_cap: campaign.commission_cap,
+        nric_required: campaign.nric_required ?? true,
       });
     }
   }, [campaign, form]);
@@ -307,6 +311,24 @@ export function CampaignForm() {
                       Only the first X invitees who complete the event earn a commission for their agent. Leave empty so every completion earns commission.
                     </FormDescription>
                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="nric_required"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5 pr-4">
+                      <FormLabel>Require NRIC at registration</FormLabel>
+                      <FormDescription>
+                        When on, invitees must enter their NRIC to register. Turn off to make NRIC optional for this event.
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
                   </FormItem>
                 )}
               />

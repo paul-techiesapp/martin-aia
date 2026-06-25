@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import {
   Card,
   CardContent,
@@ -44,8 +43,13 @@ import {
 } from 'recharts';
 import { Download, TrendingUp, Users, CalendarDays, Banknote } from 'lucide-react';
 import { useCampaigns } from '../hooks/useCampaigns';
-import { useEventAttendees, useTeamPerformance } from '../hooks/useReports';
-import { supabase } from '../lib/supabase';
+import {
+  useEventAttendees,
+  useTeamPerformance,
+  useReportStats,
+  useFunnelData,
+  useTopUnits,
+} from '../hooks/useReports';
 
 function fmtDate(value: string | null): string {
   if (!value) return '—';
@@ -61,7 +65,9 @@ function downloadCsv(filename: string, rows: (string | number)[][]) {
   const csv = rows
     .map((row) => row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))
     .join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
+  // Prepend a UTF-8 BOM so Excel detects the encoding — without it, Excel reads
+  // the file as Windows-1252 and turns "—" and accented/CJK characters into mojibake.
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -75,150 +81,12 @@ export function Reports() {
   const [dateRange, setDateRange] = useState<string>('month');
   const { data: campaigns } = useCampaigns();
 
-  // Fetch real stats
-  const { data: reportStats, isLoading: statsLoading } = useQuery({
-    queryKey: ['report-stats'],
-    queryFn: async () => {
-      // Get campaign stats
-      const { count: totalCampaigns } = await supabase
-        .from('campaigns')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: activeCampaigns } = await supabase
-        .from('campaigns')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'active');
-
-      // Get agent stats
-      const { count: totalAgents } = await supabase
-        .from('agents')
-        .select('*', { count: 'exact', head: true });
-
-      // Get invitation stats
-      const { count: totalInvitations } = await supabase
-        .from('registrations')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: registeredInvitations } = await supabase
-        .from('registrations')
-        .select('*', { count: 'exact', head: true })
-        .in('status', ['registered', 'attended', 'completed']);
-
-      // Get attendance stats
-      const { count: totalAttendance } = await supabase
-        .from('attendance')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: fullAttendance } = await supabase
-        .from('attendance')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_full_attendance', true);
-
-      // Get rewards stats
-      const { data: rewards } = await supabase
-        .from('rewards')
-        .select('amount, status');
-
-      const totalRewardsAmount = rewards?.reduce((sum, r) => sum + (r.amount || 0), 0) || 0;
-      const pendingRewardsAmount = rewards?.filter(r => r.status === 'pending')
-        .reduce((sum, r) => sum + (r.amount || 0), 0) || 0;
-
-      return {
-        totalCampaigns: totalCampaigns || 0,
-        activeCampaigns: activeCampaigns || 0,
-        totalAgents: totalAgents || 0,
-        totalInvitations: totalInvitations || 0,
-        registeredInvitations: registeredInvitations || 0,
-        conversionRate: totalInvitations ? Math.round((registeredInvitations || 0) / totalInvitations * 100) : 0,
-        totalAttendance: totalAttendance || 0,
-        fullAttendance: fullAttendance || 0,
-        attendanceRate: totalAttendance ? Math.round((fullAttendance || 0) / (totalAttendance || 1) * 100) : 0,
-        totalRewardsAmount,
-        pendingRewardsAmount,
-      };
-    },
-  });
-
-  // Fetch monthly data for chart
-  const { data: monthlyData } = useQuery({
-    queryKey: ['monthly-invitations'],
-    queryFn: async () => {
-      const months = [];
-      const now = new Date();
-
-      for (let i = 3; i >= 0; i--) {
-        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const startOfMonth = date.toISOString().split('T')[0];
-        const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString().split('T')[0];
-
-        const { count: sent } = await supabase
-          .from('registrations')
-          .select('*', { count: 'exact', head: true })
-          .gte('created_at', startOfMonth)
-          .lte('created_at', endOfMonth);
-
-        const { count: registered } = await supabase
-          .from('registrations')
-          .select('*', { count: 'exact', head: true })
-          .gte('created_at', startOfMonth)
-          .lte('created_at', endOfMonth)
-          .in('status', ['registered', 'attended', 'completed']);
-
-        const { count: attended } = await supabase
-          .from('registrations')
-          .select('*', { count: 'exact', head: true })
-          .gte('created_at', startOfMonth)
-          .lte('created_at', endOfMonth)
-          .in('status', ['attended', 'completed']);
-
-        months.push({
-          name: `Week ${4 - i}`,
-          sent: sent || 0,
-          registered: registered || 0,
-          attended: attended || 0,
-        });
-      }
-
-      return months;
-    },
-  });
-
-  // Fetch top agents
-  const { data: topAgents } = useQuery({
-    queryKey: ['top-agents'],
-    queryFn: async () => {
-      const { data: agents } = await supabase
-        .from('agents')
-        .select('id, name')
-        .limit(5);
-
-      if (!agents) return [];
-
-      const agentStats = await Promise.all(agents.map(async (agent) => {
-        const { count: invitations } = await supabase
-          .from('registrations')
-          .select('*', { count: 'exact', head: true })
-          .eq('agent_id', agent.id);
-
-        const { count: attendance } = await supabase
-          .from('registrations')
-          .select('*', { count: 'exact', head: true })
-          .eq('agent_id', agent.id)
-          .in('status', ['attended', 'completed']);
-
-        const rate = invitations ? Math.round((attendance || 0) / invitations * 100) : 0;
-
-        return {
-          name: agent.name,
-          invitations: invitations || 0,
-          attendance: attendance || 0,
-          rate: `${rate}%`,
-        };
-      }));
-
-      return agentStats.sort((a, b) => b.invitations - a.invitations);
-    },
-  });
+  // Overview metrics, funnel, and top units — all scoped to the selected Event
+  // and Date Range (campaignId + dateRange are in each hook's query key, so
+  // changing a dropdown refetches).
+  const { data: reportStats, isLoading: statsLoading } = useReportStats(selectedCampaignId, dateRange);
+  const { data: monthlyData } = useFunnelData(selectedCampaignId);
+  const { data: topAgents } = useTopUnits(selectedCampaignId, dateRange);
 
   // Per-attendee report (#2) and team performance (#3), scoped to the selected event
   const { data: attendees, isLoading: attendeesLoading } = useEventAttendees(selectedCampaignId);
@@ -249,7 +117,7 @@ export function Reports() {
       ['Pending Rewards', `RM${reportStats.pendingRewardsAmount}`],
     ].map(row => row.join(',')).join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const blob = new Blob(['﻿' + csvContent], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

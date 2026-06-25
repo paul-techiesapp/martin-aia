@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,18 +30,32 @@ import { toMalaysianE164 } from '../lib/phone';
 import { TERMS_AND_CONDITIONS } from '../constants/terms';
 import { format, parseISO } from 'date-fns';
 
-const registrationSchema = z.object({
-  invitee_name: z.string().min(2, 'Name must be at least 2 characters'),
-  invitee_nric: z.string().min(9, 'NRIC must be at least 9 characters'),
-  invitee_phone: z.string().min(8, 'Phone number must be at least 8 characters'),
-  invitee_email: z.string().email('Invalid email address'),
-  invitee_occupation: z.string().min(2, 'Occupation is required'),
-  acceptedTerms: z.boolean().refine((val) => val === true, {
-    message: 'You must accept the Terms & Conditions',
-  }),
-});
+// NRIC is required or optional depending on the event's `nric_required` setting.
+// invitee_nric stays a plain string here (always present from the controlled
+// input); when required, superRefine enforces a minimum length.
+const buildRegistrationSchema = (nricRequired: boolean) =>
+  z
+    .object({
+      invitee_name: z.string().min(2, 'Name must be at least 2 characters'),
+      invitee_nric: z.string(),
+      invitee_phone: z.string().min(8, 'Phone number must be at least 8 characters'),
+      invitee_email: z.string().email('Invalid email address'),
+      invitee_occupation: z.string().min(2, 'Occupation is required'),
+      acceptedTerms: z.boolean().refine((val) => val === true, {
+        message: 'You must accept the Terms & Conditions',
+      }),
+    })
+    .superRefine((data, ctx) => {
+      if (nricRequired && data.invitee_nric.trim().length < 9) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['invitee_nric'],
+          message: 'NRIC must be at least 9 characters',
+        });
+      }
+    });
 
-type RegistrationFormData = z.infer<typeof registrationSchema>;
+type RegistrationFormData = z.infer<ReturnType<typeof buildRegistrationSchema>>;
 
 interface AgentLinkDetails {
   id: string;
@@ -53,6 +67,7 @@ interface AgentLinkDetails {
       name: string;
       venue: string;
       registration_type: string;
+      nric_required: boolean;
     };
   };
 }
@@ -65,8 +80,16 @@ export function Register() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Whether this event requires NRIC. Defaults to true until the link loads, so
+  // the stricter rule applies while data is in flight. A ref keeps the resolver
+  // reading the current value without recreating the form when the link loads.
+  const nricRequired = agentLink?.slot.campaign.nric_required ?? true;
+  const nricRequiredRef = useRef(nricRequired);
+  nricRequiredRef.current = nricRequired;
+
   const form = useForm<RegistrationFormData>({
-    resolver: zodResolver(registrationSchema),
+    resolver: (values, context, options) =>
+      zodResolver(buildRegistrationSchema(nricRequiredRef.current))(values, context, options),
     mode: 'onChange',
     defaultValues: {
       invitee_name: '',
@@ -99,7 +122,8 @@ export function Register() {
           campaign:campaigns(
             name,
             venue,
-            registration_type
+            registration_type,
+            nric_required
           )
         )
       `)
@@ -131,7 +155,9 @@ export function Register() {
     const { data: registrationId, error: rpcError } = await supabase.rpc('register_attendee', {
       p_link_code: linkCode,
       p_name: formData.invitee_name,
-      p_nric: formData.invitee_nric,
+      // Store NULL (not '') when blank so the partial per-slot NRIC unique index
+      // ignores optional-blank registrants instead of colliding on empty strings.
+      p_nric: formData.invitee_nric.trim() || null,
       p_phone: toMalaysianE164(formData.invitee_phone),
       p_email: formData.invitee_email,
       p_occupation: formData.invitee_occupation,
@@ -295,12 +321,16 @@ export function Register() {
                 name="invitee_nric"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-foreground">NRIC / MyKad Number</FormLabel>
+                    <FormLabel className="text-foreground">
+                      NRIC / MyKad Number{!nricRequired && ' (optional)'}
+                    </FormLabel>
                     <FormControl>
                       <Input placeholder="901020-10-1234" className="h-11" {...field} />
                     </FormControl>
                     <FormDescription className="text-muted-foreground">
-                      Required for event check-in verification
+                      {nricRequired
+                        ? 'Required for event check-in verification'
+                        : 'Optional for this event'}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

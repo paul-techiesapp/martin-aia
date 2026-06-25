@@ -12,6 +12,36 @@ async function slotIdsForCampaign(campaignId: string): Promise<string[]> {
   return (data ?? []).map((s) => s.id as string);
 }
 
+/**
+ * Resolve the inclusive lower bound (ISO) for a Date Range selection, or null
+ * for "all time". Computed in local time (the app targets Asia/Singapore) and
+ * converted to UTC for comparison against `created_at` (a TIMESTAMPTZ).
+ */
+function dateRangeStart(range: string): string | null {
+  const now = new Date();
+  let start: Date;
+  switch (range) {
+    case 'week': {
+      const day = now.getDay(); // 0 = Sunday … 6 = Saturday
+      const backToMonday = day === 0 ? -6 : 1 - day;
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + backToMonday);
+      break;
+    }
+    case 'month':
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      break;
+    case 'quarter':
+      start = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+      break;
+    case 'year':
+      start = new Date(now.getFullYear(), 0, 1);
+      break;
+    default:
+      return null; // unknown range → no lower bound
+  }
+  return start.toISOString();
+}
+
 export interface AttendeeRow {
   id: string;
   name: string | null;
@@ -35,17 +65,30 @@ interface RawRegistration {
   registered_at: string | null;
   agent_id: string;
   agent: { name: string; unit_name: string; parent_agent_id: string | null } | null;
-  attendance: { checkin_time: string | null; checkout_time: string | null } | null;
+  attendance: {
+    checkin_time: string | null;
+    checkout_time: string | null;
+    is_full_attendance: boolean;
+    reward: { amount: number; status: string } | null;
+  } | null;
   slot: { start_at: string; campaign: { id: string; name: string } | null } | null;
 }
 
-async function fetchRegistrations(campaignId: string): Promise<RawRegistration[]> {
+/**
+ * Fetch registrations with their attendance, reward, slot, and agent embedded.
+ * Optionally scope to a campaign (via its slots) and to registrations created on
+ * or after `fromISO` — the shared backbone for every report below.
+ */
+async function fetchRegistrations(
+  campaignId: string,
+  fromISO?: string | null,
+): Promise<RawRegistration[]> {
   let query = supabase
     .from('registrations')
     .select(`
       id, invitee_name, invitee_nric, invitee_phone, status, created_at, registered_at, agent_id,
       agent:agents(name, unit_name, parent_agent_id),
-      attendance:attendance(checkin_time, checkout_time),
+      attendance:attendance(checkin_time, checkout_time, is_full_attendance, reward:rewards(amount, status)),
       slot:slots(start_at, campaign:campaigns(id, name))
     `)
     .order('created_at', { ascending: false });
@@ -56,17 +99,30 @@ async function fetchRegistrations(campaignId: string): Promise<RawRegistration[]
     query = query.in('slot_id', slotIds);
   }
 
+  if (fromISO) {
+    query = query.gte('created_at', fromISO);
+  }
+
   const { data, error } = await query;
   if (error) throw error;
   // attendance is embedded across a reverse FK (attendance.registration_id), so
   // PostgREST may return it as a one-element array OR a single object depending
-  // on its one-to-one detection. Normalize to a single object | null.
-  return (data ?? []).map((r: any) => ({
-    ...r,
-    attendance: Array.isArray(r.attendance) ? r.attendance[0] ?? null : r.attendance ?? null,
-    slot: Array.isArray(r.slot) ? r.slot[0] ?? null : r.slot ?? null,
-    agent: Array.isArray(r.agent) ? r.agent[0] ?? null : r.agent ?? null,
-  })) as RawRegistration[];
+  // on its one-to-one detection. Normalize to a single object | null — and do the
+  // same for the reward embedded one level deeper under attendance.
+  return (data ?? []).map((r: any) => {
+    const attendance = Array.isArray(r.attendance) ? r.attendance[0] ?? null : r.attendance ?? null;
+    const reward = attendance
+      ? Array.isArray(attendance.reward)
+        ? attendance.reward[0] ?? null
+        : attendance.reward ?? null
+      : null;
+    return {
+      ...r,
+      attendance: attendance ? { ...attendance, reward } : null,
+      slot: Array.isArray(r.slot) ? r.slot[0] ?? null : r.slot ?? null,
+      agent: Array.isArray(r.agent) ? r.agent[0] ?? null : r.agent ?? null,
+    };
+  }) as RawRegistration[];
 }
 
 /** Per-attendee report for an event (Request #2). */
@@ -171,6 +227,182 @@ export function useTeamPerformance(campaignId: string) {
       return Array.from(teams.values()).sort(
         (a, b) => b.totalRegistrations - a.totalRegistrations
       );
+    },
+  });
+}
+
+const REGISTERED_STATUSES = ['registered', 'attended', 'completed'];
+const ATTENDED_STATUSES = ['attended', 'completed'];
+
+export interface ReportStats {
+  totalCampaigns: number;
+  activeCampaigns: number;
+  totalAgents: number;
+  totalInvitations: number;
+  registeredInvitations: number;
+  conversionRate: number;
+  totalAttendance: number;
+  fullAttendance: number;
+  attendanceRate: number;
+  totalRewardsAmount: number;
+  pendingRewardsAmount: number;
+}
+
+/**
+ * Overview summary cards/tables, scoped to the selected Event and Date Range.
+ * Campaign counts reflect the event selection; everything invitation/attendance/
+ * reward-related is derived from the in-scope registrations so all numbers agree.
+ */
+export function useReportStats(campaignId: string, dateRange: string) {
+  return useQuery({
+    queryKey: ['report-stats', campaignId, dateRange],
+    queryFn: async (): Promise<ReportStats> => {
+      const fromISO = dateRangeStart(dateRange);
+
+      // Campaign + agent counts (campaign counts narrow to the selected event).
+      let campaignCountQ = supabase.from('campaigns').select('*', { count: 'exact', head: true });
+      let activeCampaignQ = supabase
+        .from('campaigns')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'active');
+      if (campaignId !== 'all') {
+        campaignCountQ = campaignCountQ.eq('id', campaignId);
+        activeCampaignQ = activeCampaignQ.eq('id', campaignId);
+      }
+
+      const [campaignsRes, activeRes, agentsRes, rows] = await Promise.all([
+        campaignCountQ,
+        activeCampaignQ,
+        supabase.from('agents').select('*', { count: 'exact', head: true }),
+        fetchRegistrations(campaignId, fromISO),
+      ]);
+
+      const totalInvitations = rows.length;
+      const registeredInvitations = rows.filter((r) => REGISTERED_STATUSES.includes(r.status)).length;
+      const totalAttendance = rows.filter((r) => !!r.attendance?.checkin_time).length;
+      const fullAttendance = rows.filter((r) => !!r.attendance?.is_full_attendance).length;
+
+      let totalRewardsAmount = 0;
+      let pendingRewardsAmount = 0;
+      for (const r of rows) {
+        const reward = r.attendance?.reward;
+        if (!reward) continue;
+        const amt = Number(reward.amount) || 0;
+        totalRewardsAmount += amt;
+        if (reward.status === 'pending') pendingRewardsAmount += amt;
+      }
+
+      return {
+        totalCampaigns: campaignsRes.count ?? 0,
+        activeCampaigns: activeRes.count ?? 0,
+        totalAgents: agentsRes.count ?? 0,
+        totalInvitations,
+        registeredInvitations,
+        conversionRate: totalInvitations
+          ? Math.round((registeredInvitations / totalInvitations) * 100)
+          : 0,
+        totalAttendance,
+        fullAttendance,
+        attendanceRate: totalAttendance ? Math.round((fullAttendance / totalAttendance) * 100) : 0,
+        totalRewardsAmount,
+        pendingRewardsAmount,
+      };
+    },
+  });
+}
+
+export interface FunnelPoint {
+  name: string;
+  sent: number;
+  registered: number;
+  attended: number;
+}
+
+/**
+ * Invitation funnel for the trailing 4 months, scoped to the selected Event.
+ * (The chart is a fixed rolling-month trend, so the Date Range selector — which
+ * governs the aggregate cards — intentionally does not reshape its buckets.)
+ */
+export function useFunnelData(campaignId: string) {
+  return useQuery({
+    queryKey: ['funnel', campaignId],
+    queryFn: async (): Promise<FunnelPoint[]> => {
+      const slotIds = campaignId !== 'all' ? await slotIdsForCampaign(campaignId) : null;
+      const now = new Date();
+      const points: FunnelPoint[] = [];
+
+      for (let i = 3; i >= 0; i--) {
+        const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const nextMonthStart = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+        const label = monthStart.toLocaleString('en-SG', { month: 'short' });
+
+        if (slotIds && slotIds.length === 0) {
+          points.push({ name: label, sent: 0, registered: 0, attended: 0 });
+          continue;
+        }
+
+        const base = () => {
+          let q = supabase
+            .from('registrations')
+            .select('*', { count: 'exact', head: true })
+            .gte('created_at', monthStart.toISOString())
+            .lt('created_at', nextMonthStart.toISOString());
+          if (slotIds) q = q.in('slot_id', slotIds);
+          return q;
+        };
+
+        const [sentRes, registeredRes, attendedRes] = await Promise.all([
+          base(),
+          base().in('status', REGISTERED_STATUSES),
+          base().in('status', ATTENDED_STATUSES),
+        ]);
+
+        points.push({
+          name: label,
+          sent: sentRes.count ?? 0,
+          registered: registeredRes.count ?? 0,
+          attended: attendedRes.count ?? 0,
+        });
+      }
+
+      return points;
+    },
+  });
+}
+
+export interface TopUnit {
+  name: string;
+  invitations: number;
+  attendance: number;
+  rate: string;
+}
+
+/** Top units by invitations, scoped to the selected Event and Date Range. */
+export function useTopUnits(campaignId: string, dateRange: string) {
+  return useQuery({
+    queryKey: ['top-units', campaignId, dateRange],
+    queryFn: async (): Promise<TopUnit[]> => {
+      const rows = await fetchRegistrations(campaignId, dateRangeStart(dateRange));
+      const byAgent = new Map<string, { name: string; invitations: number; attendance: number }>();
+      for (const r of rows) {
+        let entry = byAgent.get(r.agent_id);
+        if (!entry) {
+          entry = { name: r.agent?.name ?? 'Unknown', invitations: 0, attendance: 0 };
+          byAgent.set(r.agent_id, entry);
+        }
+        entry.invitations += 1;
+        if (ATTENDED_STATUSES.includes(r.status)) entry.attendance += 1;
+      }
+
+      return Array.from(byAgent.values())
+        .map((e) => ({
+          name: e.name,
+          invitations: e.invitations,
+          attendance: e.attendance,
+          rate: `${e.invitations ? Math.round((e.attendance / e.invitations) * 100) : 0}%`,
+        }))
+        .sort((a, b) => b.invitations - a.invitations)
+        .slice(0, 5);
     },
   });
 }

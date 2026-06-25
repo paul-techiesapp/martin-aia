@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import {
   Button,
@@ -9,6 +10,12 @@ import {
   CardTitle,
   Badge,
   Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Tabs,
   TabsList,
   TabsTrigger,
@@ -17,6 +24,7 @@ import {
 import { Camera, CameraOff, CheckCircle, XCircle, RotateCcw, ScanBarcode } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { RegistrationStatus } from '@agent-system/shared-types';
+import { useCampaigns } from '../hooks/useCampaigns';
 
 interface AttendeeDetails {
   inviteeName: string;
@@ -60,6 +68,37 @@ function formatSlotDateTime(startAt?: string | null, endAt?: string | null): str
 type ScanMode = 'camera' | 'scanner';
 
 const MODE_STORAGE_KEY = 'checkin-scanner-mode';
+const EVENT_STORAGE_KEY = 'checkin-scanner-event';
+
+// A registration counts toward the expected headcount unless it expired; it
+// counts as checked-in once the scanner flips its status to attended/completed.
+const COUNTED_STATUSES = ['registered', 'attended', 'completed'];
+const CHECKED_IN_STATUSES = ['attended', 'completed'];
+
+/** Live check-in progress (checked-in / expected) for one event's slots. */
+async function fetchCheckinProgress(campaignId: string): Promise<{ checkedIn: number; total: number }> {
+  const { data: slots, error: slotsError } = await supabase
+    .from('slots')
+    .select('id')
+    .eq('campaign_id', campaignId);
+  if (slotsError) throw slotsError;
+  const slotIds = (slots ?? []).map((s) => s.id as string);
+  if (slotIds.length === 0) return { checkedIn: 0, total: 0 };
+
+  const [totalRes, checkedInRes] = await Promise.all([
+    supabase
+      .from('registrations')
+      .select('*', { count: 'exact', head: true })
+      .in('slot_id', slotIds)
+      .in('status', COUNTED_STATUSES),
+    supabase
+      .from('registrations')
+      .select('*', { count: 'exact', head: true })
+      .in('slot_id', slotIds)
+      .in('status', CHECKED_IN_STATUSES),
+  ]);
+  return { checkedIn: checkedInRes.count ?? 0, total: totalRes.count ?? 0 };
+}
 
 export function CheckInScanner() {
   const [mode, setMode] = useState<ScanMode>(() => {
@@ -80,6 +119,25 @@ export function CheckInScanner() {
   // single instance in scannerRef is reused for the lifetime of the page.
   const isStartingRef = useRef(false);
   const isHandlingScanRef = useRef(false);
+
+  // Live check-in counter, scoped to a chosen event (multiple events may run at
+  // once, so the operator picks which one this station is checking in).
+  const [counterCampaignId, setCounterCampaignId] = useState<string>(() => {
+    if (typeof window === 'undefined') return '';
+    return window.localStorage.getItem(EVENT_STORAGE_KEY) ?? '';
+  });
+  const { data: campaigns } = useCampaigns();
+  const queryClient = useQueryClient();
+  const { data: progress } = useQuery({
+    queryKey: ['checkin-progress', counterCampaignId],
+    queryFn: () => fetchCheckinProgress(counterCampaignId),
+    enabled: !!counterCampaignId,
+  });
+
+  const handleCounterEventChange = (id: string) => {
+    setCounterCampaignId(id);
+    window.localStorage.setItem(EVENT_STORAGE_KEY, id);
+  };
 
   const getScanner = (): Html5Qrcode => {
     if (!scannerRef.current) {
@@ -243,6 +301,9 @@ export function CheckInScanner() {
         .update({ status: RegistrationStatus.ATTENDED })
         .eq('id', registration.id);
 
+      // Refresh the live check-in counter for the selected event
+      void queryClient.invalidateQueries({ queryKey: ['checkin-progress'] });
+
       setResult({
         success: true,
         name: registration.invitee_name,
@@ -293,7 +354,9 @@ export function CheckInScanner() {
 
   // Auto-focus the scanner input when in scanner mode and ready for input
   useEffect(() => {
-    if (mode === 'scanner' && !isProcessing && !result) {
+    // In scanner mode keep the input focused even while a result is on screen,
+    // so the operator can scan the next card hands-free without pressing anything.
+    if (mode === 'scanner' && !isProcessing) {
       scannerInputRef.current?.focus();
     }
   }, [mode, isProcessing, result]);
@@ -328,6 +391,38 @@ export function CheckInScanner() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Event picker + live check-in counter (scanned / expected attendees) */}
+          <div className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="w-full sm:w-72">
+              <Label className="text-sm font-medium">Event</Label>
+              <Select value={counterCampaignId} onValueChange={handleCounterEventChange}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select an event to track progress" />
+                </SelectTrigger>
+                <SelectContent>
+                  {campaigns?.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {counterCampaignId ? (
+              <div className="text-center sm:text-right">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Checked in</p>
+                <p className="text-3xl font-semibold tabular-nums leading-tight">
+                  {progress?.checkedIn ?? 0}
+                  <span className="text-muted-foreground"> / {progress?.total ?? 0}</span>
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Select an event to see live check-in progress.
+              </p>
+            )}
+          </div>
+
           <Tabs value={mode} onValueChange={handleModeChange}>
             <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
               <TabsTrigger value="camera" className="gap-2">
@@ -370,28 +465,30 @@ export function CheckInScanner() {
             </TabsContent>
 
             <TabsContent value="scanner" className="space-y-4 mt-4">
-              {!result && (
-                <form onSubmit={handleScannerSubmit} className="w-full max-w-md mx-auto space-y-2">
-                  <Input
-                    ref={scannerInputRef}
-                    value={manualInput}
-                    onChange={(e) => setManualInput(e.target.value)}
-                    placeholder="Scan or type registration code…"
-                    autoComplete="off"
-                    spellCheck={false}
-                    disabled={isProcessing}
-                    onBlur={() => {
-                      // Keep the input focused for the next scan unless we're processing
-                      if (!isProcessing && !result) {
-                        setTimeout(() => scannerInputRef.current?.focus(), 0);
-                      }
-                    }}
-                  />
-                  <p className="text-xs text-muted-foreground text-center">
-                    Scanner is ready — scan a card or press Enter to submit manually
-                  </p>
-                </form>
-              )}
+              {/* The input stays mounted even while a result is shown, so the next
+                  scan auto-advances to the next profile — no button press needed. */}
+              <form onSubmit={handleScannerSubmit} className="w-full max-w-md mx-auto space-y-2">
+                <Input
+                  ref={scannerInputRef}
+                  value={manualInput}
+                  onChange={(e) => setManualInput(e.target.value)}
+                  placeholder="Scan or type registration code…"
+                  autoComplete="off"
+                  spellCheck={false}
+                  disabled={isProcessing}
+                  onBlur={() => {
+                    // Keep the input focused for the next scan unless we're processing
+                    if (!isProcessing) {
+                      setTimeout(() => scannerInputRef.current?.focus(), 0);
+                    }
+                  }}
+                />
+                <p className="text-xs text-muted-foreground text-center">
+                  {result
+                    ? 'Scan the next card to check in the next attendee'
+                    : 'Scanner is ready — scan a card or press Enter to submit manually'}
+                </p>
+              </form>
             </TabsContent>
           </Tabs>
 
@@ -482,12 +579,16 @@ export function CheckInScanner() {
                 </div>
               )}
 
-              <div className="flex justify-center pt-1">
-                <Button onClick={handleReset} className="gap-2">
-                  <RotateCcw className="size-4" />
-                  Scan Next
-                </Button>
-              </div>
+              {/* Camera mode must restart the camera between scans, so it keeps
+                  the button. Scanner mode auto-advances on the next scan. */}
+              {mode === 'camera' && (
+                <div className="flex justify-center pt-1">
+                  <Button onClick={handleReset} className="gap-2">
+                    <RotateCcw className="size-4" />
+                    Scan Next
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </CardContent>

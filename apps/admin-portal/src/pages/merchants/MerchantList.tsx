@@ -167,7 +167,10 @@ export function MerchantList() {
                   max={100}
                   value={formData.merchant_share_pct}
                   onChange={(e) =>
-                    setFormData({ ...formData, merchant_share_pct: parseFloat(e.target.value) || 0 })
+                    setFormData({
+                      ...formData,
+                      merchant_share_pct: Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)),
+                    })
                   }
                 />
                 <p className="text-xs text-muted-foreground mt-1">

@@ -17,6 +17,8 @@ import { AgentList } from './pages/agents/AgentList';
 import { AgentForm } from './pages/agents/AgentForm';
 import { TierList } from './pages/tiers/TierList';
 import { InsuranceProductList } from './pages/insurance-products/InsuranceProductList';
+import { MerchantList } from './pages/merchants/MerchantList';
+import { MerchantDetail } from './pages/merchants/MerchantDetail';
 import { Reports } from './pages/Reports';
 import { Rewards } from './pages/Rewards';
 import { PdfExport } from './pages/PdfExport';
@@ -127,6 +129,18 @@ const insuranceProductsRoute = createRoute({
   component: InsuranceProductList,
 });
 
+const merchantsRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/merchants',
+  component: MerchantList,
+});
+
+const merchantDetailRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/merchants/$merchantId',
+  component: MerchantDetail,
+});
+
 // Reports route
 const reportsRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
@@ -193,6 +207,8 @@ const routeTree = rootRoute.addChildren([
     editAgentRoute,
     tiersRoute,
     insuranceProductsRoute,
+    merchantsRoute,
+    merchantDetailRoute,
     reportsRoute,
     rewardsRoute,
     pdfExportRoute,

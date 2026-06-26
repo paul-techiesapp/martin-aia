@@ -14,6 +14,7 @@ import {
   LogOut,
   Menu,
   X,
+  Tag,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { usePendingTierRequestCount } from '../hooks/useTierRequests';
@@ -23,6 +24,7 @@ const navigation = [
   { name: 'Events', href: '/campaigns', icon: Calendar },
   { name: 'Units', href: '/agents', icon: Users },
   { name: 'Tiers', href: '/tiers', icon: BadgeCheck },
+  { name: 'Products', href: '/insurance-products', icon: Tag },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
   { name: 'Rewards', href: '/rewards', icon: Award },
   { name: 'PDF Export', href: '/pdf-export', icon: FileText },

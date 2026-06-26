@@ -16,6 +16,7 @@ import { CampaignDetail } from './pages/campaigns/CampaignDetail';
 import { AgentList } from './pages/agents/AgentList';
 import { AgentForm } from './pages/agents/AgentForm';
 import { TierList } from './pages/tiers/TierList';
+import { InsuranceProductList } from './pages/insurance-products/InsuranceProductList';
 import { Reports } from './pages/Reports';
 import { Rewards } from './pages/Rewards';
 import { PdfExport } from './pages/PdfExport';
@@ -120,6 +121,12 @@ const tiersRoute = createRoute({
   component: TierList,
 });
 
+const insuranceProductsRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/insurance-products',
+  component: InsuranceProductList,
+});
+
 // Reports route
 const reportsRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
@@ -185,6 +192,7 @@ const routeTree = rootRoute.addChildren([
     newAgentRoute,
     editAgentRoute,
     tiersRoute,
+    insuranceProductsRoute,
     reportsRoute,
     rewardsRoute,
     pdfExportRoute,

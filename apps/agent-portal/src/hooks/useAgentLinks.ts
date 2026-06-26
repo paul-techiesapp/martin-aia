@@ -43,8 +43,10 @@ export function useMyLinks(agentId: string | undefined, includeInactive = false)
 
       if (error) throw error;
 
-      // Fetch registration counts for each link
-      const links = data as AgentLinkWithSlotCampaign[];
+      // The slot embed is nullable from the client: agents can only read active
+      // slots (RLS), so a link to a deactivated slot returns slot=null. Drop those
+      // so the non-null `slot` type holds and no consumer crashes on l.slot.*.
+      const links = ((data ?? []) as AgentLinkWithSlotCampaign[]).filter((l) => l.slot != null);
       if (links.length > 0) {
         const linkIds = links.map((l) => l.id);
         const { data: counts, error: countError } = await supabase
@@ -160,7 +162,9 @@ export function usePartnerLinks(partnerId: string | undefined, includeInactive =
 
       if (error) throw error;
 
-      const links = data as AgentLinkWithSlotCampaign[];
+      // Drop links whose slot the client can't read (deactivated slot → slot=null)
+      // so the non-null `slot` type holds and consumers don't crash on l.slot.*.
+      const links = ((data ?? []) as AgentLinkWithSlotCampaign[]).filter((l) => l.slot != null);
       if (links.length > 0) {
         const linkIds = links.map((l) => l.id);
         const { data: counts, error: countError } = await supabase

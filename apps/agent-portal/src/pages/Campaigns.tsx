@@ -48,7 +48,7 @@ export function Campaigns() {
   }
 
   const getExistingLink = (slotId: string) => {
-    return links?.find((l) => l.slot.id === slotId);
+    return links?.find((l) => l.slot?.id === slotId);
   };
 
   const handleGetLink = async (slotId: string) => {

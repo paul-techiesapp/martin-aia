@@ -21,7 +21,9 @@ RETURNS TABLE (
   JOIN merchant_branches b ON b.id = bl.merchant_branch_id
   JOIN merchants m         ON m.id = b.merchant_id
   WHERE bl.link_code = p_link_code
-    AND bl.is_active = true;
+    AND bl.is_active = true
+    AND b.status = 'active'
+    AND m.status = 'active';
 $$ LANGUAGE sql SECURITY DEFINER STABLE SET search_path = public;
 
 -- Public enquiry submission. Atomic: the whole enquiry rolls back if any
@@ -50,6 +52,16 @@ BEGIN
   WHERE link_code = p_link_code AND is_active = true
   FOR UPDATE;
   IF NOT FOUND THEN
+    RAISE EXCEPTION 'Link not found or inactive' USING ERRCODE = 'P0001';
+  END IF;
+
+  -- Branch + merchant must be approved (active), not just the link.
+  IF NOT EXISTS (
+    SELECT 1 FROM merchant_branches b
+    JOIN merchants m ON m.id = b.merchant_id
+    WHERE b.id = v_link.merchant_branch_id
+      AND b.status = 'active' AND m.status = 'active'
+  ) THEN
     RAISE EXCEPTION 'Link not found or inactive' USING ERRCODE = 'P0001';
   END IF;
 

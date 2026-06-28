@@ -212,6 +212,11 @@ Deno.serve(async (req) => {
       const carPlate = vehicle.car_plate;
       const expiryDateText = formatExpiryDate(vehicle.insurance_expiry_date);
 
+      // Per-vehicle delivery tracking — only stamp when at least one channel succeeded.
+      let customerEmailOk = false;
+      let smsOk = false;
+      let agentEmailOk = false;
+
       // 1) Customer email (no-op if Resend key unset or no email on file)
       if (resendApiKey && customerEmail) {
         const ok = await sendResendEmail(
@@ -220,7 +225,7 @@ Deno.serve(async (req) => {
           `Your car insurance (${carPlate}) expires soon`,
           buildCustomerEmailHtml(customerName, merchantName, branchName, carPlate, expiryDateText),
         );
-        if (ok) emailed++;
+        if (ok) { customerEmailOk = true; emailed++; }
       }
 
       // 2) Customer SMS / WhatsApp (no-op if provider=mock or template unset)
@@ -232,6 +237,7 @@ Deno.serve(async (req) => {
           merchantName,
         ]);
         if (smsResult.success) {
+          smsOk = true;
           smsed++;
         } else {
           console.error(`SMS reminder failed (${carPlate}): ${smsResult.error_message}`);
@@ -252,21 +258,26 @@ Deno.serve(async (req) => {
             expiryDateText,
           ),
         );
-        if (ok) agentNotified++;
+        if (ok) { agentEmailOk = true; agentNotified++; }
       }
 
-      // 4) Stamp reminder_sent_at so the daily cron never re-fires this vehicle.
-      // Stamped unconditionally after the send attempt (exact-day match means a
-      // single shot anyway; staging with no secrets still marks done).
-      const { error: stampErr } = await supabase
-        .from('enquiry_vehicles')
-        .update({ reminder_sent_at: new Date().toISOString() })
-        .eq('id', vehicleId);
-      if (stampErr) {
-        console.error(`Failed to stamp reminder_sent_at (${vehicleId}):`, stampErr);
+      // 4) Stamp reminder_sent_at only when at least one channel actually delivered.
+      // If nothing sent (e.g. all secrets unset, Resend momentarily down), leave
+      // reminder_sent_at null so the next cron run can retry this vehicle.
+      const anySent = customerEmailOk || smsOk || agentEmailOk;
+      if (anySent) {
+        const { error: stampErr } = await supabase
+          .from('enquiry_vehicles')
+          .update({ reminder_sent_at: new Date().toISOString() })
+          .eq('id', vehicleId);
+        if (stampErr) {
+          console.error(`Failed to stamp reminder_sent_at (${vehicleId}):`, stampErr);
+        }
+        processed++;
+      } else {
+        console.warn(`Vehicle ${vehicleId} (${carPlate}): no channel delivered — reminder_sent_at NOT stamped; will retry on next run.`);
+        skipped++;
       }
-
-      processed++;
     }
 
     return new Response(

@@ -23,6 +23,7 @@ import { EnquiryList } from './pages/enquiries/EnquiryList';
 import { EnquiryDetail } from './pages/enquiries/EnquiryDetail';
 import { GiftList } from './pages/gifts/GiftList';
 import { MerchantCommissionList } from './pages/commissions/MerchantCommissionList';
+import { MerchantSettlementList } from './pages/settlements/MerchantSettlementList';
 import { Reports } from './pages/Reports';
 import { Rewards } from './pages/Rewards';
 import { PdfExport } from './pages/PdfExport';
@@ -169,6 +170,12 @@ const commissionsRoute = createRoute({
   component: MerchantCommissionList,
 });
 
+const settlementsRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/settlements',
+  component: MerchantSettlementList,
+});
+
 // Reports route
 const reportsRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
@@ -241,6 +248,7 @@ const routeTree = rootRoute.addChildren([
     enquiryDetailRoute,
     giftsRoute,
     commissionsRoute,
+    settlementsRoute,
     reportsRoute,
     rewardsRoute,
     pdfExportRoute,

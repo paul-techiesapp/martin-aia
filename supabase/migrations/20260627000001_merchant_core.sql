@@ -85,7 +85,7 @@ BEGIN
      SET status = 'active', approved_by = auth.uid(), approved_at = NOW()
    WHERE id = merchant_uuid;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE OR REPLACE FUNCTION approve_merchant_branch(branch_uuid UUID)
 RETURNS VOID AS $$
@@ -95,7 +95,7 @@ BEGIN
      SET status = 'active', approved_by = auth.uid(), approved_at = NOW()
    WHERE id = branch_uuid;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- RLS ------------------------------------------------------
 ALTER TABLE merchants          ENABLE ROW LEVEL SECURITY;

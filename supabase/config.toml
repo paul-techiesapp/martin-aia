@@ -227,3 +227,9 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 # JWT internally via auth.getUser() which goes through the Auth API.
 [functions.create-agent]
 verify_jwt = false
+
+# Invoked machine-to-machine by pg_cron/pg_net with the service-role key.
+# Gateway JWT verification is disabled (the ES256 platform-verifier note above
+# applies); the function verifies the caller's bearer == service-role key.
+[functions.send-expiry-reminders]
+verify_jwt = false

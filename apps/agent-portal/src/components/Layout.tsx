@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
 import { cn, Button, Sheet, SheetContent, SheetTrigger, Logo, Avatar } from '@agent-system/shared-ui';
-import { LayoutDashboard, CalendarDays, Link2, Award, LogOut, Menu, Users, UserCog, KeyRound, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Link2, Award, LogOut, Menu, Users, UserCog, KeyRound, ClipboardList, Store, Inbox, Coins } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useMyAgentPhoto } from '../hooks/useAgentPhoto';
 
@@ -10,6 +10,9 @@ const agentAdminNavigation = [
   { name: 'Events', href: '/campaigns', icon: CalendarDays },
   { name: 'My Links', href: '/my-links', icon: Link2 },
   { name: 'Rewards', href: '/rewards', icon: Award },
+  { name: 'Partnerships', href: '/partnerships', icon: Store },
+  { name: 'My Enquiries', href: '/my-enquiries', icon: Inbox },
+  { name: 'My Commissions', href: '/my-commissions', icon: Coins },
   { name: 'My Agents', href: '/my-agents', icon: UserCog },
   { name: 'Team Report', href: '/team-report', icon: ClipboardList },
   { name: 'Partners', href: '/partners', icon: Users },
@@ -21,6 +24,9 @@ const agentNavigation = [
   { name: 'Events', href: '/campaigns', icon: CalendarDays },
   { name: 'My Links', href: '/my-links', icon: Link2 },
   { name: 'Rewards', href: '/rewards', icon: Award },
+  { name: 'Partnerships', href: '/partnerships', icon: Store },
+  { name: 'My Enquiries', href: '/my-enquiries', icon: Inbox },
+  { name: 'My Commissions', href: '/my-commissions', icon: Coins },
   { name: 'Account', href: '/account', icon: KeyRound },
 ];
 

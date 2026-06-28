@@ -22,7 +22,7 @@ RETURNS TABLE (
   JOIN merchants m         ON m.id = b.merchant_id
   WHERE bl.link_code = p_link_code
     AND bl.is_active = true;
-$$ LANGUAGE sql SECURITY DEFINER STABLE;
+$$ LANGUAGE sql SECURITY DEFINER STABLE SET search_path = public;
 
 -- Public enquiry submission. Atomic: the whole enquiry rolls back if any
 -- vehicle is a duplicate. p_vehicles is a jsonb array of objects:
@@ -119,7 +119,7 @@ BEGIN
 
   RETURN v_enquiry_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Anon may call both functions (and only these — the underlying tables stay RLS-locked).
 GRANT EXECUTE ON FUNCTION get_branch_link_context(text) TO anon;

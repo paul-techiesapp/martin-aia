@@ -22,6 +22,7 @@ import {
   DialogTrigger,
   Input,
   Label,
+  Badge,
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -31,8 +32,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   TableSkeleton,
+  useToast,
 } from '@agent-system/shared-ui';
-import { Plus, Pencil, Trash2, Check, ArrowLeft } from 'lucide-react';
+import { Plus, Pencil, Trash2, Check, ArrowLeft, QrCode, Copy, Link2, Power } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { useMerchant } from '../../hooks/useMerchants';
 import {
   useMerchantBranches,
@@ -41,7 +44,120 @@ import {
   useDeleteMerchantBranch,
   useApproveMerchantBranch,
 } from '../../hooks/useMerchantBranches';
+import {
+  useBranchLinks,
+  useCreateBranchLink,
+  useDeactivateBranchLink,
+} from '../../hooks/useBranchLinks';
 import { MerchantStatus, type MerchantBranch } from '@agent-system/shared-types';
+
+const publicBaseUrl = () => import.meta.env.VITE_PUBLIC_PAGES_URL || window.location.origin;
+const enquiryUrl = (code: string) => `${publicBaseUrl()}/public/enquiry/${code}`;
+
+function BranchLinksDialog({
+  branch,
+  open,
+  onOpenChange,
+}: {
+  branch: MerchantBranch;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+}) {
+  const { toast } = useToast();
+  const { data: links, isLoading } = useBranchLinks(branch.id);
+  const createLink = useCreateBranchLink();
+  const deactivateLink = useDeactivateBranchLink(branch.id);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleGenerate = async () => {
+    try {
+      await createLink.mutateAsync(branch.id);
+      toast({ title: 'House link created', description: 'Share the QR or URL with the branch.' });
+    } catch (err: any) {
+      toast({ title: 'Failed to create link', description: err.message, variant: 'error' });
+    }
+  };
+
+  const handleCopy = async (code: string, id: string) => {
+    await navigator.clipboard.writeText(enquiryUrl(code));
+    setCopiedId(id);
+    toast({ title: 'Link copied!', description: 'Customer enquiry link copied to clipboard.' });
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Branch Links — {branch.name}</DialogTitle>
+          <DialogDescription>
+            House links (no agent) for the customer enquiry form. Print the QR on branch signage.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex justify-end">
+          <Button onClick={handleGenerate} disabled={createLink.isPending}>
+            <Link2 className="size-4 mr-1.5" />
+            {createLink.isPending ? 'Generating...' : 'Generate house link'}
+          </Button>
+        </div>
+
+        <div className="space-y-3 max-h-[60vh] overflow-auto">
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading links...</p>
+          ) : (links?.length ?? 0) === 0 ? (
+            <p className="text-sm text-muted-foreground">No links yet. Generate the first house link.</p>
+          ) : (
+            links?.map((link) => (
+              <div key={link.id} className="flex items-center gap-3 rounded-md border p-3">
+                <div className="shrink-0 rounded bg-white p-1">
+                  <QRCodeSVG value={enquiryUrl(link.link_code)} size={88} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={link.is_active ? 'active' : 'inactive'}>
+                      {link.is_active ? 'active' : 'inactive'}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 truncate text-xs text-muted-foreground" title={enquiryUrl(link.link_code)}>
+                    {enquiryUrl(link.link_code)}
+                  </p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleCopy(link.link_code, link.id)}>
+                      {copiedId === link.id ? (
+                        <>
+                          <Check className="size-4 mr-1 text-emerald-600" /> Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="size-4 mr-1" /> Copy URL
+                        </>
+                      )}
+                    </Button>
+                    {link.is_active && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deactivateLink.mutate(link.id)}
+                        disabled={deactivateLink.isPending}
+                      >
+                        <Power className="size-4 mr-1 text-destructive" /> Deactivate
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export function MerchantDetail() {
   const { merchantId } = useParams({ strict: false }) as { merchantId: string };
@@ -55,6 +171,7 @@ export function MerchantDetail() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editing, setEditing] = useState<MerchantBranch | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [linksBranch, setLinksBranch] = useState<MerchantBranch | null>(null);
   const [formData, setFormData] = useState({ name: '', address: '', phone: '' });
 
   const handleOpenDialog = (branch?: MerchantBranch) => {
@@ -195,6 +312,14 @@ export function MerchantDetail() {
                       <TableCell className="capitalize text-muted-foreground">{branch.status}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setLinksBranch(branch)}
+                            aria-label="Manage branch links"
+                          >
+                            <QrCode className="size-4" />
+                          </Button>
                           {branch.status === MerchantStatus.PENDING && (
                             <Button
                               variant="ghost"
@@ -228,6 +353,14 @@ export function MerchantDetail() {
           )}
         </CardContent>
       </Card>
+
+      {linksBranch && (
+        <BranchLinksDialog
+          branch={linksBranch}
+          open={!!linksBranch}
+          onOpenChange={(o) => !o && setLinksBranch(null)}
+        />
+      )}
 
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>

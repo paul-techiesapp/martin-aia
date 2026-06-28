@@ -56,7 +56,7 @@ function giftBadge(status: GiftStatus): { label: string; variant: 'warning' | 's
 
 export function GiftList() {
   const { toast } = useToast();
-  const { data: gifts, isLoading } = useGifts();
+  const { data: gifts, isLoading, error } = useGifts();
   const markRedeemed = useMarkGiftRedeemed();
 
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -85,11 +85,21 @@ export function GiftList() {
     try {
       await markRedeemed.mutateAsync(redeemTarget.id);
       toast({ title: 'Voucher marked redeemed' });
+      setRedeemTarget(null);
     } catch (err: any) {
       toast({ title: 'Failed to redeem voucher', description: err.message, variant: 'error' });
     }
-    setRedeemTarget(null);
   };
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="py-4">
+          <p className="text-destructive">Error loading gifts: {error.message}</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4 animate-fade-in">

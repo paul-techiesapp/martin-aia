@@ -12,6 +12,14 @@ const corsHeaders = {
 // sets the locale (style), NOT the timezone.
 const EVENT_TIME_ZONE = 'Asia/Singapore';
 
+const esc = (s: unknown): string =>
+  String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
 function formatExpiryDate(dateOnly: string): string {
   const date = new Date(`${dateOnly}T00:00:00+08:00`);
   return date.toLocaleDateString('en-SG', {
@@ -37,15 +45,15 @@ function buildCustomerEmailHtml(
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #334155;">
   <div style="background: #f8fafc; border-radius: 12px; padding: 32px; border: 1px solid #e2e8f0;">
     <h2 style="margin: 0 0 24px 0; color: #0f172a;">Your car insurance is expiring soon</h2>
-    <p style="margin: 0 0 16px 0;">Hi ${customerName},</p>
+    <p style="margin: 0 0 16px 0;">Hi ${esc(customerName)},</p>
     <p style="margin: 0 0 20px 0;">This is a friendly reminder that your vehicle's insurance is due for renewal in about a month:</p>
     <div style="background: white; border-radius: 8px; padding: 20px; border: 1px solid #e2e8f0; margin: 0 0 20px 0;">
       <table style="width: 100%; font-size: 14px;">
-        <tr><td style="color: #64748b; padding: 4px 12px 4px 0;">Vehicle</td><td style="color: #334155;">${carPlate}</td></tr>
-        <tr><td style="color: #64748b; padding: 4px 12px 4px 0;">Expires</td><td style="color: #334155;">${expiryDateText}</td></tr>
+        <tr><td style="color: #64748b; padding: 4px 12px 4px 0;">Vehicle</td><td style="color: #334155;">${esc(carPlate)}</td></tr>
+        <tr><td style="color: #64748b; padding: 4px 12px 4px 0;">Expires</td><td style="color: #334155;">${esc(expiryDateText)}</td></tr>
       </table>
     </div>
-    <p style="margin: 0 0 12px 0;">Renew through <strong>${merchantName} (${branchName})</strong> with RACC and you'll qualify for a gold gift on confirmed renewal.</p>
+    <p style="margin: 0 0 12px 0;">Renew through <strong>${esc(merchantName)} (${esc(branchName)})</strong> with RACC and you'll qualify for a gold gift on confirmed renewal.</p>
     <p style="margin: 0;">Reply to this email or contact your RACC agent to get your quotation.</p>
   </div>
 </body>
@@ -66,14 +74,14 @@ function buildAgentEmailHtml(
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #334155;">
   <div style="background: #f8fafc; border-radius: 12px; padding: 32px; border: 1px solid #e2e8f0;">
     <h2 style="margin: 0 0 24px 0; color: #0f172a;">Renewal follow-up reminder</h2>
-    <p style="margin: 0 0 16px 0;">Hi ${agentName},</p>
+    <p style="margin: 0 0 16px 0;">Hi ${esc(agentName)},</p>
     <p style="margin: 0 0 20px 0;">One of your referred customers has a car insurance renewal coming up in ~30 days. Reach out to help them renew with RACC:</p>
     <div style="background: white; border-radius: 8px; padding: 20px; border: 1px solid #e2e8f0; margin: 0 0 20px 0;">
       <table style="width: 100%; font-size: 14px;">
-        <tr><td style="color: #64748b; padding: 4px 12px 4px 0;">Customer</td><td style="color: #334155;">${customerName}</td></tr>
-        <tr><td style="color: #64748b; padding: 4px 12px 4px 0;">Phone</td><td style="color: #334155;">${customerPhone}</td></tr>
-        <tr><td style="color: #64748b; padding: 4px 12px 4px 0;">Vehicle</td><td style="color: #334155;">${carPlate}</td></tr>
-        <tr><td style="color: #64748b; padding: 4px 12px 4px 0;">Expires</td><td style="color: #334155;">${expiryDateText}</td></tr>
+        <tr><td style="color: #64748b; padding: 4px 12px 4px 0;">Customer</td><td style="color: #334155;">${esc(customerName)}</td></tr>
+        <tr><td style="color: #64748b; padding: 4px 12px 4px 0;">Phone</td><td style="color: #334155;">${esc(customerPhone)}</td></tr>
+        <tr><td style="color: #64748b; padding: 4px 12px 4px 0;">Vehicle</td><td style="color: #334155;">${esc(carPlate)}</td></tr>
+        <tr><td style="color: #64748b; padding: 4px 12px 4px 0;">Expires</td><td style="color: #334155;">${esc(expiryDateText)}</td></tr>
       </table>
     </div>
   </div>

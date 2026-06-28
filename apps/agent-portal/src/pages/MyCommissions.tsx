@@ -43,7 +43,7 @@ function commissionDisplay(status: RewardStatus): {
 
 export function MyCommissions() {
   const { agent } = useAuth();
-  const { data: commissions, isLoading } = useMyCommissions(agent?.id);
+  const { data: commissions, isLoading, isError, error } = useMyCommissions(agent?.id);
 
   const rows = commissions ?? [];
   const total = rows.reduce((sum, c) => sum + (c.amount || 0), 0);
@@ -98,6 +98,12 @@ export function MyCommissions() {
         <CardContent>
           {isLoading ? (
             <TableSkeleton rows={5} columns={5} />
+          ) : isError ? (
+            <Card>
+              <CardContent className="py-4">
+                <p className="text-destructive">Error loading: {(error as Error)?.message}</p>
+              </CardContent>
+            </Card>
           ) : rows.length === 0 ? (
             <p className="text-muted-foreground">
               No commissions yet. You earn one when a customer renews through a branch QR tied to you.

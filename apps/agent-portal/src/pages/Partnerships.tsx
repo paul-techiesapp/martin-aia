@@ -36,7 +36,7 @@ export function Partnerships() {
   const { agent, role } = useAuth();
   const { toast } = useToast();
 
-  const { data: merchants, isLoading } = useAgentMerchants();
+  const { data: merchants, isLoading, isError, error } = useAgentMerchants();
   const { data: myLinks } = useMyBranchLinks(agent?.id);
   const proposeMerchant = useProposeMerchant();
   const proposeBranch = useProposeBranch();
@@ -152,6 +152,12 @@ export function Partnerships() {
               </Card>
             ))}
           </div>
+        ) : isError ? (
+          <Card>
+            <CardContent className="py-4">
+              <p className="text-destructive">Error loading: {(error as Error)?.message}</p>
+            </CardContent>
+          </Card>
         ) : activeMerchants.length === 0 ? (
           <Card>
             <CardContent className="py-4">

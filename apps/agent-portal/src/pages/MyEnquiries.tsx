@@ -20,7 +20,7 @@ import { useMyEnquiries } from '../hooks/useMyEnquiries';
 
 export function MyEnquiries() {
   const { agent } = useAuth();
-  const { data: enquiries, isLoading } = useMyEnquiries(agent?.id);
+  const { data: enquiries, isLoading, isError, error } = useMyEnquiries(agent?.id);
 
   return (
     <div className="flex flex-col gap-4 animate-fade-in">
@@ -35,6 +35,12 @@ export function MyEnquiries() {
         <Card>
           <CardContent className="py-4">
             <TableSkeleton rows={4} columns={4} />
+          </CardContent>
+        </Card>
+      ) : isError ? (
+        <Card>
+          <CardContent className="py-4">
+            <p className="text-destructive">Error loading: {(error as Error)?.message}</p>
           </CardContent>
         </Card>
       ) : !enquiries || enquiries.length === 0 ? (

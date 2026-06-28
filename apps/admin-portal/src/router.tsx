@@ -19,6 +19,8 @@ import { TierList } from './pages/tiers/TierList';
 import { InsuranceProductList } from './pages/insurance-products/InsuranceProductList';
 import { MerchantList } from './pages/merchants/MerchantList';
 import { MerchantDetail } from './pages/merchants/MerchantDetail';
+import { EnquiryList } from './pages/enquiries/EnquiryList';
+import { EnquiryDetail } from './pages/enquiries/EnquiryDetail';
 import { Reports } from './pages/Reports';
 import { Rewards } from './pages/Rewards';
 import { PdfExport } from './pages/PdfExport';
@@ -141,6 +143,18 @@ const merchantDetailRoute = createRoute({
   component: MerchantDetail,
 });
 
+const enquiriesRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/enquiries',
+  component: EnquiryList,
+});
+
+const enquiryDetailRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/enquiries/$enquiryId',
+  component: EnquiryDetail,
+});
+
 // Reports route
 const reportsRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
@@ -209,6 +223,8 @@ const routeTree = rootRoute.addChildren([
     insuranceProductsRoute,
     merchantsRoute,
     merchantDetailRoute,
+    enquiriesRoute,
+    enquiryDetailRoute,
     reportsRoute,
     rewardsRoute,
     pdfExportRoute,

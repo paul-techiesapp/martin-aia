@@ -16,6 +16,7 @@ import {
   X,
   Tag,
   Store,
+  Inbox,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { usePendingTierRequestCount } from '../hooks/useTierRequests';
@@ -27,6 +28,7 @@ const navigation = [
   { name: 'Tiers', href: '/tiers', icon: BadgeCheck },
   { name: 'Partnerships', href: '/merchants', icon: Store },
   { name: 'Products', href: '/insurance-products', icon: Tag },
+  { name: 'Enquiries', href: '/enquiries', icon: Inbox },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
   { name: 'Rewards', href: '/rewards', icon: Award },
   { name: 'PDF Export', href: '/pdf-export', icon: FileText },

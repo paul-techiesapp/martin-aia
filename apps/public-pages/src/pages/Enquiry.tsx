@@ -20,9 +20,11 @@ import {
   Skeleton,
   Logo,
 } from '@agent-system/shared-ui';
-import { Car, Plus, Trash2, CheckCircle } from 'lucide-react';
+import { Car, Plus, Trash2, CheckCircle, Paperclip, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { toMalaysianE164 } from '../lib/phone';
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 const enquirySchema = z.object({
   customer_name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -53,13 +55,25 @@ interface EnquiryContext {
   branch_name: string | null;
 }
 
+type Attachment = {
+  storage_path: string;
+  file_name: string;
+  content_type: string;
+  size_bytes: number;
+};
+
+type SubmitPhase = 'uploading' | 'submitting' | null;
+
 export function Enquiry() {
   const { linkCode } = useParams({ strict: false });
   const [context, setContext] = useState<EnquiryContext | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitPhase, setSubmitPhase] = useState<SubmitPhase>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [vehicleFiles, setVehicleFiles] = useState<Record<string, File[]>>({});
+  const [fileErrors, setFileErrors] = useState<Record<string, string | null>>({});
 
   const form = useForm<EnquiryFormData>({
     resolver: zodResolver(enquirySchema),
@@ -97,9 +111,87 @@ export function Enquiry() {
     setIsLoading(false);
   };
 
+  const handleFileChange = (fieldId: string, fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
+    const files = Array.from(fileList);
+    const invalid = files.find(
+      (f) => !(f.type.startsWith('image/') || f.type === 'application/pdf') || f.size > MAX_FILE_SIZE,
+    );
+    if (invalid) {
+      setFileErrors((prev) => ({ ...prev, [fieldId]: 'Only images or PDF, up to 10 MB.' }));
+      return;
+    }
+    setFileErrors((prev) => ({ ...prev, [fieldId]: null }));
+    setVehicleFiles((prev) => ({
+      ...prev,
+      [fieldId]: [...(prev[fieldId] ?? []), ...files],
+    }));
+  };
+
+  const removeFile = (fieldId: string, idx: number) => {
+    setVehicleFiles((prev) => ({
+      ...prev,
+      [fieldId]: (prev[fieldId] ?? []).filter((_, i) => i !== idx),
+    }));
+  };
+
+  const removeVehicle = (index: number, fieldId: string) => {
+    remove(index);
+    setVehicleFiles((prev) => {
+      const next = { ...prev };
+      delete next[fieldId];
+      return next;
+    });
+    setFileErrors((prev) => {
+      const next = { ...prev };
+      delete next[fieldId];
+      return next;
+    });
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
   const onSubmit = async (formData: EnquiryFormData) => {
     setIsSubmitting(true);
     setError(null);
+    setSubmitPhase('uploading');
+
+    const vehicleAttachments: Attachment[][] = [];
+
+    for (let i = 0; i < fields.length; i++) {
+      const fieldId = fields[i].id;
+      const files = vehicleFiles[fieldId] ?? [];
+      const attachments: Attachment[] = [];
+
+      for (const file of files) {
+        const safeName = file.name.replace(/[^\w.\-]+/g, '_');
+        const path = `${crypto.randomUUID()}/${safeName}`;
+        const { data, error: uploadError } = await supabase.storage
+          .from('enquiry-attachments')
+          .upload(path, file, { contentType: file.type, upsert: false });
+
+        if (uploadError || !data) {
+          setError(`Couldn't upload ${file.name}. Please try again.`);
+          setIsSubmitting(false);
+          setSubmitPhase(null);
+          return;
+        }
+
+        attachments.push({
+          storage_path: data.path,
+          file_name: file.name,
+          content_type: file.type,
+          size_bytes: file.size,
+        });
+      }
+
+      vehicleAttachments.push(attachments);
+    }
+
+    setSubmitPhase('submitting');
 
     const { error: rpcError } = await supabase.rpc('submit_enquiry', {
       p_link_code: linkCode,
@@ -107,11 +199,14 @@ export function Enquiry() {
       p_customer_nric: formData.customer_nric,
       p_customer_phone: toMalaysianE164(formData.customer_phone),
       p_customer_email: formData.customer_email?.trim() || null,
-      p_vehicles: formData.vehicles.map((v) => ({
+      p_vehicles: formData.vehicles.map((v, i) => ({
         car_plate: v.car_plate,
         expiry_date: v.insurance_expiry_date,
+        attachments: vehicleAttachments[i] ?? [],
       })),
     });
+
+    setSubmitPhase(null);
 
     if (rpcError) {
       if (rpcError.code === 'P0001') {
@@ -319,7 +414,7 @@ export function Enquiry() {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => remove(index)}
+                          onClick={() => removeVehicle(index, vField.id)}
                           aria-label="Remove vehicle"
                         >
                           <Trash2 className="size-4 text-destructive" />
@@ -354,6 +449,46 @@ export function Enquiry() {
                         </FormItem>
                       )}
                     />
+
+                    {/* Per-vehicle document upload */}
+                    <div className="space-y-2">
+                      <FormLabel className="text-foreground text-sm">
+                        Upload documents (car registration card, IC, etc.) — optional
+                      </FormLabel>
+                      <label className="flex items-center gap-2 cursor-pointer rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition-colors">
+                        <Paperclip className="size-4 shrink-0" />
+                        <span>Choose files</span>
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          multiple
+                          className="sr-only"
+                          onChange={(e) => handleFileChange(vField.id, e.currentTarget.files)}
+                        />
+                      </label>
+                      {fileErrors[vField.id] && (
+                        <p className="text-xs text-red-600">{fileErrors[vField.id]}</p>
+                      )}
+                      {(vehicleFiles[vField.id] ?? []).map((file, fi) => (
+                        <div
+                          key={fi}
+                          className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm"
+                        >
+                          <span className="flex-1 truncate text-foreground">{file.name}</span>
+                          <span className="shrink-0 text-xs text-muted-foreground">
+                            {formatFileSize(file.size)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removeFile(vField.id, fi)}
+                            aria-label={`Remove ${file.name}`}
+                            className="shrink-0 text-muted-foreground hover:text-destructive"
+                          >
+                            <X className="size-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -363,7 +498,11 @@ export function Enquiry() {
                 className="w-full h-11 font-medium mt-2"
                 disabled={isSubmitting || !form.formState.isValid}
               >
-                {isSubmitting ? 'Submitting...' : 'Submit Enquiry'}
+                {isSubmitting
+                  ? submitPhase === 'uploading'
+                    ? 'Uploading…'
+                    : 'Submitting…'
+                  : 'Submit Enquiry'}
               </Button>
             </form>
           </Form>

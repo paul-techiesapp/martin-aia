@@ -233,3 +233,8 @@ verify_jwt = false
 # applies); the function verifies the caller's bearer == service-role key.
 [functions.send-expiry-reminders]
 verify_jwt = false
+
+# Invoked server-to-server by the submit_enquiry RPC via pg_net with the
+# service-role key. The function validates the bearer internally.
+[functions.send-enquiry-notification]
+verify_jwt = false

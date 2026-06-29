@@ -103,7 +103,7 @@ BEGIN
   IF v_enquiry.merchant_id IS NULL THEN RAISE EXCEPTION 'Assign a partnership before confirming renewal' USING ERRCODE='P0008'; END IF;
   SELECT gift_pool_amount, merchant_share_pct INTO v_pool, v_share FROM merchants WHERE id=v_enquiry.merchant_id;
   v_customer := round(v_pool*(100-v_share)/100, 2); v_merchant_amt := round(v_pool*v_share/100, 2);
-  UPDATE enquiry_vehicles SET status='renewed', renewed_at=now(), renewed_by=auth.uid() WHERE id=p_vehicle_id;
+  UPDATE enquiry_vehicles SET status='renewed', renewed_at=COALESCE(renewed_at, now()), renewed_by=COALESCE(renewed_by, auth.uid()) WHERE id=p_vehicle_id;
   IF NOT EXISTS (SELECT 1 FROM gifts WHERE enquiry_vehicle_id=p_vehicle_id) THEN
     LOOP
       v_code := upper(substring(replace(gen_random_uuid()::text,'-','') for 10));

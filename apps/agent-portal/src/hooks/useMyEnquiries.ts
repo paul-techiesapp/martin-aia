@@ -7,12 +7,16 @@ export interface EnquiryVehicleWithProduct extends EnquiryVehicle {
 }
 
 export interface EnquiryWithDetails extends Enquiry {
+  /** Assigned merchant (v2 — set via assign_enquiry_merchant). */
+  merchant_id: string | null;
+  merchant: { name: string } | null;
+  /** Legacy branch context (may be null for v2 generic-link enquiries). */
   branch: { name: string; merchant: { name: string } | null } | null;
   vehicles: EnquiryVehicleWithProduct[];
 }
 
-// Enquiries that flowed through the agent's branch links (agent_id snapshot =
-// get_agent_id()), with each car and its product, for follow-up.
+// Enquiries owned by this agent, with assigned merchant and each vehicle's
+// product, for follow-up and partnership assignment.
 export function useMyEnquiries(agentId: string | undefined) {
   return useQuery({
     queryKey: ['my-enquiries', agentId],
@@ -21,6 +25,7 @@ export function useMyEnquiries(agentId: string | undefined) {
         .from('enquiries')
         .select(`
           *,
+          merchant:merchants(name),
           branch:merchant_branches(name, merchant:merchants(name)),
           vehicles:enquiry_vehicles(*, product:insurance_products(name))
         `)

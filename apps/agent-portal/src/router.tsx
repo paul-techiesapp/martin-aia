@@ -13,7 +13,7 @@ import { MyLinks } from './pages/MyLinks';
 import { AllLinks } from './pages/AllLinks';
 import { Rewards } from './pages/Rewards';
 import { Partners } from './pages/Partners';
-import { Partnerships } from './pages/Partnerships';
+import { MyEnquiryLink } from './pages/MyEnquiryLink';
 import { MyEnquiries } from './pages/MyEnquiries';
 import { MyCommissions } from './pages/MyCommissions';
 import { PartnerLinks } from './pages/PartnerLinks';
@@ -109,10 +109,10 @@ const partnersRoute = createRoute({
   component: Partners,
 });
 
-const partnershipsRoute = createRoute({
+const myLinkRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/partnerships',
-  component: Partnerships,
+  path: '/my-link',
+  component: MyEnquiryLink,
 });
 
 const myEnquiriesRoute = createRoute({
@@ -164,7 +164,7 @@ const routeTree = rootRoute.addChildren([
     allLinksRoute,
     rewardsRoute,
     partnersRoute,
-    partnershipsRoute,
+    myLinkRoute,
     myEnquiriesRoute,
     myCommissionsRoute,
     partnerLinksRoute,

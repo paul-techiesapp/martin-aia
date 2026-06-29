@@ -79,6 +79,7 @@ export function EnquiryDetail() {
   const [renewTarget, setRenewTarget] = useState<EnquiryVehicleRow | null>(null);
 
   const pending = recordQuotation.isPending || confirmRenewal.isPending || markLost.isPending;
+  const noPartnership = !enquiry?.merchant_id;
 
   const submitQuote = async () => {
     if (!quoteTarget) return;
@@ -103,7 +104,18 @@ export function EnquiryDetail() {
       toast({ title: 'Renewal confirmed — gift, commission & settlement created' });
       setRenewTarget(null);
     } catch (err: any) {
-      toast({ title: 'Failed to confirm renewal', description: err.message, variant: 'error' });
+      const isNoPartnership =
+        err?.code === 'P0008' || err?.message?.includes('Assign a partnership');
+      if (isNoPartnership) {
+        toast({
+          title: 'Partnership not assigned',
+          description: 'The agent must assign this enquiry to a partnership before it can be renewed.',
+          variant: 'error',
+        });
+      } else {
+        toast({ title: 'Failed to confirm renewal', description: err.message, variant: 'error' });
+      }
+      setRenewTarget(null);
     }
   };
 
@@ -152,14 +164,15 @@ export function EnquiryDetail() {
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-1">
           <div>
-            Branch: <span className="text-foreground">{enquiry?.branch?.merchant?.name ?? '—'}</span>
-            {enquiry?.branch?.name ? ` — ${enquiry.branch.name}` : ''}
+            Partnership: <span className="text-foreground">{enquiry?.merchant?.name ?? 'Unassigned'}</span>
           </div>
-          <div>
-            Split: pool RM{enquiry?.branch?.merchant?.gift_pool_amount?.toFixed(2) ?? '0.00'} ·{' '}
-            {enquiry?.branch?.merchant?.merchant_share_pct ?? 0}% merchant /{' '}
-            {100 - (enquiry?.branch?.merchant?.merchant_share_pct ?? 0)}% customer
-          </div>
+          {enquiry?.merchant && (
+            <div>
+              Split: pool RM{enquiry.merchant.gift_pool_amount?.toFixed(2) ?? '0.00'} ·{' '}
+              {enquiry.merchant.merchant_share_pct ?? 0}% merchant /{' '}
+              {100 - (enquiry.merchant.merchant_share_pct ?? 0)}% customer
+            </div>
+          )}
           <div>
             Source: <span className="text-foreground">{enquiry?.agent ? `${enquiry.agent.name} (${enquiry.agent.agent_code})` : 'House (no agent commission)'}</span>
           </div>
@@ -227,7 +240,8 @@ export function EnquiryDetail() {
                                 variant="ghost"
                                 size="sm"
                                 className="text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
-                                disabled={pending}
+                                disabled={pending || noPartnership}
+                                title={noPartnership ? 'The agent must assign a partnership before renewal' : undefined}
                                 onClick={() => setRenewTarget(v)}
                               >
                                 <CheckCircle2 className="size-4 mr-1" />

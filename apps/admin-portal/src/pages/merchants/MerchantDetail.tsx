@@ -1,224 +1,16 @@
-import { useState } from 'react';
 import { Link, useParams } from '@tanstack/react-router';
 import {
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  Input,
-  Label,
-  Badge,
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  TableSkeleton,
-  useToast,
 } from '@agent-system/shared-ui';
-import { Plus, Pencil, Trash2, Check, ArrowLeft, QrCode, Copy, Link2, Power } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
+import { ArrowLeft } from 'lucide-react';
 import { useMerchant } from '../../hooks/useMerchants';
-import {
-  useMerchantBranches,
-  useCreateMerchantBranch,
-  useUpdateMerchantBranch,
-  useDeleteMerchantBranch,
-  useApproveMerchantBranch,
-} from '../../hooks/useMerchantBranches';
-import {
-  useBranchLinks,
-  useCreateBranchLink,
-  useDeactivateBranchLink,
-} from '../../hooks/useBranchLinks';
-import { MerchantStatus, type MerchantBranch } from '@agent-system/shared-types';
-
-const publicBaseUrl = () => import.meta.env.VITE_PUBLIC_PAGES_URL || window.location.origin;
-const enquiryUrl = (code: string) => `${publicBaseUrl()}/public/enquiry/${code}`;
-
-function BranchLinksDialog({
-  branch,
-  open,
-  onOpenChange,
-}: {
-  branch: MerchantBranch;
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-}) {
-  const { toast } = useToast();
-  const { data: links, isLoading } = useBranchLinks(branch.id);
-  const createLink = useCreateBranchLink();
-  const deactivateLink = useDeactivateBranchLink(branch.id);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-
-  const handleGenerate = async () => {
-    try {
-      await createLink.mutateAsync(branch.id);
-      toast({ title: 'House link created', description: 'Share the QR or URL with the branch.' });
-    } catch (err: any) {
-      toast({ title: 'Failed to create link', description: err.message, variant: 'error' });
-    }
-  };
-
-  const handleCopy = async (code: string, id: string) => {
-    await navigator.clipboard.writeText(enquiryUrl(code));
-    setCopiedId(id);
-    toast({ title: 'Link copied!', description: 'Customer enquiry link copied to clipboard.' });
-    setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Branch Links — {branch.name}</DialogTitle>
-          <DialogDescription>
-            House links (no agent) for the customer enquiry form. Print the QR on branch signage.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="flex justify-end">
-          <Button onClick={handleGenerate} disabled={createLink.isPending}>
-            <Link2 className="size-4 mr-1.5" />
-            {createLink.isPending ? 'Generating...' : 'Generate house link'}
-          </Button>
-        </div>
-
-        <div className="space-y-3 max-h-[60vh] overflow-auto">
-          {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading links...</p>
-          ) : (links?.length ?? 0) === 0 ? (
-            <p className="text-sm text-muted-foreground">No links yet. Generate the first house link.</p>
-          ) : (
-            links?.map((link) => (
-              <div key={link.id} className="flex items-center gap-3 rounded-md border p-3">
-                <div className="shrink-0 rounded bg-white p-1">
-                  <QRCodeSVG value={enquiryUrl(link.link_code)} size={88} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={link.is_active ? 'active' : 'inactive'}>
-                      {link.is_active ? 'active' : 'inactive'}
-                    </Badge>
-                  </div>
-                  <p className="mt-1 truncate text-xs text-muted-foreground" title={enquiryUrl(link.link_code)}>
-                    {enquiryUrl(link.link_code)}
-                  </p>
-                  <div className="mt-2 flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleCopy(link.link_code, link.id)}>
-                      {copiedId === link.id ? (
-                        <>
-                          <Check className="size-4 mr-1 text-emerald-600" /> Copied!
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="size-4 mr-1" /> Copy URL
-                        </>
-                      )}
-                    </Button>
-                    {link.is_active && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deactivateLink.mutate(link.id)}
-                        disabled={deactivateLink.isPending}
-                      >
-                        <Power className="size-4 mr-1 text-destructive" /> Deactivate
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 export function MerchantDetail() {
   const { merchantId } = useParams({ strict: false }) as { merchantId: string };
   const { data: merchant } = useMerchant(merchantId);
-  const { data: branches, isLoading, error } = useMerchantBranches(merchantId);
-  const createBranch = useCreateMerchantBranch();
-  const updateBranch = useUpdateMerchantBranch();
-  const deleteBranch = useDeleteMerchantBranch(merchantId);
-  const approveBranch = useApproveMerchantBranch(merchantId);
-
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<MerchantBranch | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [linksBranch, setLinksBranch] = useState<MerchantBranch | null>(null);
-  const [formData, setFormData] = useState({ name: '', address: '', phone: '' });
-
-  const handleOpenDialog = (branch?: MerchantBranch) => {
-    if (branch) {
-      setEditing(branch);
-      setFormData({ name: branch.name, address: branch.address ?? '', phone: branch.phone ?? '' });
-    } else {
-      setEditing(null);
-      setFormData({ name: '', address: '', phone: '' });
-    }
-    setIsDialogOpen(true);
-  };
-
-  const handleSave = async () => {
-    const payload = {
-      name: formData.name,
-      address: formData.address.trim() === '' ? null : formData.address.trim(),
-      phone: formData.phone.trim() === '' ? null : formData.phone.trim(),
-    };
-    try {
-      if (editing) {
-        await updateBranch.mutateAsync({ id: editing.id, ...payload });
-      } else {
-        await createBranch.mutateAsync({ merchant_id: merchantId, ...payload });
-      }
-      setIsDialogOpen(false);
-    } catch (err) {
-      console.error('Failed to save branch:', err);
-    }
-  };
-
-  const confirmDelete = () => {
-    if (deleteId) {
-      deleteBranch.mutate(deleteId);
-      setDeleteId(null);
-    }
-  };
-
-  if (error) {
-    return (
-      <Card>
-        <CardContent className="py-4">
-          <p className="text-destructive">Error loading branches: {error.message}</p>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <div className="flex flex-col gap-4 animate-fade-in">
@@ -229,153 +21,27 @@ export function MerchantDetail() {
         </Link>
       </div>
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">{merchant?.name ?? 'Merchant'}</h1>
-          <p className="text-sm text-muted-foreground">
-            Pool RM{merchant?.gift_pool_amount?.toFixed(2) ?? '0.00'} ·{' '}
-            {merchant?.merchant_share_pct ?? 0}% merchant / {100 - (merchant?.merchant_share_pct ?? 0)}% customer
-          </p>
-        </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => handleOpenDialog()}>
-              <Plus className="size-4 mr-1.5" />
-              New Branch
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editing ? 'Edit Branch' : 'Create Branch'}</DialogTitle>
-              <DialogDescription>An outlet where customers can be referred.</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Branch Name</Label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Poh Kong — Sunway Pyramid"
-                />
-              </div>
-              <div>
-                <Label>Address (optional)</Label>
-                <Input
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Phone (optional)</Label>
-                <Input
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleSave} disabled={createBranch.isPending || updateBranch.isPending}>
-                {createBranch.isPending || updateBranch.isPending ? 'Saving...' : 'Save'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">{merchant?.name ?? 'Partnership'}</h1>
+        <p className="text-sm text-muted-foreground capitalize">{merchant?.status}</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Branches</CardTitle>
-          <CardDescription>{branches?.length ?? 0} branches</CardDescription>
+          <CardTitle>Partnership Details</CardTitle>
         </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <TableSkeleton rows={4} columns={4} />
-          ) : branches?.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No branches yet. Add the first outlet.</p>
-          ) : (
-            <div className="overflow-auto rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead>Name</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {branches?.map((branch) => (
-                    <TableRow key={branch.id}>
-                      <TableCell className="font-medium">{branch.name}</TableCell>
-                      <TableCell className="text-muted-foreground">{branch.phone ?? '—'}</TableCell>
-                      <TableCell className="capitalize text-muted-foreground">{branch.status}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setLinksBranch(branch)}
-                            aria-label="Manage branch links"
-                          >
-                            <QrCode className="size-4" />
-                          </Button>
-                          {branch.status === MerchantStatus.PENDING && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => approveBranch.mutate(branch.id)}
-                              disabled={approveBranch.isPending}
-                              aria-label="Approve branch"
-                            >
-                              <Check className="size-4 text-emerald-600" />
-                            </Button>
-                          )}
-                          <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(branch)} aria-label="Edit branch">
-                            <Pencil className="size-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setDeleteId(branch.id)}
-                            disabled={deleteBranch.isPending}
-                            aria-label="Delete branch"
-                          >
-                            <Trash2 className="size-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+        <CardContent className="text-sm text-muted-foreground space-y-1">
+          <div>
+            Gift pool: <span className="text-foreground">RM{merchant?.gift_pool_amount?.toFixed(2) ?? '0.00'}</span>
+          </div>
+          <div>
+            Split:{' '}
+            <span className="text-foreground">
+              {merchant?.merchant_share_pct ?? 0}% merchant / {100 - (merchant?.merchant_share_pct ?? 0)}% customer
+            </span>
+          </div>
         </CardContent>
       </Card>
-
-      {linksBranch && (
-        <BranchLinksDialog
-          branch={linksBranch}
-          open={!!linksBranch}
-          onOpenChange={(o) => !o && setLinksBranch(null)}
-        />
-      )}
-
-      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Branch</AlertDialogTitle>
-            <AlertDialogDescription>
-              Deleting a branch also deletes its links. This cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

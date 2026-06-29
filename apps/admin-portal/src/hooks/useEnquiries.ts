@@ -23,7 +23,8 @@ export interface EnquiryListRow {
   status: EnquiryStatus;
   created_at: string;
   agent_id: string | null;
-  branch: { id: string; name: string; merchant: { id: string; name: string } | null } | null;
+  merchant_id: string | null;
+  merchant: { id: string; name: string } | null;
   vehicles: { id: string; status: VehicleStatus }[];
 }
 
@@ -36,11 +37,8 @@ export interface EnquiryDetailRow {
   status: EnquiryStatus;
   created_at: string;
   agent_id: string | null;
-  branch: {
-    id: string;
-    name: string;
-    merchant: { id: string; name: string; gift_pool_amount: number; merchant_share_pct: number } | null;
-  } | null;
+  merchant_id: string | null;
+  merchant: { id: string; name: string; gift_pool_amount: number; merchant_share_pct: number } | null;
   agent: { id: string; name: string; agent_code: string } | null;
   vehicles: EnquiryVehicleRow[];
 }
@@ -53,7 +51,7 @@ export function useEnquiries() {
         .from('enquiries')
         .select(`
           id, customer_name, customer_phone, customer_nric, status, created_at, agent_id,
-          branch:merchant_branches(id, name, merchant:merchants(id, name)),
+          merchant_id, merchant:merchants(id, name),
           vehicles:enquiry_vehicles(id, status)
         `)
         .order('created_at', { ascending: false });
@@ -72,7 +70,7 @@ export function useEnquiry(id: string) {
         .from('enquiries')
         .select(`
           id, customer_name, customer_phone, customer_nric, customer_email, status, created_at, agent_id,
-          branch:merchant_branches(id, name, merchant:merchants(id, name, gift_pool_amount, merchant_share_pct)),
+          merchant_id, merchant:merchants(id, name, gift_pool_amount, merchant_share_pct),
           agent:agents(id, name, agent_code),
           vehicles:enquiry_vehicles(
             id, car_plate, insurance_expiry_date, status, external_quotation_ref,

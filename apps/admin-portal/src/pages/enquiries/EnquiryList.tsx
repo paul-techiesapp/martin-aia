@@ -61,7 +61,7 @@ export function EnquiryList() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Enquiries</h1>
           <p className="text-sm text-muted-foreground">
-            Customer car-insurance enquiries from partner branches. Open one to quote, renew, or mark each car lost.
+            Customer car-insurance enquiries. Open one to quote, renew, or mark each car lost.
           </p>
         </div>
         <div className="w-40">
@@ -93,7 +93,7 @@ export function EnquiryList() {
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
                     <TableHead>Customer</TableHead>
-                    <TableHead>Branch</TableHead>
+                    <TableHead>Partnership</TableHead>
                     <TableHead>Source</TableHead>
                     <TableHead>Cars</TableHead>
                     <TableHead>Status</TableHead>
@@ -121,8 +121,7 @@ export function EnquiryList() {
                           <div className="text-xs text-muted-foreground">{e.customer_phone}</div>
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {e.branch?.merchant?.name ?? '—'}
-                          <div className="text-xs">{e.branch?.name ?? ''}</div>
+                          {e.merchant?.name ?? 'Unassigned'}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {e.agent_id ? 'Agent' : 'House'}

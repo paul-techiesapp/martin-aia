@@ -45,13 +45,17 @@ const enquirySchema = z.object({
 
 type EnquiryFormData = z.infer<typeof enquirySchema>;
 
-interface EnquiryLinkContext {
-  agent_name: string;
+interface EnquiryContext {
+  kind: 'agent' | 'branch';
+  agent_name: string | null;
+  merchant_name: string | null;
+  merchant_logo_url: string | null;
+  branch_name: string | null;
 }
 
 export function Enquiry() {
   const { linkCode } = useParams({ strict: false });
-  const [context, setContext] = useState<EnquiryLinkContext | null>(null);
+  const [context, setContext] = useState<EnquiryContext | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -81,7 +85,7 @@ export function Enquiry() {
     setIsLoading(true);
     setError(null);
 
-    const { data: ctx, error: ctxError } = await supabase.rpc('get_enquiry_link_context', { p_link_code: code });
+    const { data: ctx, error: ctxError } = await supabase.rpc('get_enquiry_context', { p_link_code: code });
 
     if (ctxError || !ctx || ctx.length === 0) {
       setError('Invalid or inactive enquiry link');
@@ -89,7 +93,7 @@ export function Enquiry() {
       return;
     }
 
-    setContext(ctx[0] as EnquiryLinkContext);
+    setContext(ctx[0] as EnquiryContext);
     setIsLoading(false);
   };
 
@@ -162,6 +166,11 @@ export function Enquiry() {
   }
 
   if (isSuccess) {
+    const thankYouMsg =
+      context?.kind === 'branch'
+        ? `Thank you. ${context.merchant_name ?? 'The merchant'}${context.branch_name ? ` (${context.branch_name})` : ''} will be in touch with your car-insurance quotation soon.`
+        : 'Thank you. Your agent will be in touch with your car-insurance quotation soon.';
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 flex items-center justify-center p-4">
         <Card className="w-full max-w-md bg-card backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
@@ -171,9 +180,7 @@ export function Enquiry() {
             </div>
             <div>
               <h2 className="text-xl font-semibold text-foreground">Enquiry Received!</h2>
-              <p className="text-muted-foreground">
-                Thank you. Your agent will be in touch with your car-insurance quotation soon.
-              </p>
+              <p className="text-muted-foreground">{thankYouMsg}</p>
             </div>
           </CardContent>
         </Card>
@@ -185,12 +192,28 @@ export function Enquiry() {
     <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 flex items-center justify-center p-4">
       <Card className="w-full max-w-lg bg-card backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
         <CardHeader className="text-center pt-8">
-          <Logo size="lg" showText={false} className="mx-auto mb-4" />
+          {context?.kind === 'branch' ? (
+            context.merchant_logo_url ? (
+              <img
+                src={context.merchant_logo_url}
+                alt={context.merchant_name ?? 'Merchant'}
+                className="mx-auto mb-4 h-12 object-contain"
+              />
+            ) : (
+              <Logo size="lg" showText={false} className="mx-auto mb-4" />
+            )
+          ) : (
+            <Logo size="lg" showText={false} className="mx-auto mb-4" />
+          )}
           <CardTitle className="text-xl font-semibold text-foreground">
-            Car Insurance Enquiry — Gold Gift on Renewal
+            {context?.kind === 'branch'
+              ? `${context.merchant_name ?? 'Merchant'} — Gold Gift Enquiry`
+              : 'Car Insurance Enquiry — Gold Gift on Renewal'}
           </CardTitle>
           <CardDescription className="text-muted-foreground">
-            {context?.agent_name ? `Submitted via ${context.agent_name}` : 'Renew your car insurance and receive a gold gift.'}
+            {context?.kind === 'branch'
+              ? `Renew your car insurance at ${context.merchant_name ?? 'this merchant'}${context.branch_name ? ` (${context.branch_name})` : ''} and receive a gold gift.`
+              : `Submitted via ${context?.agent_name ?? ''}`}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 px-6 pb-8">

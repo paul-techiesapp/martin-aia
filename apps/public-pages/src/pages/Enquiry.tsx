@@ -45,15 +45,13 @@ const enquirySchema = z.object({
 
 type EnquiryFormData = z.infer<typeof enquirySchema>;
 
-interface BranchContext {
-  merchant_name: string;
-  merchant_logo_url: string | null;
-  branch_name: string;
+interface EnquiryLinkContext {
+  agent_name: string;
 }
 
 export function Enquiry() {
   const { linkCode } = useParams({ strict: false });
-  const [context, setContext] = useState<BranchContext | null>(null);
+  const [context, setContext] = useState<EnquiryLinkContext | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -83,7 +81,7 @@ export function Enquiry() {
     setIsLoading(true);
     setError(null);
 
-    const { data: ctx, error: ctxError } = await supabase.rpc('get_branch_link_context', { p_link_code: code });
+    const { data: ctx, error: ctxError } = await supabase.rpc('get_enquiry_link_context', { p_link_code: code });
 
     if (ctxError || !ctx || ctx.length === 0) {
       setError('Invalid or inactive enquiry link');
@@ -91,7 +89,7 @@ export function Enquiry() {
       return;
     }
 
-    setContext(ctx[0] as BranchContext);
+    setContext(ctx[0] as EnquiryLinkContext);
     setIsLoading(false);
   };
 
@@ -174,12 +172,8 @@ export function Enquiry() {
             <div>
               <h2 className="text-xl font-semibold text-foreground">Enquiry Received!</h2>
               <p className="text-muted-foreground">
-                Thank you. Our team will prepare your car-insurance quotation and be in touch soon.
+                Thank you. Your agent will be in touch with your car-insurance quotation soon.
               </p>
-            </div>
-            <div className="bg-muted p-4 rounded-xl text-left border">
-              <p className="font-semibold text-foreground">{context?.merchant_name}</p>
-              <p className="text-sm text-muted-foreground">{context?.branch_name}</p>
             </div>
           </CardContent>
         </Card>
@@ -191,20 +185,12 @@ export function Enquiry() {
     <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 flex items-center justify-center p-4">
       <Card className="w-full max-w-lg bg-card backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
         <CardHeader className="text-center pt-8">
-          {context?.merchant_logo_url ? (
-            <img
-              src={context.merchant_logo_url}
-              alt={context.merchant_name}
-              className="mx-auto mb-4 h-12 w-auto object-contain"
-            />
-          ) : (
-            <Logo size="lg" showText={false} className="mx-auto mb-4" />
-          )}
+          <Logo size="lg" showText={false} className="mx-auto mb-4" />
           <CardTitle className="text-xl font-semibold text-foreground">
-            {context?.merchant_name} — Gold Gift Enquiry
+            Car Insurance Enquiry — Gold Gift on Renewal
           </CardTitle>
           <CardDescription className="text-muted-foreground">
-            Renew your car insurance with us at {context?.branch_name} and receive a gold gift.
+            {context?.agent_name ? `Submitted via ${context.agent_name}` : 'Renew your car insurance and receive a gold gift.'}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 px-6 pb-8">

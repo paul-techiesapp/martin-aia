@@ -14,11 +14,9 @@ import {
   LogOut,
   Menu,
   X,
-  Tag,
   Store,
   Inbox,
   Gift,
-  Coins,
   Landmark,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
@@ -30,10 +28,8 @@ const navigation = [
   { name: 'Units', href: '/agents', icon: Users },
   { name: 'Tiers', href: '/tiers', icon: BadgeCheck },
   { name: 'Partnerships', href: '/merchants', icon: Store },
-  { name: 'Products', href: '/insurance-products', icon: Tag },
   { name: 'Enquiries', href: '/enquiries', icon: Inbox },
   { name: 'Gifts', href: '/gifts', icon: Gift },
-  { name: 'Commissions', href: '/commissions', icon: Coins },
   { name: 'Settlements', href: '/settlements', icon: Landmark },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
   { name: 'Rewards', href: '/rewards', icon: Award },

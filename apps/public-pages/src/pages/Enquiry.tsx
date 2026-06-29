@@ -17,11 +17,6 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Skeleton,
   Logo,
 } from '@agent-system/shared-ui';
@@ -43,7 +38,6 @@ const enquirySchema = z.object({
       z.object({
         car_plate: z.string().min(1, 'Car plate is required'),
         insurance_expiry_date: z.string().min(1, 'Expiry date is required'),
-        insurance_product_id: z.string().min(1, 'Select a product'),
       }),
     )
     .min(1, 'Add at least one vehicle'),
@@ -57,15 +51,9 @@ interface BranchContext {
   branch_name: string;
 }
 
-interface ProductOption {
-  id: string;
-  name: string;
-}
-
 export function Enquiry() {
   const { linkCode } = useParams({ strict: false });
   const [context, setContext] = useState<BranchContext | null>(null);
-  const [products, setProducts] = useState<ProductOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -79,7 +67,7 @@ export function Enquiry() {
       customer_nric: '',
       customer_phone: '',
       customer_email: '',
-      vehicles: [{ car_plate: '', insurance_expiry_date: '', insurance_product_id: '' }],
+      vehicles: [{ car_plate: '', insurance_expiry_date: '' }],
     },
   });
 
@@ -95,14 +83,7 @@ export function Enquiry() {
     setIsLoading(true);
     setError(null);
 
-    const [{ data: ctx, error: ctxError }, { data: prods, error: prodError }] = await Promise.all([
-      supabase.rpc('get_branch_link_context', { p_link_code: code }),
-      supabase
-        .from('insurance_products')
-        .select('id, name')
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true }),
-    ]);
+    const { data: ctx, error: ctxError } = await supabase.rpc('get_branch_link_context', { p_link_code: code });
 
     if (ctxError || !ctx || ctx.length === 0) {
       setError('Invalid or inactive enquiry link');
@@ -111,9 +92,6 @@ export function Enquiry() {
     }
 
     setContext(ctx[0] as BranchContext);
-    if (!prodError && prods) {
-      setProducts(prods as ProductOption[]);
-    }
     setIsLoading(false);
   };
 
@@ -130,7 +108,6 @@ export function Enquiry() {
       p_vehicles: formData.vehicles.map((v) => ({
         car_plate: v.car_plate,
         expiry_date: v.insurance_expiry_date,
-        insurance_product_id: v.insurance_product_id,
       })),
     });
 
@@ -315,7 +292,7 @@ export function Enquiry() {
                     variant="outline"
                     size="sm"
                     onClick={() =>
-                      append({ car_plate: '', insurance_expiry_date: '', insurance_product_id: '' })
+                      append({ car_plate: '', insurance_expiry_date: '' })
                     }
                   >
                     <Plus className="size-4 mr-1" /> Add vehicle
@@ -364,31 +341,6 @@ export function Enquiry() {
                           <FormControl>
                             <Input type="date" className="h-11" {...field} />
                           </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name={`vehicles.${index}.insurance_product_id`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-foreground">Insurance Product</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger className="h-11">
-                                <SelectValue placeholder="Select a product" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {products.map((p) => (
-                                <SelectItem key={p.id} value={p.id}>
-                                  {p.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}

@@ -1,37 +1,64 @@
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
 import { cn, Button, Sheet, SheetContent, SheetTrigger, Logo, Avatar } from '@agent-system/shared-ui';
-import { LayoutDashboard, CalendarDays, Link2, Award, LogOut, Menu, Users, UserCog, KeyRound, ClipboardList, QrCode, Inbox } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Link2, Award, LogOut, Menu, Users, UserCog, KeyRound, ClipboardList, QrCode, Inbox, type LucideIcon } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useMyAgentPhoto } from '../hooks/useAgentPhoto';
 
-const agentAdminNavigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Events', href: '/campaigns', icon: CalendarDays },
-  { name: 'My Links', href: '/my-links', icon: Link2 },
-  { name: 'Rewards', href: '/rewards', icon: Award },
-  { name: 'My Link', href: '/my-link', icon: QrCode },
-  { name: 'My Enquiries', href: '/my-enquiries', icon: Inbox },
-  { name: 'My Agents', href: '/my-agents', icon: UserCog },
-  { name: 'Team Report', href: '/team-report', icon: ClipboardList },
-  { name: 'Partners', href: '/partners', icon: Users },
-  { name: 'Account', href: '/account', icon: KeyRound },
+type NavItem = { name: string; href: string; icon: LucideIcon };
+type NavGroup = { label?: string; items: NavItem[] };
+
+const agentAdminGroups: NavGroup[] = [
+  { items: [{ name: 'Dashboard', href: '/', icon: LayoutDashboard }] },
+  {
+    label: 'Events',
+    items: [
+      { name: 'Events', href: '/campaigns', icon: CalendarDays },
+      { name: 'My Links', href: '/my-links', icon: Link2 },
+      { name: 'Rewards', href: '/rewards', icon: Award },
+      { name: 'My Agents', href: '/my-agents', icon: UserCog },
+      { name: 'Team Report', href: '/team-report', icon: ClipboardList },
+      { name: 'Partners', href: '/partners', icon: Users },
+    ],
+  },
+  {
+    label: 'Partnership',
+    items: [
+      { name: 'My Link', href: '/my-link', icon: QrCode },
+      { name: 'My Enquiries', href: '/my-enquiries', icon: Inbox },
+    ],
+  },
+  { items: [{ name: 'Account', href: '/account', icon: KeyRound }] },
 ];
 
-const agentNavigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Events', href: '/campaigns', icon: CalendarDays },
-  { name: 'My Links', href: '/my-links', icon: Link2 },
-  { name: 'Rewards', href: '/rewards', icon: Award },
-  { name: 'My Link', href: '/my-link', icon: QrCode },
-  { name: 'My Enquiries', href: '/my-enquiries', icon: Inbox },
-  { name: 'Account', href: '/account', icon: KeyRound },
+const agentGroups: NavGroup[] = [
+  { items: [{ name: 'Dashboard', href: '/', icon: LayoutDashboard }] },
+  {
+    label: 'Events',
+    items: [
+      { name: 'Events', href: '/campaigns', icon: CalendarDays },
+      { name: 'My Links', href: '/my-links', icon: Link2 },
+      { name: 'Rewards', href: '/rewards', icon: Award },
+    ],
+  },
+  {
+    label: 'Partnership',
+    items: [
+      { name: 'My Link', href: '/my-link', icon: QrCode },
+      { name: 'My Enquiries', href: '/my-enquiries', icon: Inbox },
+    ],
+  },
+  { items: [{ name: 'Account', href: '/account', icon: KeyRound }] },
 ];
 
-const partnerNavigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'My Links', href: '/partner-links', icon: Link2 },
-  { name: 'Account', href: '/account', icon: KeyRound },
+const partnerGroups: NavGroup[] = [
+  {
+    items: [
+      { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+      { name: 'My Links', href: '/partner-links', icon: Link2 },
+      { name: 'Account', href: '/account', icon: KeyRound },
+    ],
+  },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -61,11 +88,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const navigation = role === 'partner'
-    ? partnerNavigation
+  const navGroups = role === 'partner'
+    ? partnerGroups
     : role === 'agent_admin'
-      ? agentAdminNavigation
-      : agentNavigation;
+      ? agentAdminGroups
+      : agentGroups;
 
   const displayName = role === 'partner' ? partner?.name : agent?.name;
   const subtitle = role === 'partner'
@@ -83,26 +110,35 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </span>
       </div>
       <nav className="px-3 py-4 space-y-0.5">
-        {navigation.map((item) => {
-          const isActive = location.pathname === item.href ||
-            (item.href !== '/' && location.pathname.startsWith(item.href));
-          return (
-            <Link
-              key={item.name}
-              to={item.href}
-              onClick={() => setMobileOpen(false)}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
-                isActive
-                  ? 'bg-white/12 text-white shadow-sm border-l-2 border-indigo-400 pl-[10px]'
-                  : 'text-slate-300 hover:bg-white/8 hover:text-white'
-              )}
-            >
-              <item.icon className={cn("size-5", isActive && "text-indigo-300")} />
-              {item.name}
-            </Link>
-          );
-        })}
+        {navGroups.map((group, gi) => (
+          <Fragment key={group.label ?? `group-${gi}`}>
+            {group.label && (
+              <p className="px-3 pt-4 pb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {group.label}
+              </p>
+            )}
+            {group.items.map((item) => {
+              const isActive = location.pathname === item.href ||
+                (item.href !== '/' && location.pathname.startsWith(item.href));
+              return (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
+                    isActive
+                      ? 'bg-white/12 text-white shadow-sm border-l-2 border-indigo-400 pl-[10px]'
+                      : 'text-slate-300 hover:bg-white/8 hover:text-white'
+                  )}
+                >
+                  <item.icon className={cn("size-5", isActive && "text-indigo-300")} />
+                  {item.name}
+                </Link>
+              );
+            })}
+          </Fragment>
+        ))}
       </nav>
     </>
   );

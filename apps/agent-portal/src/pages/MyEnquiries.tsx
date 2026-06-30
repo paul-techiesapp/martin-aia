@@ -21,14 +21,18 @@ import {
   getStatusVariant,
   TableSkeleton,
   useToast,
+  buildEnquiriesWorkbook,
+  type EnquiryExportRow,
 } from '@agent-system/shared-ui';
 import { format, parseISO } from 'date-fns';
-import { FileText, Store } from 'lucide-react';
+import { FileText, Store, Download } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useMyEnquiries, type EnquiryWithDetails } from '../hooks/useMyEnquiries';
 import { useAssignEnquiryMerchant } from '../hooks/useMyEnquiryLink';
 import { useAgentMerchants, type MerchantWithBranches } from '../hooks/useAgentMerchants';
-import { MerchantStatus } from '@agent-system/shared-types';
+import { useRequestQuote } from '../hooks/useRequestQuote';
+import { compareMyEnquiries } from './myEnquiriesSort';
+import { MerchantStatus, VehicleStatus, type AgentWithTier } from '@agent-system/shared-types';
 import { useEnquiryAttachments, useViewAttachment } from '../hooks/useEnquiryAttachments';
 
 interface EnquiryCardProps {
@@ -40,7 +44,9 @@ interface EnquiryCardProps {
 function EnquiryCard({ enq, activeMerchants, agentId }: EnquiryCardProps) {
   const { toast } = useToast();
   const assignMerchant = useAssignEnquiryMerchant(agentId);
+  const requestQuote = useRequestQuote(agentId);
   const [selectedMerchant, setSelectedMerchant] = useState('');
+  const [quotingVehicleId, setQuotingVehicleId] = useState<string | null>(null);
   const { data: attachments = [] } = useEnquiryAttachments(enq.id);
   const viewAttachment = useViewAttachment();
 
@@ -56,6 +62,22 @@ function EnquiryCard({ enq, activeMerchants, agentId }: EnquiryCardProps) {
         description: (err as Error)?.message,
         variant: 'error',
       });
+    }
+  };
+
+  const handleGetQuote = async (vehicleId: string) => {
+    setQuotingVehicleId(vehicleId);
+    try {
+      await requestQuote.mutateAsync({ enquiryId: enq.id, vehicleId });
+      toast({ title: 'Quote requested', description: 'Our team has been notified.' });
+    } catch (err: unknown) {
+      toast({
+        title: 'Failed to request quote',
+        description: (err as Error)?.message,
+        variant: 'error',
+      });
+    } finally {
+      setQuotingVehicleId(null);
     }
   };
 
@@ -127,6 +149,7 @@ function EnquiryCard({ enq, activeMerchants, agentId }: EnquiryCardProps) {
                 <TableHead>Insurance Expiry</TableHead>
                 <TableHead>Product</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -147,10 +170,30 @@ function EnquiryCard({ enq, activeMerchants, agentId }: EnquiryCardProps) {
                           {v.status}
                         </Badge>
                       </TableCell>
+                      <TableCell className="text-right">
+                        {v.quote_requested_at ? (
+                          <span className="text-xs text-muted-foreground">
+                            Quote requested {format(parseISO(v.quote_requested_at), 'd MMM yyyy')}
+                          </span>
+                        ) : v.status === VehicleStatus.SUBMITTED ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={requestQuote.isPending && quotingVehicleId === v.id}
+                            onClick={() => handleGetQuote(v.id)}
+                          >
+                            {requestQuote.isPending && quotingVehicleId === v.id
+                              ? 'Requesting…'
+                              : 'Get Quote'}
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                     </TableRow>
                     {vehicleAttachments.length > 0 && (
                       <TableRow className="hover:bg-transparent">
-                        <TableCell colSpan={4} className="py-1 pl-4 bg-muted/30">
+                        <TableCell colSpan={5} className="py-1 pl-4 bg-muted/30">
                           <div className="flex flex-wrap gap-1.5">
                             {vehicleAttachments.map(a => (
                               <div
@@ -185,20 +228,90 @@ function EnquiryCard({ enq, activeMerchants, agentId }: EnquiryCardProps) {
   );
 }
 
+const fmtDate = (d?: string | null) => (d ? format(parseISO(d), 'd MMM yyyy') : '');
+
+// Flatten an agent's enquiries into one export row per car (unit/agent come
+// from the logged-in agent context; partner from the assigned merchant).
+function toEnquiryExportRows(
+  enquiries: EnquiryWithDetails[],
+  agent: AgentWithTier | null,
+): EnquiryExportRow[] {
+  const unit = agent?.unit_name ?? '';
+  const agentName = agent?.name ?? '';
+  const agentCode = agent?.agent_code ?? '';
+  const rows: EnquiryExportRow[] = [];
+  for (const e of enquiries) {
+    const base = {
+      unit,
+      agent: agentName,
+      agentCode,
+      partner: e.merchant?.name ?? 'Unassigned',
+      customer: e.customer_name ?? '',
+      phone: e.customer_phone ?? '',
+      email: e.customer_email ?? '',
+      enquiryStatus: e.status,
+      received: fmtDate(e.created_at),
+    };
+    const vehicles = e.vehicles ?? [];
+    if (vehicles.length === 0) {
+      rows.push({ ...base, carPlate: '', insuranceExpiry: '', roadTax: '', vehicleStatus: '' });
+      continue;
+    }
+    for (const v of vehicles) {
+      rows.push({
+        ...base,
+        carPlate: v.car_plate ?? '',
+        insuranceExpiry: fmtDate(v.insurance_expiry_date),
+        roadTax: v.road_tax_renewal ? 'Yes' : 'No',
+        vehicleStatus: v.status,
+      });
+    }
+  }
+  return rows;
+}
+
 export function MyEnquiries() {
   const { agent } = useAuth();
+  const { toast } = useToast();
   const { data: enquiries, isLoading, isError, error } = useMyEnquiries(agent?.id);
   const { data: merchants } = useAgentMerchants();
 
   const activeMerchants = merchants?.filter((m) => m.status === MerchantStatus.ACTIVE) ?? [];
 
+  // Default ordering: Partner -> Status (open first) -> earliest expiry -> newest.
+  const sortedEnquiries = [...(enquiries ?? [])].sort(compareMyEnquiries);
+
+  const handleDownload = async () => {
+    try {
+      const rows = toEnquiryExportRows(sortedEnquiries, agent);
+      await buildEnquiriesWorkbook(rows, { generatedAt: new Date().toISOString().slice(0, 10) });
+    } catch (err: unknown) {
+      toast({
+        title: 'Failed to generate report',
+        description: (err as Error)?.message,
+        variant: 'error',
+      });
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">My Enquiries</h1>
-        <p className="text-sm text-muted-foreground">
-          Car-insurance enquiries customers submitted through your enquiry link
-        </p>
+      <div className="flex flex-row items-start justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">My Enquiries</h1>
+          <p className="text-sm text-muted-foreground">
+            Car-insurance enquiries customers submitted through your enquiry link
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleDownload}
+          disabled={sortedEnquiries.length === 0}
+        >
+          <Download className="size-4 mr-2" />
+          Download
+        </Button>
       </div>
 
       {isLoading ? (
@@ -222,7 +335,7 @@ export function MyEnquiries() {
           </CardContent>
         </Card>
       ) : (
-        enquiries.map((enq) => (
+        sortedEnquiries.map((enq) => (
           <EnquiryCard
             key={enq.id}
             enq={enq}

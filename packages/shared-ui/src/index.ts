@@ -130,8 +130,8 @@ export { generateInvitationCard, generateBulkInvitationCards, formatSlotDate, fo
 export type { InvitationCardData } from './utils/pdfGenerator';
 
 // Excel Generation
-export { generateRegistrantsWorkbook } from './utils/excelGenerator';
-export type { RegistrantRow, RegistrantsWorkbookMeta } from './utils/excelGenerator';
+export { generateRegistrantsWorkbook, buildEnquiriesWorkbook, buildRenewalsWorkbook } from './utils/excelGenerator';
+export type { RegistrantRow, RegistrantsWorkbookMeta, EnquiryExportRow, RenewalExportRow } from './utils/excelGenerator';
 
 // Font Utilities
 export { CURATED_FONTS, loadFont, getFontDisplayName } from './utils/fonts';

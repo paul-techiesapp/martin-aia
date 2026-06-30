@@ -10,8 +10,10 @@ export interface Merchant {
   id: string;
   name: string;
   logo_url: string | null;
-  gift_pool_amount: number;
-  merchant_share_pct: number;
+  /** @deprecated Gift pool/split removed; customer gift = system_settings.customer_gift_rate_pct of renewal premium. */
+  gift_pool_amount?: number;
+  /** @deprecated Gift pool/split removed; see customer_gift_rate_pct. */
+  merchant_share_pct?: number;
   status: MerchantStatus;
   created_by_agent_id: string | null;
   approved_by: string | null;
@@ -54,8 +56,12 @@ export interface BranchLink {
 
 export interface Enquiry {
   id: string;
-  branch_link_id: string;
-  merchant_branch_id: string;
+  branch_link_id: string | null;
+  merchant_branch_id: string | null;
+  /** Suggested/assigned partner at the enquiry level (per-car merchant_id is authoritative for ledgers). */
+  merchant_id: string | null;
+  assigned_at: string | null;
+  assigned_by: string | null;
   agent_id: string | null;
   customer_name: string;
   customer_nric: string;
@@ -71,11 +77,19 @@ export interface Enquiry {
 export interface EnquiryVehicle {
   id: string;
   enquiry_id: string;
-  merchant_branch_id: string;
+  merchant_branch_id: string | null;
+  /** Per-car partner, confirmed by admin at renewal. */
+  merchant_id: string | null;
   car_plate: string;
   car_plate_normalized: string;
   insurance_expiry_date: string;
-  insurance_product_id: string;
+  insurance_product_id: string | null;
+  /** Customer's Road Tax renewal choice captured on the enquiry form. */
+  road_tax_renewal: boolean;
+  /** Total car-insurance renewal premium captured at confirmation; gift = rate% of this. */
+  renewal_premium_amount: number | null;
+  /** Set when an agent requests a quote via "Get Quote". */
+  quote_requested_at: string | null;
   status: VehicleStatus;
   external_quotation_ref: string | null;
   quoted_at: string | null;

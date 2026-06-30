@@ -18,11 +18,15 @@ import {
   FormLabel,
   FormMessage,
   Skeleton,
+  ScrollArea,
+  Checkbox,
   Logo,
 } from '@agent-system/shared-ui';
+import { DEFAULT_ENQUIRY_FORM } from '@agent-system/shared-types';
 import { Car, Plus, Trash2, CheckCircle, Paperclip, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { toMalaysianE164 } from '../lib/phone';
+import { useEnquiryFormSettings } from '../hooks/useEnquiryFormSettings';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
@@ -30,22 +34,32 @@ const enquirySchema = z.object({
   customer_name: z.string().min(2, 'Name must be at least 2 characters'),
   customer_nric: z.string().min(6, 'NRIC / MyKad is required'),
   customer_phone: z.string().min(8, 'Phone number must be at least 8 characters'),
-  customer_email: z
-    .string()
-    .email('Invalid email address')
-    .optional()
-    .or(z.literal('')),
+  customer_email: z.string().email('A valid email is required'),
+  acceptedTerms: z.literal(true, {
+    errorMap: () => ({ message: 'You must accept the Terms & Conditions' }),
+  }),
   vehicles: z
     .array(
       z.object({
         car_plate: z.string().min(1, 'Car plate is required'),
         insurance_expiry_date: z.string().min(1, 'Expiry date is required'),
+        road_tax_renewal: z.enum(['yes', 'no'], {
+          errorMap: () => ({ message: 'Select Yes or No for Road Tax' }),
+        }),
       }),
     )
     .min(1, 'Add at least one vehicle'),
 });
 
 type EnquiryFormData = z.infer<typeof enquirySchema>;
+
+// A fresh vehicle row. road_tax_renewal starts unselected (undefined at runtime);
+// the cast keeps it assignable to the required enum field for RHF append/defaults.
+const blankVehicle = (): EnquiryFormData['vehicles'][number] => ({
+  car_plate: '',
+  insurance_expiry_date: '',
+  road_tax_renewal: undefined as unknown as 'yes' | 'no',
+});
 
 interface EnquiryContext {
   kind: 'agent' | 'branch';
@@ -75,6 +89,8 @@ export function Enquiry() {
   const [vehicleFiles, setVehicleFiles] = useState<Record<string, File[]>>({});
   const [fileErrors, setFileErrors] = useState<Record<string, string | null>>({});
 
+  const { data: formSettings } = useEnquiryFormSettings();
+
   const form = useForm<EnquiryFormData>({
     resolver: zodResolver(enquirySchema),
     mode: 'onChange',
@@ -83,11 +99,16 @@ export function Enquiry() {
       customer_nric: '',
       customer_phone: '',
       customer_email: '',
-      vehicles: [{ car_plate: '', insurance_expiry_date: '' }],
+      acceptedTerms: false as unknown as true,
+      vehicles: [blankVehicle()],
     },
   });
 
   const { fields, append, remove } = useFieldArray({ control: form.control, name: 'vehicles' });
+
+  // Covernote / Geran is mandatory: every vehicle must have at least one file.
+  const allVehiclesHaveFiles =
+    fields.length > 0 && fields.every((f) => (vehicleFiles[f.id]?.length ?? 0) > 0);
 
   useEffect(() => {
     if (linkCode) {
@@ -155,6 +176,20 @@ export function Enquiry() {
   };
 
   const onSubmit = async (formData: EnquiryFormData) => {
+    // Covernote / Geran is mandatory — block submit until every vehicle has a file.
+    const missingFileErrors: Record<string, string | null> = {};
+    let hasMissingFiles = false;
+    for (const f of fields) {
+      if ((vehicleFiles[f.id]?.length ?? 0) === 0) {
+        missingFileErrors[f.id] = 'Please upload the Covernote / Geran for this vehicle.';
+        hasMissingFiles = true;
+      }
+    }
+    if (hasMissingFiles) {
+      setFileErrors((prev) => ({ ...prev, ...missingFileErrors }));
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
     setSubmitPhase('uploading');
@@ -198,10 +233,11 @@ export function Enquiry() {
       p_customer_name: formData.customer_name,
       p_customer_nric: formData.customer_nric,
       p_customer_phone: toMalaysianE164(formData.customer_phone),
-      p_customer_email: formData.customer_email?.trim() || null,
+      p_customer_email: formData.customer_email.trim(),
       p_vehicles: formData.vehicles.map((v, i) => ({
         car_plate: v.car_plate,
         expiry_date: v.insurance_expiry_date,
+        road_tax_renewal: v.road_tax_renewal === 'yes',
         attachments: vehicleAttachments[i] ?? [],
       })),
     });
@@ -283,33 +319,50 @@ export function Enquiry() {
     );
   }
 
+  // Header/footer + T&C copy: admin-editable Settings take priority, then any
+  // branch-merchant branding, then the hardcoded defaults (used while settings load).
+  const headerLogoUrl = formSettings?.header_logo_url || context?.merchant_logo_url || null;
+  const headerTitle =
+    context?.kind === 'branch' && context.merchant_name
+      ? `${context.merchant_name} — Gold Gift Enquiry`
+      : formSettings?.header_title ?? 'Car Insurance Enquiry — Gold Gift on Renewal';
+  const headerSubtitle =
+    formSettings?.header_subtitle ??
+    'Submit your details and our team will be in touch about your renewal and gold gift.';
+  const overlayCopy =
+    context?.kind === 'branch'
+      ? `Renew your car insurance at ${context.merchant_name ?? 'this merchant'}${context.branch_name ? ` (${context.branch_name})` : ''} and receive a gold gift.`
+      : context?.kind === 'agent'
+        ? `Submitted via ${context?.agent_name ?? ''}`
+        : '';
+  const footerText = formSettings?.footer_text ?? DEFAULT_ENQUIRY_FORM.footer_text;
+
+  // T&C body with the DPO contact appended (when not already present in the body).
+  const tncBody = formSettings?.tnc_body ?? DEFAULT_ENQUIRY_FORM.tnc_body;
+  const dpoContact = formSettings?.dpo_contact ?? DEFAULT_ENQUIRY_FORM.dpo_contact;
+  const tncText =
+    dpoContact && !tncBody.includes(dpoContact)
+      ? `${tncBody}\n\nData Protection Officer (DPO): ${dpoContact}`
+      : tncBody;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 flex items-center justify-center p-4">
       <Card className="w-full max-w-lg bg-card backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
         <CardHeader className="text-center pt-8">
-          {context?.kind === 'branch' ? (
-            context.merchant_logo_url ? (
-              <img
-                src={context.merchant_logo_url}
-                alt={context.merchant_name ?? 'Merchant'}
-                className="mx-auto mb-4 h-12 object-contain"
-              />
-            ) : (
-              <Logo size="lg" showText={false} className="mx-auto mb-4" />
-            )
+          {headerLogoUrl ? (
+            <img
+              src={headerLogoUrl}
+              alt={context?.merchant_name ?? 'Logo'}
+              className="mx-auto mb-4 h-12 object-contain"
+            />
           ) : (
             <Logo size="lg" showText={false} className="mx-auto mb-4" />
           )}
-          <CardTitle className="text-xl font-semibold text-foreground">
-            {context?.kind === 'branch'
-              ? `${context.merchant_name ?? 'Merchant'} — Gold Gift Enquiry`
-              : 'Car Insurance Enquiry — Gold Gift on Renewal'}
-          </CardTitle>
-          <CardDescription className="text-muted-foreground">
-            {context?.kind === 'branch'
-              ? `Renew your car insurance at ${context.merchant_name ?? 'this merchant'}${context.branch_name ? ` (${context.branch_name})` : ''} and receive a gold gift.`
-              : `Submitted via ${context?.agent_name ?? ''}`}
-          </CardDescription>
+          <CardTitle className="text-xl font-semibold text-foreground">{headerTitle}</CardTitle>
+          <CardDescription className="text-muted-foreground">{headerSubtitle}</CardDescription>
+          {overlayCopy && (
+            <p className="mt-1 text-xs text-muted-foreground">{overlayCopy}</p>
+          )}
         </CardHeader>
         <CardContent className="flex flex-col gap-4 px-6 pb-8">
           {error && (
@@ -378,7 +431,7 @@ export function Enquiry() {
                 name="customer_email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-foreground">Email Address (optional)</FormLabel>
+                    <FormLabel className="text-foreground">Email Address</FormLabel>
                     <FormControl>
                       <Input type="email" placeholder="you@example.com" className="h-11" {...field} />
                     </FormControl>
@@ -395,9 +448,7 @@ export function Enquiry() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() =>
-                      append({ car_plate: '', insurance_expiry_date: '' })
-                    }
+                    onClick={() => append(blankVehicle())}
                   >
                     <Plus className="size-4 mr-1" /> Add vehicle
                   </Button>
@@ -450,10 +501,41 @@ export function Enquiry() {
                       )}
                     />
 
-                    {/* Per-vehicle document upload */}
+                    <FormField
+                      control={form.control}
+                      name={`vehicles.${index}.road_tax_renewal`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-foreground">Road Tax Renewal</FormLabel>
+                          <FormControl>
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant={field.value === 'yes' ? 'default' : 'outline'}
+                                className="h-11 flex-1"
+                                onClick={() => field.onChange('yes')}
+                              >
+                                Yes
+                              </Button>
+                              <Button
+                                type="button"
+                                variant={field.value === 'no' ? 'default' : 'outline'}
+                                className="h-11 flex-1"
+                                onClick={() => field.onChange('no')}
+                              >
+                                No
+                              </Button>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Per-vehicle document upload (mandatory) */}
                     <div className="space-y-2">
                       <FormLabel className="text-foreground text-sm">
-                        Upload documents (car registration card, IC, etc.) — optional
+                        Covernote / Geran (required)
                       </FormLabel>
                       <label className="flex items-center gap-2 cursor-pointer rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition-colors">
                         <Paperclip className="size-4 shrink-0" />
@@ -493,10 +575,38 @@ export function Enquiry() {
                 ))}
               </div>
 
+              {/* Terms & Conditions (PDPA) */}
+              <div className="border-t pt-4 mt-2">
+                <FormLabel className="text-foreground">Terms & Conditions</FormLabel>
+                <ScrollArea className="h-[160px] mt-2 rounded-lg border bg-muted p-4">
+                  <div className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line pr-4">
+                    {tncText}
+                  </div>
+                </ScrollArea>
+
+                <FormField
+                  control={form.control}
+                  name="acceptedTerms"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 mt-3">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel className="text-sm text-foreground font-normal cursor-pointer">
+                          I have read and agree to the Terms &amp; Conditions above
+                        </FormLabel>
+                        <FormMessage />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               <Button
                 type="submit"
                 className="w-full h-11 font-medium mt-2"
-                disabled={isSubmitting || !form.formState.isValid}
+                disabled={isSubmitting || !form.formState.isValid || !allVehiclesHaveFiles}
               >
                 {isSubmitting
                   ? submitPhase === 'uploading'
@@ -506,6 +616,10 @@ export function Enquiry() {
               </Button>
             </form>
           </Form>
+
+          {footerText && (
+            <p className="text-center text-xs text-muted-foreground pt-2">{footerText}</p>
+          )}
         </CardContent>
       </Card>
     </div>

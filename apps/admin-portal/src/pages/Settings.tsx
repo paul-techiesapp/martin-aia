@@ -17,12 +17,12 @@ import {
   useToast,
   supabase,
 } from '@agent-system/shared-ui';
-import type { CompanyBranding } from '@agent-system/shared-types';
-import { Upload, Trash2, Image, KeyRound } from 'lucide-react';
+import { DEFAULT_ENQUIRY_FORM, type CompanyBranding, type EnquiryFormSettings } from '@agent-system/shared-types';
+import { Upload, Trash2, Image, KeyRound, FileText } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useSystemSettings, useUpdateCompanyBranding } from '../hooks/useSystemSettings';
+import { useSystemSettings, useUpdateCompanyBranding, useUpdateEnquirySettings } from '../hooks/useSystemSettings';
 import { useUploadLogo, useDeleteLogo } from '../hooks/useCompanyAssets';
 import { Link } from '@tanstack/react-router';
 
@@ -247,8 +247,125 @@ export function Settings() {
         </CardContent>
       </Card>
 
+      <EnquiryFormSettingsCard />
+
       <ChangePasswordCard />
     </div>
+  );
+}
+
+function EnquiryFormSettingsCard() {
+  const { data: systemSettings } = useSystemSettings();
+  const updateEnquiry = useUpdateEnquirySettings();
+  const { toast } = useToast();
+
+  const [giftRate, setGiftRate] = useState(10);
+  const [adminEmail, setAdminEmail] = useState('');
+  const [form, setForm] = useState<EnquiryFormSettings>(DEFAULT_ENQUIRY_FORM);
+
+  useEffect(() => {
+    if (systemSettings) {
+      setGiftRate(systemSettings.customer_gift_rate_pct ?? 10);
+      setAdminEmail(systemSettings.admin_notification_email ?? '');
+      setForm({ ...DEFAULT_ENQUIRY_FORM, ...(systemSettings.enquiry_form ?? {}) });
+    }
+  }, [systemSettings]);
+
+  const setField = (key: keyof EnquiryFormSettings, value: string) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
+  const handleSave = async () => {
+    try {
+      await updateEnquiry.mutateAsync({
+        customer_gift_rate_pct: Math.min(100, Math.max(0, giftRate)),
+        admin_notification_email: adminEmail.trim() === '' ? null : adminEmail.trim(),
+        enquiry_form: form,
+      });
+      toast({ title: 'Saved', description: 'Enquiry form & gift settings updated.' });
+    } catch {
+      toast({ title: 'Save failed', description: 'Could not save settings.', variant: 'error' });
+    }
+  };
+
+  const textareaClass =
+    'flex min-h-[160px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <FileText className="size-4" />
+          Enquiry Form &amp; Gifts
+        </CardTitle>
+        <CardDescription>
+          Configure the public car-insurance enquiry form (header, footer, T&amp;C), the standard customer
+          gift rate, and where agent "Get Quote" requests are emailed.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-5 max-w-2xl">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="giftRate">Customer Gift Rate (%)</Label>
+            <Input
+              id="giftRate"
+              type="number"
+              min={0}
+              max={100}
+              value={giftRate}
+              onChange={(e) => setGiftRate(parseFloat(e.target.value) || 0)}
+            />
+            <p className="text-xs text-muted-foreground">Gift value = this % of each renewal premium.</p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="adminEmail">Admin Notification Email</Label>
+            <Input
+              id="adminEmail"
+              type="email"
+              value={adminEmail}
+              onChange={(e) => setAdminEmail(e.target.value)}
+              placeholder="quotes@raccagency.com"
+            />
+            <p className="text-xs text-muted-foreground">Recipient for agent "Get Quote" requests. Blank disables emails.</p>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="headerTitle">Form Header Title</Label>
+          <Input id="headerTitle" value={form.header_title} onChange={(e) => setField('header_title', e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="headerSubtitle">Form Header Subtitle</Label>
+          <Input id="headerSubtitle" value={form.header_subtitle} onChange={(e) => setField('header_subtitle', e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="headerLogo">Header Logo URL (optional)</Label>
+          <Input id="headerLogo" value={form.header_logo_url} onChange={(e) => setField('header_logo_url', e.target.value)} placeholder="https://..." />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="footerText">Footer Text</Label>
+          <Input id="footerText" value={form.footer_text} onChange={(e) => setField('footer_text', e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="dpoContact">Data Protection Officer (DPO) Contact</Label>
+          <Input id="dpoContact" value={form.dpo_contact} onChange={(e) => setField('dpo_contact', e.target.value)} placeholder="dpo@raccagency.com" />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="tncBody">Terms &amp; Conditions (PDPA) Body</Label>
+          <textarea
+            id="tncBody"
+            className={textareaClass}
+            value={form.tnc_body}
+            onChange={(e) => setField('tnc_body', e.target.value)}
+          />
+        </div>
+
+        <div className="flex justify-end">
+          <Button onClick={handleSave} disabled={updateEnquiry.isPending}>
+            {updateEnquiry.isPending ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

@@ -55,6 +55,7 @@ import {
   useDeactivateBranchLink,
 } from '../../hooks/useBranchLinks';
 import { useAgents } from '../../hooks/useAgents';
+import { useSystemSettings } from '../../hooks/useSystemSettings';
 import { MerchantStatus, type MerchantBranch } from '@agent-system/shared-types';
 
 const publicBaseUrl = () => import.meta.env.VITE_PUBLIC_PAGES_URL || window.location.origin;
@@ -203,6 +204,7 @@ function BranchLinksDialog({
 export function MerchantDetail() {
   const { merchantId } = useParams({ strict: false }) as { merchantId: string };
   const { data: merchant } = useMerchant(merchantId);
+  const { data: settings } = useSystemSettings();
   const { data: branches, isLoading, error } = useMerchantBranches(merchantId);
   const createBranch = useCreateMerchantBranch();
   const updateBranch = useUpdateMerchantBranch();
@@ -271,13 +273,13 @@ export function MerchantDetail() {
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-1">
           <div>
-            Gift pool: <span className="text-foreground">RM{merchant?.gift_pool_amount?.toFixed(2) ?? '0.00'}</span>
-          </div>
-          <div>
-            Split:{' '}
+            Customer gift:{' '}
             <span className="text-foreground">
-              {merchant?.merchant_share_pct ?? 0}% merchant / {100 - (merchant?.merchant_share_pct ?? 0)}% customer
+              {settings?.customer_gift_rate_pct ?? 10}% of the car-insurance renewal premium
             </span>
+          </div>
+          <div className="text-xs">
+            The gift value (and the merchant payable) is calculated from each renewal premium at confirmation.
           </div>
         </CardContent>
       </Card>

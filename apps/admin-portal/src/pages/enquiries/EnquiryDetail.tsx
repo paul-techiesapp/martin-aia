@@ -22,19 +22,16 @@ import {
   DialogTitle,
   Input,
   Label,
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   TableSkeleton,
   useToast,
 } from '@agent-system/shared-ui';
 import { ArrowLeft, FileText, CheckCircle2, XCircle } from 'lucide-react';
-import { VehicleStatus } from '@agent-system/shared-types';
+import { VehicleStatus, MerchantStatus } from '@agent-system/shared-types';
 import {
   useEnquiry,
   useRecordQuotation,
@@ -42,6 +39,8 @@ import {
   useMarkVehicleLost,
   type EnquiryVehicleRow,
 } from '../../hooks/useEnquiries';
+import { useMerchants } from '../../hooks/useMerchants';
+import { useSystemSettings } from '../../hooks/useSystemSettings';
 import { useEnquiryAttachments, useViewAttachment } from '../../hooks/useEnquiryAttachments';
 
 function fmtDate(value: string | null): string {
@@ -66,6 +65,10 @@ export function EnquiryDetail() {
   const { enquiryId } = useParams({ strict: false }) as { enquiryId: string };
   const { toast } = useToast();
   const { data: enquiry, isLoading, error } = useEnquiry(enquiryId);
+  const { data: merchants } = useMerchants();
+  const { data: settings } = useSystemSettings();
+  const giftRate = settings?.customer_gift_rate_pct ?? 10;
+  const activeMerchants = (merchants ?? []).filter((m) => m.status === MerchantStatus.ACTIVE);
   const recordQuotation = useRecordQuotation();
   const confirmRenewal = useConfirmVehicleRenewal();
   const markLost = useMarkVehicleLost();
@@ -76,14 +79,27 @@ export function EnquiryDetail() {
   // Mark-lost dialog
   const [lostTarget, setLostTarget] = useState<EnquiryVehicleRow | null>(null);
   const [lostReason, setLostReason] = useState('');
-  // Mark-renewed confirm
+  // Mark-renewed confirm (captures premium + per-car partner)
   const [renewTarget, setRenewTarget] = useState<EnquiryVehicleRow | null>(null);
+  const [renewPremium, setRenewPremium] = useState('');
+  const [renewMerchantId, setRenewMerchantId] = useState('');
 
   const { data: attachments = [] } = useEnquiryAttachments(enquiryId);
   const viewAttachment = useViewAttachment();
 
   const pending = recordQuotation.isPending || confirmRenewal.isPending || markLost.isPending;
-  const noPartnership = !enquiry?.merchant_id;
+
+  const openRenew = (v: EnquiryVehicleRow) => {
+    setRenewTarget(v);
+    setRenewPremium(v.renewal_premium_amount != null ? String(v.renewal_premium_amount) : '');
+    setRenewMerchantId(v.merchant_id ?? enquiry?.merchant_id ?? '');
+  };
+
+  const renewGift = (() => {
+    const premium = parseFloat(renewPremium);
+    if (!isFinite(premium) || premium < 0) return 0;
+    return Math.round(premium * giftRate) / 100;
+  })();
 
   const submitQuote = async () => {
     if (!quoteTarget) return;
@@ -103,23 +119,26 @@ export function EnquiryDetail() {
 
   const submitRenew = async () => {
     if (!renewTarget) return;
+    const premium = parseFloat(renewPremium);
+    if (!isFinite(premium) || premium < 0) {
+      toast({ title: 'Enter a valid renewal premium', variant: 'error' });
+      return;
+    }
+    if (!renewMerchantId) {
+      toast({ title: 'Select a partner', variant: 'error' });
+      return;
+    }
     try {
-      await confirmRenewal.mutateAsync({ vehicleId: renewTarget.id, enquiryId });
-      toast({ title: 'Renewal confirmed — gift, commission & settlement created' });
+      await confirmRenewal.mutateAsync({
+        vehicleId: renewTarget.id,
+        enquiryId,
+        premiumAmount: premium,
+        merchantId: renewMerchantId,
+      });
+      toast({ title: 'Renewal confirmed — customer gift & merchant settlement created' });
       setRenewTarget(null);
     } catch (err: any) {
-      const isNoPartnership =
-        err?.code === 'P0008' || err?.message?.includes('Assign a partnership');
-      if (isNoPartnership) {
-        toast({
-          title: 'Partnership not assigned',
-          description: 'The agent must assign this enquiry to a partnership before it can be renewed.',
-          variant: 'error',
-        });
-      } else {
-        toast({ title: 'Failed to confirm renewal', description: err.message, variant: 'error' });
-      }
-      setRenewTarget(null);
+      toast({ title: 'Failed to confirm renewal', description: err.message, variant: 'error' });
     }
   };
 
@@ -168,17 +187,21 @@ export function EnquiryDetail() {
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-1">
           <div>
-            Partnership: <span className="text-foreground">{enquiry?.merchant?.name ?? 'Unassigned'}</span>
+            Suggested partnership:{' '}
+            <span className="text-foreground">{enquiry?.merchant?.name ?? 'Unassigned'}</span>
+            <span className="text-xs"> (confirmed per car at renewal)</span>
           </div>
-          {enquiry?.merchant && (
-            <div>
-              Split: pool RM{enquiry.merchant.gift_pool_amount?.toFixed(2) ?? '0.00'} ·{' '}
-              {enquiry.merchant.merchant_share_pct ?? 0}% merchant /{' '}
-              {100 - (enquiry.merchant.merchant_share_pct ?? 0)}% customer
-            </div>
-          )}
           <div>
-            Source: <span className="text-foreground">{enquiry?.agent ? `${enquiry.agent.name} (${enquiry.agent.agent_code})` : 'House (no agent commission)'}</span>
+            Customer gift:{' '}
+            <span className="text-foreground">{giftRate}% of the renewal premium</span>
+          </div>
+          <div>
+            Source:{' '}
+            <span className="text-foreground">
+              {enquiry?.agent
+                ? `${enquiry.agent.name} (${enquiry.agent.agent_code}) · ${enquiry.agent.unit_name}`
+                : 'House'}
+            </span>
           </div>
         </CardContent>
       </Card>
@@ -246,9 +269,8 @@ export function EnquiryDetail() {
                                   variant="ghost"
                                   size="sm"
                                   className="text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
-                                  disabled={pending || noPartnership}
-                                  title={noPartnership ? 'The agent must assign a partnership before renewal' : undefined}
-                                  onClick={() => setRenewTarget(v)}
+                                  disabled={pending}
+                                  onClick={() => openRenew(v)}
                                 >
                                   <CheckCircle2 className="size-4 mr-1" />
                                   Renew
@@ -338,28 +360,61 @@ export function EnquiryDetail() {
         </DialogContent>
       </Dialog>
 
-      {/* Mark-renewed confirm (mints money) */}
-      <AlertDialog open={!!renewTarget} onOpenChange={(open) => !open && setRenewTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Renewal</AlertDialogTitle>
-            <AlertDialogDescription>
-              Confirming {renewTarget?.car_plate} issues the customer gift voucher, the merchant settlement, and
-              (if this enquiry came from an agent) the agent commission. This cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
+      {/* Mark-renewed confirm — captures premium + per-car partner; mints money */}
+      <Dialog open={!!renewTarget} onOpenChange={(open) => !open && setRenewTarget(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Renewal</DialogTitle>
+            <DialogDescription>
+              Confirm the successful renewal of {renewTarget?.car_plate}. Enter the total car-insurance renewal
+              premium and the partner. This issues the customer gift voucher and the merchant settlement and
+              cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="renew-premium">Renewal premium (RM)</Label>
+              <Input
+                id="renew-premium"
+                type="number"
+                min={0}
+                step="0.01"
+                value={renewPremium}
+                onChange={(e) => setRenewPremium(e.target.value)}
+                placeholder="e.g. 1850.00"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Partner</Label>
+              <Select value={renewMerchantId} onValueChange={setRenewMerchantId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a partner" />
+                </SelectTrigger>
+                <SelectContent>
+                  {activeMerchants.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="rounded-md bg-muted/50 px-3 py-2 text-sm">
+              Customer gift ({giftRate}%):{' '}
+              <span className="font-medium text-foreground">RM{renewGift.toFixed(2)}</span>
+              <div className="text-xs text-muted-foreground">Merchant settlement equals this amount.</div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenewTarget(null)}>Cancel</Button>
+            <Button
               onClick={submitRenew}
-              disabled={confirmRenewal.isPending}
+              disabled={confirmRenewal.isPending || !renewMerchantId || renewPremium.trim() === ''}
               className="bg-emerald-600 hover:bg-emerald-700"
             >
               {confirmRenewal.isPending ? 'Confirming...' : 'Confirm Renewal'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Mark-lost dialog */}
       <Dialog open={!!lostTarget} onOpenChange={(open) => !open && setLostTarget(null)}>

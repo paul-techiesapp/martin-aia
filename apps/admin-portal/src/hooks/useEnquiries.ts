@@ -7,6 +7,9 @@ export interface EnquiryVehicleRow {
   car_plate: string;
   insurance_expiry_date: string;
   status: VehicleStatus;
+  merchant_id: string | null;
+  renewal_premium_amount: number | null;
+  road_tax_renewal: boolean;
   external_quotation_ref: string | null;
   quoted_at: string | null;
   renewed_at: string | null;
@@ -15,17 +18,35 @@ export interface EnquiryVehicleRow {
   product: { id: string; name: string } | null;
 }
 
+export interface EnquiryListVehicle {
+  id: string;
+  status: VehicleStatus;
+  car_plate: string;
+  insurance_expiry_date: string;
+  road_tax_renewal: boolean;
+}
+
+export interface EnquiryListAgent {
+  id: string;
+  name: string;
+  agent_code: string;
+  unit_name: string;
+  parent_agent_id: string | null;
+}
+
 export interface EnquiryListRow {
   id: string;
   customer_name: string;
   customer_phone: string;
+  customer_email: string | null;
   customer_nric: string;
   status: EnquiryStatus;
   created_at: string;
   agent_id: string | null;
   merchant_id: string | null;
   merchant: { id: string; name: string } | null;
-  vehicles: { id: string; status: VehicleStatus }[];
+  agent: EnquiryListAgent | null;
+  vehicles: EnquiryListVehicle[];
 }
 
 export interface EnquiryDetailRow {
@@ -38,8 +59,8 @@ export interface EnquiryDetailRow {
   created_at: string;
   agent_id: string | null;
   merchant_id: string | null;
-  merchant: { id: string; name: string; gift_pool_amount: number; merchant_share_pct: number } | null;
-  agent: { id: string; name: string; agent_code: string } | null;
+  merchant: { id: string; name: string } | null;
+  agent: { id: string; name: string; agent_code: string; unit_name: string } | null;
   vehicles: EnquiryVehicleRow[];
 }
 
@@ -50,9 +71,10 @@ export function useEnquiries() {
       const { data, error } = await supabase
         .from('enquiries')
         .select(`
-          id, customer_name, customer_phone, customer_nric, status, created_at, agent_id,
+          id, customer_name, customer_phone, customer_email, customer_nric, status, created_at, agent_id,
           merchant_id, merchant:merchants(id, name),
-          vehicles:enquiry_vehicles(id, status)
+          agent:agents(id, name, agent_code, unit_name, parent_agent_id),
+          vehicles:enquiry_vehicles(id, status, car_plate, insurance_expiry_date, road_tax_renewal)
         `)
         .order('created_at', { ascending: false });
 
@@ -70,10 +92,11 @@ export function useEnquiry(id: string) {
         .from('enquiries')
         .select(`
           id, customer_name, customer_phone, customer_nric, customer_email, status, created_at, agent_id,
-          merchant_id, merchant:merchants(id, name, gift_pool_amount, merchant_share_pct),
-          agent:agents(id, name, agent_code),
+          merchant_id, merchant:merchants(id, name),
+          agent:agents(id, name, agent_code, unit_name),
           vehicles:enquiry_vehicles(
-            id, car_plate, insurance_expiry_date, status, external_quotation_ref,
+            id, car_plate, insurance_expiry_date, status, merchant_id, renewal_premium_amount,
+            road_tax_renewal, external_quotation_ref,
             quoted_at, renewed_at, lost_at, lost_reason,
             product:insurance_products(id, name)
           )
@@ -139,8 +162,21 @@ export function useMarkVehicleLost() {
 export function useConfirmVehicleRenewal() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ vehicleId }: { vehicleId: string; enquiryId: string }) => {
-      const { error } = await supabase.rpc('confirm_vehicle_renewal', { p_vehicle_id: vehicleId });
+    mutationFn: async ({
+      vehicleId,
+      premiumAmount,
+      merchantId,
+    }: {
+      vehicleId: string;
+      enquiryId: string;
+      premiumAmount: number;
+      merchantId: string;
+    }) => {
+      const { error } = await supabase.rpc('confirm_vehicle_renewal', {
+        p_vehicle_id: vehicleId,
+        p_premium_amount: premiumAmount,
+        p_merchant_id: merchantId,
+      });
       if (error) throw error;
     },
     onSuccess: (_data, vars) => {

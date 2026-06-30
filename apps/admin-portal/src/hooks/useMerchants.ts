@@ -39,7 +39,7 @@ export function useCreateMerchant() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (
-      merchant: Pick<Merchant, 'name' | 'logo_url' | 'gift_pool_amount' | 'merchant_share_pct'>
+      merchant: Pick<Merchant, 'name' | 'logo_url'>
     ) => {
       const { data, error } = await supabase
         .from('merchants')

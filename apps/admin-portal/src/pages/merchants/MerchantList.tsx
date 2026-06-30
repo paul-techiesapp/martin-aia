@@ -41,9 +41,12 @@ import {
   useApproveMerchant,
 } from '../../hooks/useMerchants';
 import { MerchantStatus, type Merchant } from '@agent-system/shared-types';
+import { useSystemSettings } from '../../hooks/useSystemSettings';
 
 export function MerchantList() {
   const { data: merchants, isLoading, error } = useMerchants();
+  const { data: settings } = useSystemSettings();
+  const giftRate = settings?.customer_gift_rate_pct ?? 10;
   const createMerchant = useCreateMerchant();
   const updateMerchant = useUpdateMerchant();
   const deleteMerchant = useDeleteMerchant();
@@ -55,8 +58,6 @@ export function MerchantList() {
   const [formData, setFormData] = useState({
     name: '',
     logo_url: '',
-    gift_pool_amount: 0,
-    merchant_share_pct: 0,
   });
 
   const handleOpenDialog = (merchant?: Merchant) => {
@@ -65,12 +66,10 @@ export function MerchantList() {
       setFormData({
         name: merchant.name,
         logo_url: merchant.logo_url ?? '',
-        gift_pool_amount: merchant.gift_pool_amount,
-        merchant_share_pct: merchant.merchant_share_pct,
       });
     } else {
       setEditing(null);
-      setFormData({ name: '', logo_url: '', gift_pool_amount: 0, merchant_share_pct: 0 });
+      setFormData({ name: '', logo_url: '' });
     }
     setIsDialogOpen(true);
   };
@@ -79,8 +78,6 @@ export function MerchantList() {
     const payload = {
       name: formData.name,
       logo_url: formData.logo_url.trim() === '' ? null : formData.logo_url.trim(),
-      gift_pool_amount: formData.gift_pool_amount,
-      merchant_share_pct: formData.merchant_share_pct,
     };
     try {
       if (editing) {
@@ -116,7 +113,9 @@ export function MerchantList() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Partnerships</h1>
-          <p className="text-sm text-muted-foreground">Gift-partner merchants and their gold-gift split</p>
+          <p className="text-sm text-muted-foreground">
+            Gift-partner merchants. Customers receive a gold gift worth {giftRate}% of their car-insurance renewal.
+          </p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -129,7 +128,8 @@ export function MerchantList() {
             <DialogHeader>
               <DialogTitle>{editing ? 'Edit Partnership' : 'Create Partnership'}</DialogTitle>
               <DialogDescription>
-                Set the fixed gift pool and the merchant share. The customer gift is the remainder.
+                Customers who renew their car insurance receive a gold gift worth {giftRate}% of the renewal
+                premium. The gift rate is configured in Settings.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -149,35 +149,6 @@ export function MerchantList() {
                   placeholder="https://..."
                 />
               </div>
-              <div>
-                <Label>Gift Pool Amount (RM)</Label>
-                <Input
-                  type="number"
-                  value={formData.gift_pool_amount}
-                  onChange={(e) =>
-                    setFormData({ ...formData, gift_pool_amount: parseFloat(e.target.value) || 0 })
-                  }
-                />
-              </div>
-              <div>
-                <Label>Merchant Share (%)</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={formData.merchant_share_pct}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      merchant_share_pct: Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)),
-                    })
-                  }
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Customer gift share: {Math.max(0, 100 - formData.merchant_share_pct)}% (RM
-                  {((formData.gift_pool_amount * Math.max(0, 100 - formData.merchant_share_pct)) / 100).toFixed(2)})
-                </p>
-              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
@@ -196,7 +167,7 @@ export function MerchantList() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <TableSkeleton rows={5} columns={5} />
+            <TableSkeleton rows={5} columns={3} />
           ) : merchants?.length === 0 ? (
             <p className="text-sm text-muted-foreground">No partnerships yet. Create your first merchant.</p>
           ) : (
@@ -206,8 +177,6 @@ export function MerchantList() {
                   <TableRow className="hover:bg-transparent">
                     <TableHead>Name</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Pool (RM)</TableHead>
-                    <TableHead className="text-right">Merchant / Customer</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -220,10 +189,6 @@ export function MerchantList() {
                         </Link>
                       </TableCell>
                       <TableCell className="capitalize text-muted-foreground">{merchant.status}</TableCell>
-                      <TableCell className="text-right">RM{merchant.gift_pool_amount.toFixed(2)}</TableCell>
-                      <TableCell className="text-right text-muted-foreground">
-                        {merchant.merchant_share_pct}% / {100 - merchant.merchant_share_pct}%
-                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           {merchant.status === MerchantStatus.PENDING && (

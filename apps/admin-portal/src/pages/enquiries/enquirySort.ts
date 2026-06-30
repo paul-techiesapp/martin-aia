@@ -51,6 +51,9 @@ export function toEnquiryExportRows(rows: EnquiryListRow[]): EnquiryExportRow[] 
     for (const v of e.vehicles) {
       out.push({
         ...base,
+        // per-car partner is authoritative once confirmed; fall back to the
+        // enquiry-level suggestion before it is set.
+        partner: v.merchant?.name ?? base.partner,
         carPlate: v.car_plate ?? '',
         insuranceExpiry: fmt(v.insurance_expiry_date),
         roadTax: v.road_tax_renewal ? 'Yes' : 'No',

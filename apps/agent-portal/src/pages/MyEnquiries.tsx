@@ -68,8 +68,20 @@ function EnquiryCard({ enq, activeMerchants, agentId }: EnquiryCardProps) {
   const handleGetQuote = async (vehicleId: string) => {
     setQuotingVehicleId(vehicleId);
     try {
-      await requestQuote.mutateAsync({ enquiryId: enq.id, vehicleId });
-      toast({ title: 'Quote requested', description: 'Our team has been notified.' });
+      const res = (await requestQuote.mutateAsync({ enquiryId: enq.id, vehicleId })) as
+        | { skipped?: boolean; alreadyRequested?: boolean }
+        | null;
+      if (res?.skipped) {
+        toast({
+          title: 'Quote request not sent',
+          description: 'No admin recipient is configured yet. Please contact your administrator.',
+          variant: 'error',
+        });
+      } else if (res?.alreadyRequested) {
+        toast({ title: 'Already requested', description: 'A quote was already requested for this car.' });
+      } else {
+        toast({ title: 'Quote requested', description: 'Our team has been notified.' });
+      }
     } catch (err: unknown) {
       toast({
         title: 'Failed to request quote',
@@ -260,6 +272,7 @@ function toEnquiryExportRows(
     for (const v of vehicles) {
       rows.push({
         ...base,
+        partner: v.merchant?.name ?? base.partner,
         carPlate: v.car_plate ?? '',
         insuranceExpiry: fmtDate(v.insurance_expiry_date),
         roadTax: v.road_tax_renewal ? 'Yes' : 'No',

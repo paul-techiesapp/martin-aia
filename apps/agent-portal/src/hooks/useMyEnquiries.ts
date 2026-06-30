@@ -4,6 +4,8 @@ import type { Enquiry, EnquiryVehicle } from '@agent-system/shared-types';
 
 export interface EnquiryVehicleWithProduct extends EnquiryVehicle {
   product: { name: string } | null;
+  /** Per-car partner, set when admin confirms a renewal. */
+  merchant: { name: string } | null;
 }
 
 export interface EnquiryWithDetails extends Enquiry {
@@ -27,7 +29,7 @@ export function useMyEnquiries(agentId: string | undefined) {
           *,
           merchant:merchants(name),
           branch:merchant_branches(name, merchant:merchants(name)),
-          vehicles:enquiry_vehicles(*, product:insurance_products(name))
+          vehicles:enquiry_vehicles(*, product:insurance_products(name), merchant:merchants(name))
         `)
         .eq('agent_id', agentId!)
         .order('created_at', { ascending: false });

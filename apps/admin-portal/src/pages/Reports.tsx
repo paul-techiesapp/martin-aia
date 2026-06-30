@@ -611,8 +611,12 @@ function RenewalsReportTab() {
   const { data: settings } = useSystemSettings();
   const giftRate = settings?.customer_gift_rate_pct ?? 10;
 
+  // Fallback only — used when no ledger row exists (e.g. legacy renewals).
   const giftOf = (premium: number | null) =>
     premium == null ? 0 : Math.round((premium * giftRate)) / 100;
+  // Source of truth: the amount actually minted at confirmation.
+  const amountOf = (r: { settlement_amount: number | null; gift_amount: number | null; renewal_premium_amount: number | null }) =>
+    r.settlement_amount ?? r.gift_amount ?? giftOf(r.renewal_premium_amount);
 
   const unitOptions = Array.from(new Set(rows.map((r) => r.enquiry?.agent?.unit_name).filter(Boolean))).sort() as string[];
   const agentOptions = Array.from(new Set(rows.map((r) => r.enquiry?.agent?.name).filter(Boolean))).sort() as string[];
@@ -630,7 +634,7 @@ function RenewalsReportTab() {
     });
 
   const totalPremium = filtered.reduce((s, r) => s + (r.renewal_premium_amount ?? 0), 0);
-  const totalGift = filtered.reduce((s, r) => s + giftOf(r.renewal_premium_amount), 0);
+  const totalGift = filtered.reduce((s, r) => s + amountOf(r), 0);
 
   const handleDownload = () => {
     const exportRows: RenewalExportRow[] = filtered.map((r) => ({
@@ -641,7 +645,7 @@ function RenewalsReportTab() {
       carPlate: r.car_plate,
       renewedAt: fmtDate(r.renewed_at),
       premium: r.renewal_premium_amount ?? 0,
-      giftValue: giftOf(r.renewal_premium_amount),
+      giftValue: amountOf(r),
     }));
     void buildRenewalsWorkbook(exportRows, { generatedAt: new Date().toISOString().slice(0, 10) });
   };
@@ -746,7 +750,7 @@ function RenewalsReportTab() {
                     <TableCell className="font-medium">{r.car_plate}</TableCell>
                     <TableCell className="text-muted-foreground">{fmtDate(r.renewed_at)}</TableCell>
                     <TableCell className="text-right">{(r.renewal_premium_amount ?? 0).toFixed(2)}</TableCell>
-                    <TableCell className="text-right">{giftOf(r.renewal_premium_amount).toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{amountOf(r).toFixed(2)}</TableCell>
                   </TableRow>
                 ))
               )}

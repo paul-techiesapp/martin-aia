@@ -140,14 +140,23 @@ Deno.serve(async (req) => {
     const token = authHeader.replace('Bearer ', '').trim();
 
     let authorized = false;
+    let isServiceRole = false;
+    let callerUserId: string | null = null;
+    let callerIsAdmin = false;
     if (serviceKey && token === serviceKey) {
       authorized = true;
+      isServiceRole = true;
     } else if (token && supabaseUrl && anonKey) {
       const userClient = createClient(supabaseUrl, anonKey, {
         global: { headers: { Authorization: authHeader } },
       });
       const { data: { user }, error: authErr } = await userClient.auth.getUser();
-      if (user && !authErr) authorized = true;
+      if (user && !authErr) {
+        authorized = true;
+        callerUserId = user.id;
+        // Admin role lives in app_metadata (not spoofable user_metadata).
+        callerIsAdmin = (user.app_metadata as { role?: string } | null)?.role === 'admin';
+      }
     }
 
     if (!authorized) {
@@ -175,6 +184,7 @@ Deno.serve(async (req) => {
     const { data: enquiry, error: eErr } = await supabase
       .from('enquiries')
       .select(`
+        agent_id,
         customer_name,
         customer_nric,
         customer_phone,
@@ -192,18 +202,48 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Load the specific vehicle.
+    // Authorization (object-level): a non-service, non-admin caller may only act
+    // on an enquiry tied to their OWN agent record. Prevents an authenticated
+    // agent from triggering emails / stamping vehicles on enquiries they don't own.
+    if (!isServiceRole && !callerIsAdmin) {
+      let ownsEnquiry = false;
+      if (callerUserId && enquiry.agent_id) {
+        const { data: callerAgent } = await supabase
+          .from('agents')
+          .select('id')
+          .eq('user_id', callerUserId)
+          .maybeSingle();
+        ownsEnquiry = !!callerAgent && callerAgent.id === enquiry.agent_id;
+      }
+      if (!ownsEnquiry) {
+        return new Response(
+          JSON.stringify({ error: 'forbidden', message: 'You do not own this enquiry' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+    }
+
+    // Load the specific vehicle — must belong to this enquiry.
     const { data: vehicle, error: vErr } = await supabase
       .from('enquiry_vehicles')
-      .select('car_plate, insurance_expiry_date, road_tax_renewal')
+      .select('car_plate, insurance_expiry_date, road_tax_renewal, quote_requested_at')
       .eq('id', vehicleId)
+      .eq('enquiry_id', enquiryId)
       .single();
 
     if (vErr || !vehicle) {
-      console.error(`Vehicle ${vehicleId} not found:`, vErr);
+      console.error(`Vehicle ${vehicleId} not found for enquiry ${enquiryId}:`, vErr);
       return new Response(
-        JSON.stringify({ error: 'not_found', message: `Vehicle ${vehicleId} not found` }),
+        JSON.stringify({ error: 'not_found', message: `Vehicle ${vehicleId} not found for this enquiry` }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    // Idempotency: if already requested, do not send a duplicate email.
+    if (vehicle.quote_requested_at) {
+      return new Response(
+        JSON.stringify({ ok: true, alreadyRequested: true }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
@@ -279,6 +319,31 @@ Deno.serve(async (req) => {
       roadTax: vehicle.road_tax_renewal ? 'Yes' : 'No',
     };
 
+    // Atomically CLAIM the request slot before sending so concurrent or repeat
+    // invocations cannot double-email: only the call that flips NULL -> now() sends.
+    const { data: claimed, error: claimErr } = await supabase
+      .from('enquiry_vehicles')
+      .update({ quote_requested_at: new Date().toISOString() })
+      .eq('id', vehicleId)
+      .is('quote_requested_at', null)
+      .select('id')
+      .maybeSingle();
+
+    if (claimErr) {
+      console.error(`Failed to claim quote request for vehicle ${vehicleId}:`, claimErr);
+      return new Response(
+        JSON.stringify({ ok: false, error: 'claim_failed' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+    if (!claimed) {
+      // Another invocation claimed it first — do not send a duplicate.
+      return new Response(
+        JSON.stringify({ ok: true, alreadyRequested: true }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     const sent = await sendResendEmail(
       resendApiKey,
       adminEmail,
@@ -287,20 +352,15 @@ Deno.serve(async (req) => {
     );
 
     if (!sent) {
+      // Roll the claim back so the agent can retry.
+      await supabase
+        .from('enquiry_vehicles')
+        .update({ quote_requested_at: null })
+        .eq('id', vehicleId);
       return new Response(
         JSON.stringify({ ok: false, error: 'email_send_failed' }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
-    }
-
-    // Stamp the vehicle so the agent UI can mark the quote as requested.
-    const { error: uErr } = await supabase
-      .from('enquiry_vehicles')
-      .update({ quote_requested_at: new Date().toISOString() })
-      .eq('id', vehicleId);
-
-    if (uErr) {
-      console.error(`Failed to stamp quote_requested_at for vehicle ${vehicleId}:`, uErr);
     }
 
     return new Response(

@@ -24,6 +24,7 @@ export interface EnquiryListVehicle {
   car_plate: string;
   insurance_expiry_date: string;
   road_tax_renewal: boolean;
+  merchant: { name: string } | null;
 }
 
 export interface EnquiryListAgent {
@@ -74,7 +75,7 @@ export function useEnquiries() {
           id, customer_name, customer_phone, customer_email, customer_nric, status, created_at, agent_id,
           merchant_id, merchant:merchants(id, name),
           agent:agents(id, name, agent_code, unit_name, parent_agent_id),
-          vehicles:enquiry_vehicles(id, status, car_plate, insurance_expiry_date, road_tax_renewal)
+          vehicles:enquiry_vehicles(id, status, car_plate, insurance_expiry_date, road_tax_renewal, merchant:merchants(name))
         `)
         .order('created_at', { ascending: false });
 

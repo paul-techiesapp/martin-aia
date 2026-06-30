@@ -50,7 +50,9 @@ BEGIN
 
   SELECT * INTO v_vehicle FROM enquiry_vehicles WHERE id = p_vehicle_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Vehicle not found'; END IF;
-  IF v_vehicle.status = 'lost' THEN RAISE EXCEPTION 'Vehicle is lost'; END IF;
+  IF v_vehicle.status NOT IN ('submitted','quoted') THEN
+    RAISE EXCEPTION 'Vehicle is not in a confirmable state (already renewed or lost)' USING ERRCODE = 'P0002';
+  END IF;
   v_enquiry_id := v_vehicle.enquiry_id;
 
   SELECT customer_gift_rate_pct INTO v_rate FROM system_settings LIMIT 1;

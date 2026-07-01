@@ -20,32 +20,53 @@ Deno.serve(async (req) => {
     );
 
     const { slot_id, nric, identifier, code } = await req.json();
-    if (!slot_id || !nric || !identifier || !code) {
+    if (!slot_id || !identifier || !code) {
       return new Response(
         JSON.stringify({ error: 'missing_fields' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // 1. Look up registration by NRIC (format-agnostic). NRIC is stored exactly
-    // as typed at registration (dashes/spaces vary), so match on the canonical
-    // form instead of an exact string the attendee must reproduce.
+    // Whether this event requires NRIC. Must mirror send-checkout-otp: optional-NRIC
+    // events (nric_required=false) identify the attendee by email/phone alone, since
+    // they may have registered without an NRIC. Re-checked server-side.
+    const { data: slotMeta } = await supabase
+      .from('slots')
+      .select('campaigns(nric_required)')
+      .eq('id', slot_id)
+      .single();
+    const nricRequired = slotMeta?.campaigns?.nric_required ?? true;
+
+    const hasNric = typeof nric === 'string' && nric.trim().length > 0;
+    if (nricRequired && !hasNric) {
+      return new Response(
+        JSON.stringify({ error: 'missing_fields', message: 'NRIC is required for this event' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // 1. Candidate registrations for this slot. When an NRIC is supplied, narrow
+    // by it (format-agnostic — NRIC is stored exactly as typed, dashes/spaces
+    // vary). Otherwise (optional-NRIC event) consider all registrations in the
+    // slot and disambiguate by the email/phone identifier below.
     const { data: slotRegs } = await supabase
       .from('registrations')
       .select('id, status, invitee_email, invitee_phone, invitee_nric')
       .eq('slot_id', slot_id);
 
-    const nricMatches = (slotRegs ?? []).filter((r) => nricsMatch(r.invitee_nric, nric));
+    const candidates = hasNric
+      ? (slotRegs ?? []).filter((r) => nricsMatch(r.invitee_nric, nric))
+      : (slotRegs ?? []);
 
-    if (nricMatches.length === 0) {
+    if (candidates.length === 0) {
       return new Response(
         JSON.stringify({ error: 'registration_not_found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // 1b. Cross-check second identifier among NRIC matches
-    const registration = nricMatches.find((r) => {
+    // 1b. Cross-check second identifier among candidates
+    const registration = candidates.find((r) => {
       const emailMatch = r.invitee_email && r.invitee_email.toLowerCase() === identifier.toLowerCase();
       return emailMatch || phonesMatch(r.invitee_phone, identifier);
     });

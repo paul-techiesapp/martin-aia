@@ -27,6 +27,8 @@ import {
   TabsTrigger,
   TabsContent,
   chartColors,
+  buildRenewalsWorkbook,
+  type RenewalExportRow,
 } from '@agent-system/shared-ui';
 import {
   BarChart,
@@ -50,6 +52,8 @@ import {
   useFunnelData,
   useTopUnits,
 } from '../hooks/useReports';
+import { useRenewalReport } from '../hooks/useRenewalReport';
+import { useSystemSettings } from '../hooks/useSystemSettings';
 
 function fmtDate(value: string | null): string {
   if (!value) return '—';
@@ -173,6 +177,7 @@ export function Reports() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="attendees">Attendees</TabsTrigger>
           <TabsTrigger value="teams">Team Performance</TabsTrigger>
+          <TabsTrigger value="renewals">Renewals</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="flex flex-col gap-3 mt-4">
@@ -585,7 +590,174 @@ export function Reports() {
               ))}
           </div>
         </TabsContent>
+
+        <TabsContent value="renewals" className="flex flex-col gap-3 mt-4">
+          <RenewalsReportTab />
+        </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function RenewalsReportTab() {
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [unit, setUnit] = useState('all');
+  const [agent, setAgent] = useState('all');
+  const [partner, setPartner] = useState('all');
+  const [sortValueDesc, setSortValueDesc] = useState(true);
+
+  const { data: rows = [], isLoading } = useRenewalReport({ from: from || undefined, to: to || undefined });
+  const { data: settings } = useSystemSettings();
+  const giftRate = settings?.customer_gift_rate_pct ?? 10;
+
+  // Fallback only — used when no ledger row exists (e.g. legacy renewals).
+  const giftOf = (premium: number | null) =>
+    premium == null ? 0 : Math.round((premium * giftRate)) / 100;
+  // Source of truth: the amount actually minted at confirmation.
+  const amountOf = (r: { settlement_amount: number | null; gift_amount: number | null; renewal_premium_amount: number | null }) =>
+    r.settlement_amount ?? r.gift_amount ?? giftOf(r.renewal_premium_amount);
+
+  const unitOptions = Array.from(new Set(rows.map((r) => r.enquiry?.agent?.unit_name).filter(Boolean))).sort() as string[];
+  const agentOptions = Array.from(new Set(rows.map((r) => r.enquiry?.agent?.name).filter(Boolean))).sort() as string[];
+  const partnerOptions = Array.from(new Set(rows.map((r) => r.merchant?.name).filter(Boolean))).sort() as string[];
+
+  const filtered = rows
+    .filter((r) => unit === 'all' || r.enquiry?.agent?.unit_name === unit)
+    .filter((r) => agent === 'all' || r.enquiry?.agent?.name === agent)
+    .filter((r) => partner === 'all' || r.merchant?.name === partner)
+    .slice()
+    .sort((a, b) => {
+      const av = a.renewal_premium_amount ?? 0;
+      const bv = b.renewal_premium_amount ?? 0;
+      return sortValueDesc ? bv - av : av - bv;
+    });
+
+  const totalPremium = filtered.reduce((s, r) => s + (r.renewal_premium_amount ?? 0), 0);
+  const totalGift = filtered.reduce((s, r) => s + amountOf(r), 0);
+
+  const handleDownload = () => {
+    const exportRows: RenewalExportRow[] = filtered.map((r) => ({
+      partner: r.merchant?.name ?? '',
+      unit: r.enquiry?.agent?.unit_name ?? '',
+      agent: r.enquiry?.agent?.name ?? 'House',
+      customer: r.enquiry?.customer_name ?? '',
+      carPlate: r.car_plate,
+      renewedAt: fmtDate(r.renewed_at),
+      premium: r.renewal_premium_amount ?? 0,
+      giftValue: amountOf(r),
+    }));
+    void buildRenewalsWorkbook(exportRows, { generatedAt: new Date().toISOString().slice(0, 10) });
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardTitle>Successful Renewals</CardTitle>
+            <CardDescription>
+              {filtered.length} renewed cars · total premium RM{totalPremium.toFixed(2)} · gifts/settlements RM
+              {totalGift.toFixed(2)}
+            </CardDescription>
+          </div>
+          <Button variant="outline" onClick={handleDownload} disabled={filtered.length === 0}>
+            <Download className="size-4 mr-1.5" />
+            Download report
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
+          <div>
+            <Label className="text-xs text-muted-foreground">From</Label>
+            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)}
+              className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm" />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">To</Label>
+            <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
+              className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm" />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Partner</Label>
+            <Select value={partner} onValueChange={setPartner}>
+              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All partners</SelectItem>
+                {partnerOptions.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Unit</Label>
+            <Select value={unit} onValueChange={setUnit}>
+              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All units</SelectItem>
+                {unitOptions.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Agent</Label>
+            <Select value={agent} onValueChange={setAgent}>
+              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All agents</SelectItem>
+                {agentOptions.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Sort by value</Label>
+            <Select value={sortValueDesc ? 'desc' : 'asc'} onValueChange={(v) => setSortValueDesc(v === 'desc')}>
+              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="desc">Highest first</SelectItem>
+                <SelectItem value="asc">Lowest first</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="overflow-auto rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Partner</TableHead>
+                <TableHead>Unit</TableHead>
+                <TableHead>Agent</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Plate</TableHead>
+                <TableHead>Renewed</TableHead>
+                <TableHead className="text-right">Premium (RM)</TableHead>
+                <TableHead className="text-right">Gift / Settlement (RM)</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">Loading…</TableCell></TableRow>
+              ) : filtered.length === 0 ? (
+                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">No renewals match the current filters.</TableCell></TableRow>
+              ) : (
+                filtered.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell>{r.merchant?.name ?? '—'}</TableCell>
+                    <TableCell className="text-muted-foreground">{r.enquiry?.agent?.unit_name ?? '—'}</TableCell>
+                    <TableCell className="text-muted-foreground">{r.enquiry?.agent?.name ?? 'House'}</TableCell>
+                    <TableCell className="text-muted-foreground">{r.enquiry?.customer_name ?? '—'}</TableCell>
+                    <TableCell className="font-medium">{r.car_plate}</TableCell>
+                    <TableCell className="text-muted-foreground">{fmtDate(r.renewed_at)}</TableCell>
+                    <TableCell className="text-right">{(r.renewal_premium_amount ?? 0).toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{amountOf(r).toFixed(2)}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

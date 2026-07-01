@@ -61,3 +61,28 @@ export enum TierRequestStatus {
   APPROVED = 'approved',
   REJECTED = 'rejected',
 }
+
+export enum MerchantStatus {
+  PENDING = 'pending',
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+}
+
+export enum EnquiryStatus {
+  OPEN = 'open',
+  CLOSED = 'closed',
+}
+
+export enum VehicleStatus {
+  SUBMITTED = 'submitted',
+  QUOTED = 'quoted',
+  RENEWED = 'renewed',
+  LOST = 'lost',
+}
+
+export enum GiftStatus {
+  ISSUED = 'issued',
+  REDEEMED = 'redeemed',
+  EXPIRED = 'expired',
+  VOID = 'void',
+}

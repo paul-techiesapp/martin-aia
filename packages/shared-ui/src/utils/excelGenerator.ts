@@ -96,3 +96,81 @@ export async function generateRegistrantsWorkbook(
   const result = await writeXlsxFile(rows, { columns });
   await result.toFile(fileName);
 }
+
+// ============================================================
+// Enquiries report (admin + agent). One row per car.
+// ============================================================
+export interface EnquiryExportRow {
+  unit: string;
+  agent: string;
+  agentCode: string;
+  partner: string;
+  customer: string;
+  phone: string;
+  email: string;
+  carPlate: string;
+  insuranceExpiry: string;
+  roadTax: string;
+  vehicleStatus: string;
+  enquiryStatus: string;
+  received: string;
+}
+
+export async function buildEnquiriesWorkbook(
+  rows: EnquiryExportRow[],
+  meta?: { generatedAt?: string },
+): Promise<void> {
+  const { default: writeXlsxFile } = await import('write-excel-file/browser');
+  const columns: Column<EnquiryExportRow>[] = [
+    { width: 18, header: { value: 'Unit', fontWeight: 'bold' }, cell: (r) => r.unit },
+    { width: 20, header: { value: 'Agent', fontWeight: 'bold' }, cell: (r) => r.agent },
+    { width: 12, header: { value: 'Agent Code', fontWeight: 'bold' }, cell: (r) => r.agentCode },
+    { width: 18, header: { value: 'Partner', fontWeight: 'bold' }, cell: (r) => r.partner },
+    { width: 22, header: { value: 'Customer', fontWeight: 'bold' }, cell: (r) => r.customer },
+    { width: 16, header: { value: 'Phone', fontWeight: 'bold' }, cell: (r) => r.phone },
+    { width: 26, header: { value: 'Email', fontWeight: 'bold' }, cell: (r) => r.email },
+    { width: 14, header: { value: 'Car Plate', fontWeight: 'bold' }, cell: (r) => r.carPlate },
+    { width: 16, header: { value: 'Insurance Expiry', fontWeight: 'bold' }, cell: (r) => r.insuranceExpiry },
+    { width: 10, header: { value: 'Road Tax', fontWeight: 'bold' }, cell: (r) => r.roadTax },
+    { width: 14, header: { value: 'Vehicle Status', fontWeight: 'bold' }, cell: (r) => r.vehicleStatus },
+    { width: 14, header: { value: 'Enquiry Status', fontWeight: 'bold' }, cell: (r) => r.enquiryStatus },
+    { width: 18, header: { value: 'Received', fontWeight: 'bold' }, cell: (r) => r.received },
+  ];
+  const fileName = `enquiries-${meta?.generatedAt ?? 'export'}.xlsx`;
+  const result = await writeXlsxFile(rows, { columns });
+  await result.toFile(fileName);
+}
+
+// ============================================================
+// Successful renewals report (admin). One row per renewed car.
+// ============================================================
+export interface RenewalExportRow {
+  partner: string;
+  unit: string;
+  agent: string;
+  customer: string;
+  carPlate: string;
+  renewedAt: string;
+  premium: number;
+  giftValue: number;
+}
+
+export async function buildRenewalsWorkbook(
+  rows: RenewalExportRow[],
+  meta?: { generatedAt?: string },
+): Promise<void> {
+  const { default: writeXlsxFile } = await import('write-excel-file/browser');
+  const columns: Column<RenewalExportRow>[] = [
+    { width: 18, header: { value: 'Partner', fontWeight: 'bold' }, cell: (r) => r.partner },
+    { width: 18, header: { value: 'Unit', fontWeight: 'bold' }, cell: (r) => r.unit },
+    { width: 20, header: { value: 'Agent', fontWeight: 'bold' }, cell: (r) => r.agent },
+    { width: 22, header: { value: 'Customer', fontWeight: 'bold' }, cell: (r) => r.customer },
+    { width: 14, header: { value: 'Car Plate', fontWeight: 'bold' }, cell: (r) => r.carPlate },
+    { width: 18, header: { value: 'Renewed At', fontWeight: 'bold' }, cell: (r) => r.renewedAt },
+    { width: 18, header: { value: 'Renewal Premium (RM)', fontWeight: 'bold' }, cell: (r) => r.premium.toFixed(2) },
+    { width: 20, header: { value: 'Gift / Settlement (RM)', fontWeight: 'bold' }, cell: (r) => r.giftValue.toFixed(2) },
+  ];
+  const fileName = `renewals-${meta?.generatedAt ?? 'export'}.xlsx`;
+  const result = await writeXlsxFile(rows, { columns });
+  await result.toFile(fileName);
+}

@@ -14,20 +14,41 @@ import {
   LogOut,
   Menu,
   X,
+  Store,
+  Inbox,
+  Gift,
+  Landmark,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { usePendingTierRequestCount } from '../hooks/useTierRequests';
 
-const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Events', href: '/campaigns', icon: Calendar },
-  { name: 'Units', href: '/agents', icon: Users },
-  { name: 'Tiers', href: '/tiers', icon: BadgeCheck },
-  { name: 'Reports', href: '/reports', icon: BarChart3 },
-  { name: 'Rewards', href: '/rewards', icon: Award },
-  { name: 'PDF Export', href: '/pdf-export', icon: FileText },
-  { name: 'Check-In', href: '/check-in', icon: ScanLine },
-  { name: 'Settings', href: '/settings', icon: SettingsIcon },
+type NavItem = { name: string; href: string; icon: typeof LayoutDashboard };
+type NavGroup = { label?: string; items: NavItem[] };
+
+const navGroups: NavGroup[] = [
+  { items: [{ name: 'Dashboard', href: '/', icon: LayoutDashboard }] },
+  {
+    label: 'Events',
+    items: [
+      { name: 'Events', href: '/campaigns', icon: Calendar },
+      { name: 'Units', href: '/agents', icon: Users },
+      { name: 'Tiers', href: '/tiers', icon: BadgeCheck },
+      { name: 'Reports', href: '/reports', icon: BarChart3 },
+      { name: 'Rewards', href: '/rewards', icon: Award },
+      { name: 'PDF Export', href: '/pdf-export', icon: FileText },
+      { name: 'Check-In', href: '/check-in', icon: ScanLine },
+    ],
+  },
+  {
+    label: 'Partnership',
+    items: [
+      { name: 'Partnerships', href: '/merchants', icon: Store },
+      { name: 'Enquiries', href: '/enquiries', icon: Inbox },
+      { name: 'Gifts', href: '/gifts', icon: Gift },
+      { name: 'Settlements', href: '/settlements', icon: Landmark },
+    ],
+  },
+  { items: [{ name: 'Settings', href: '/settings', icon: SettingsIcon }] },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -41,6 +62,43 @@ export function Layout({ children }: { children: React.ReactNode }) {
     await signOut();
     navigate({ to: '/login' });
   };
+
+  const renderNav = (onNavigate?: () => void) =>
+    navGroups.map((group, gi) => (
+      <div key={group.label ?? `group-${gi}`} className={group.label ? 'pt-3' : ''}>
+        {group.label && (
+          <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-400/80">
+            {group.label}
+          </p>
+        )}
+        {group.items.map((item) => {
+          const isActive =
+            location.pathname === item.href ||
+            (item.href !== '/' && location.pathname.startsWith(item.href));
+          return (
+            <Link
+              key={item.name}
+              to={item.href}
+              onClick={onNavigate}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
+                isActive
+                  ? 'bg-white/12 text-white shadow-sm border-l-2 border-indigo-400 pl-[10px]'
+                  : 'text-slate-300 hover:bg-white/8 hover:text-white'
+              )}
+            >
+              <item.icon className={cn('size-5', isActive && 'text-indigo-300')} />
+              {item.name}
+              {item.name === 'Units' && pendingTierCount ? (
+                <span className="ml-auto inline-flex items-center justify-center rounded-full bg-amber-500 text-white text-xs font-medium px-1.5 py-0.5 min-w-[1.25rem]">
+                  {pendingTierCount}
+                </span>
+              ) : null}
+            </Link>
+          );
+        })}
+      </div>
+    ));
 
   return (
     <div className="min-h-screen bg-background">
@@ -59,30 +117,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <span className="font-semibold text-lg tracking-tight">RACC Admin</span>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto scrollbar-thin">
-          {navigation.map((item) => {
-            const isActive = location.pathname === item.href ||
-              (item.href !== '/' && location.pathname.startsWith(item.href));
-            return (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
-                  isActive
-                    ? 'bg-white/12 text-white shadow-sm border-l-2 border-indigo-400 pl-[10px]'
-                    : 'text-slate-300 hover:bg-white/8 hover:text-white'
-                )}
-              >
-                <item.icon className={cn("size-5", isActive && "text-indigo-300")} />
-                {item.name}
-                {item.name === 'Units' && pendingTierCount ? (
-                  <span className="ml-auto inline-flex items-center justify-center rounded-full bg-amber-500 text-white text-xs font-medium px-1.5 py-0.5 min-w-[1.25rem]">
-                    {pendingTierCount}
-                  </span>
-                ) : null}
-              </Link>
-            );
-          })}
+          {renderNav()}
         </nav>
         <div className="p-4 border-t border-white/10">
           <div className="text-sm text-slate-400 truncate mb-2">{user?.email}</div>
@@ -119,31 +154,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </button>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          {navigation.map((item) => {
-            const isActive = location.pathname === item.href ||
-              (item.href !== '/' && location.pathname.startsWith(item.href));
-            return (
-              <Link
-                key={item.name}
-                to={item.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
-                  isActive
-                    ? 'bg-white/12 text-white shadow-sm border-l-2 border-indigo-400 pl-[10px]'
-                    : 'text-slate-300 hover:bg-white/8 hover:text-white'
-                )}
-              >
-                <item.icon className={cn("size-5", isActive && "text-indigo-300")} />
-                {item.name}
-                {item.name === 'Units' && pendingTierCount ? (
-                  <span className="ml-auto inline-flex items-center justify-center rounded-full bg-amber-500 text-white text-xs font-medium px-1.5 py-0.5 min-w-[1.25rem]">
-                    {pendingTierCount}
-                  </span>
-                ) : null}
-              </Link>
-            );
-          })}
+          {renderNav(() => setIsMobileMenuOpen(false))}
         </nav>
         <div className="p-4 border-t border-white/10">
           <div className="text-sm text-slate-400 truncate mb-2">{user?.email}</div>

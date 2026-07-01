@@ -16,6 +16,14 @@ import { CampaignDetail } from './pages/campaigns/CampaignDetail';
 import { AgentList } from './pages/agents/AgentList';
 import { AgentForm } from './pages/agents/AgentForm';
 import { TierList } from './pages/tiers/TierList';
+import { InsuranceProductList } from './pages/insurance-products/InsuranceProductList';
+import { MerchantList } from './pages/merchants/MerchantList';
+import { MerchantDetail } from './pages/merchants/MerchantDetail';
+import { EnquiryList } from './pages/enquiries/EnquiryList';
+import { EnquiryDetail } from './pages/enquiries/EnquiryDetail';
+import { GiftList } from './pages/gifts/GiftList';
+import { MerchantCommissionList } from './pages/commissions/MerchantCommissionList';
+import { MerchantSettlementList } from './pages/settlements/MerchantSettlementList';
 import { Reports } from './pages/Reports';
 import { Rewards } from './pages/Rewards';
 import { PdfExport } from './pages/PdfExport';
@@ -120,6 +128,54 @@ const tiersRoute = createRoute({
   component: TierList,
 });
 
+const insuranceProductsRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/insurance-products',
+  component: InsuranceProductList,
+});
+
+const merchantsRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/merchants',
+  component: MerchantList,
+});
+
+const merchantDetailRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/merchants/$merchantId',
+  component: MerchantDetail,
+});
+
+const enquiriesRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/enquiries',
+  component: EnquiryList,
+});
+
+const enquiryDetailRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/enquiries/$enquiryId',
+  component: EnquiryDetail,
+});
+
+const giftsRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/gifts',
+  component: GiftList,
+});
+
+const commissionsRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/commissions',
+  component: MerchantCommissionList,
+});
+
+const settlementsRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/settlements',
+  component: MerchantSettlementList,
+});
+
 // Reports route
 const reportsRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
@@ -185,6 +241,14 @@ const routeTree = rootRoute.addChildren([
     newAgentRoute,
     editAgentRoute,
     tiersRoute,
+    insuranceProductsRoute,
+    merchantsRoute,
+    merchantDetailRoute,
+    enquiriesRoute,
+    enquiryDetailRoute,
+    giftsRoute,
+    commissionsRoute,
+    settlementsRoute,
     reportsRoute,
     rewardsRoute,
     pdfExportRoute,

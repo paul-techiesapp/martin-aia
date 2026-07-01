@@ -10,11 +10,19 @@ export interface SendResult {
 
 interface WhatsAppService {
   sendOtp(phone: string, code: string): Promise<SendResult>;
+  // Expiry reminder uses a separate pre-registered OneWaySMS template whose
+  // ordered params are: [customerName, carPlate, expiryDate, merchantName].
+  sendExpiryReminder(phone: string, params: string[]): Promise<SendResult>;
 }
 
 class MockWhatsAppService implements WhatsAppService {
   async sendOtp(phone: string, code: string): Promise<SendResult> {
     console.log(`[MOCK WhatsApp] OTP ${code} → ${phone}`);
+    return { success: true, mt_id: 'mock-' + Date.now() };
+  }
+
+  async sendExpiryReminder(phone: string, params: string[]): Promise<SendResult> {
+    console.log(`[MOCK WhatsApp] expiry reminder → ${phone}: ${params.join(' | ')}`);
     return { success: true, mt_id: 'mock-' + Date.now() };
   }
 }
@@ -23,16 +31,17 @@ class OneWaySmsService implements WhatsAppService {
   private apiUsername: string;
   private apiPassword: string;
   private templateId: string;
+  private expiryTemplateId: string;
 
   constructor() {
     this.apiUsername = Deno.env.get('ONEWAYSMS_API_USERNAME') || '';
     this.apiPassword = Deno.env.get('ONEWAYSMS_API_PASSWORD') || '';
     this.templateId = Deno.env.get('ONEWAYSMS_TEMPLATE_ID') || '2502';
+    this.expiryTemplateId = Deno.env.get('ONEWAYSMS_EXPIRY_TEMPLATE_ID') || '';
   }
 
-  async sendOtp(phone: string, code: string): Promise<SendResult> {
+  private async dispatch(phone: string, message: string): Promise<SendResult> {
     const normalized = normalizePhone(phone);
-    const message = `*T${this.templateId}|${code}`;
 
     const url = new URL('https://wba-api.onewaysms.com/api.aspx');
     url.searchParams.set('apiusername', this.apiUsername);
@@ -72,6 +81,23 @@ class OneWaySmsService implements WhatsAppService {
       error_code: resultCode,
       error_message: errorMessages[resultCode] || `Unknown error: ${resultCode}`,
     };
+  }
+
+  async sendOtp(phone: string, code: string): Promise<SendResult> {
+    const message = `*T${this.templateId}|${code}`;
+    return this.dispatch(phone, message);
+  }
+
+  async sendExpiryReminder(phone: string, params: string[]): Promise<SendResult> {
+    if (!this.expiryTemplateId) {
+      return {
+        success: false,
+        error_code: -5,
+        error_message: 'Expiry SMS template not configured (ONEWAYSMS_EXPIRY_TEMPLATE_ID unset)',
+      };
+    }
+    const message = `*T${this.expiryTemplateId}|${params.join('|')}`;
+    return this.dispatch(phone, message);
   }
 }
 

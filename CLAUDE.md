@@ -119,18 +119,22 @@ import { Button, Card, Input, Form, Table, Dialog, Select, cn, supabase } from '
 - **Visibility:** Private
 
 ### Production URLs (Render Static Sites)
+- **Render Account:** `racc.main2026@gmail.com` (workspace: RACC's workspace, `tea-d7os1f7avr4c73cekin0`)
+
 | App | URL | Dashboard |
 |-----|-----|-----------|
-| Admin Portal | https://martin-admin-portal.onrender.com | [Dashboard](https://dashboard.render.com/static/srv-d629p163jp1c73bm4ecg) |
-| Agent Portal | https://martin-agent-portal.onrender.com | [Dashboard](https://dashboard.render.com/static/srv-d629p2hr0fns73f9p7i0) |
-| Public Pages | https://martin-public-pages.onrender.com | [Dashboard](https://dashboard.render.com/static/srv-d629p3qli9vc73c5192g) |
+| Admin Portal | https://racc-admin-portal.onrender.com | [Dashboard](https://dashboard.render.com/static/srv-d87br30g4nts73doju9g) |
+| Agent Portal | https://racc-agent-portal.onrender.com | [Dashboard](https://dashboard.render.com/static/srv-d87br60jo6nc738ik270) |
+| Public Pages | https://racc-public-pages.onrender.com | [Dashboard](https://dashboard.render.com/static/srv-d87br7b7uimc73c8jn2g) |
 
 **Auto-deploy:** Enabled - pushes to `main` branch trigger automatic deployments.
 
 ### Production Supabase
-- **Project ID:** `wictbtiulqmzzneyoelv`
-- **URL:** https://wictbtiulqmzzneyoelv.supabase.co
-- **Dashboard:** https://supabase.com/dashboard/project/wictbtiulqmzzneyoelv
+- **Project ID:** `mjtdsevynrtcmafsnxsj`
+- **Name:** BOP Website
+- **URL:** https://mjtdsevynrtcmafsnxsj.supabase.co
+- **Dashboard:** https://supabase.com/dashboard/project/mjtdsevynrtcmafsnxsj
+- **Region:** ap-northeast-1
 
 ### Build Commands (Render)
 Each app uses pnpm workspace filtering:
@@ -154,8 +158,8 @@ Get the anon key from `npx supabase status` after starting local Supabase.
 ### Production (Render)
 Environment variables configured in Render dashboard:
 ```
-VITE_SUPABASE_URL=https://wictbtiulqmzzneyoelv.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpY3RidGl1bHFtenpuZXlvZWx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyODg1NTAsImV4cCI6MjA4NTg2NDU1MH0.mfdr9iVrszcwBlq_BYeLmSUjwwqgUbB-Z_xyH9imZ9w
+VITE_SUPABASE_URL=https://mjtdsevynrtcmafsnxsj.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qdGRzZXZ5bnJ0Y21hZnNueHNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4NjU4NTcsImV4cCI6MjA5MzQ0MTg1N30.7w5WZyHlTJcXImWXtsFa8QinDfiOpt05NnHFoSuGqo0
 ```
 
 ## Patterns

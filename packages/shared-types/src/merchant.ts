@@ -10,6 +10,10 @@ export interface Merchant {
   id: string;
   name: string;
   logo_url: string | null;
+  /** Storage path of the signed partnership agreement (merchant-agreements bucket). */
+  agreement_path: string | null;
+  contact_person: string | null;
+  contact_phone: string | null;
   /** @deprecated Gift pool/split removed; customer gift = system_settings.customer_gift_rate_pct of renewal premium. */
   gift_pool_amount?: number;
   /** @deprecated Gift pool/split removed; see customer_gift_rate_pct. */

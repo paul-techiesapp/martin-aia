@@ -4,6 +4,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { format, parseISO } from 'date-fns';
 import { supabase } from '../lib/supabase';
 import { getCurrentSlotPhase, type SlotPhase } from '../lib/slot-time';
+import { useFormBranding } from '../hooks/useFormBranding';
 import { formatSlotTime } from '@agent-system/shared-ui';
 
 interface SlotData {
@@ -24,6 +25,8 @@ export function Display() {
   const { slotId } = useParams({ strict: false });
   const search = useSearch({ strict: false }) as { token?: string };
   const displayToken = search.token;
+
+  const { logoUrl, footerText } = useFormBranding();
 
   const [slot, setSlot] = useState<SlotData | null>(null);
   const [qrUrl, setQrUrl] = useState<string>('');
@@ -182,6 +185,10 @@ export function Display() {
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-8 text-center">
+      {logoUrl && (
+        <img src={logoUrl} alt="" className="h-12 mx-auto mb-6 object-contain" />
+      )}
+
       <div className="text-xs uppercase tracking-[3px] font-semibold" style={{ color: isActive ? themeColor : '#64748b' }}>
         {phaseLabels[phase]}
       </div>
@@ -212,6 +219,10 @@ export function Display() {
         <div className="mt-16">
           <p className="text-slate-500 text-lg">{phaseLabels[phase]}</p>
         </div>
+      )}
+
+      {footerText && (
+        <p className="text-xs text-slate-500 text-center mt-8">{footerText}</p>
       )}
     </div>
   );

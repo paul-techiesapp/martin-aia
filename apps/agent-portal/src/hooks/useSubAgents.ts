@@ -19,6 +19,28 @@ export function useMySubAgents(agentId: string | undefined) {
   });
 }
 
+/**
+ * Roster of every agent in a unit (the unit root + everyone whose
+ * parent_agent_id is that root). Works for both a Unit Admin (root = own id →
+ * self + sub-agents) and a Unit Manager (root = parent id → the whole unit).
+ * RLS ("Unit viewers read unit agents") permits unit viewers to read these rows.
+ */
+export function useUnitRoster(unitRootId: string | undefined) {
+  return useQuery({
+    queryKey: ['unit-roster', unitRootId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('agents')
+        .select('id, name')
+        .or(`id.eq.${unitRootId},parent_agent_id.eq.${unitRootId}`)
+        .order('name', { ascending: true });
+      if (error) throw error;
+      return data as { id: string; name: string }[];
+    },
+    enabled: !!unitRootId,
+  });
+}
+
 export function useMyTierRequests(agentId: string | undefined) {
   return useQuery({
     queryKey: ['my-tier-requests', agentId],

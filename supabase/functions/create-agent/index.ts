@@ -35,6 +35,7 @@ serve(async (req) => {
       unit_name,
       tier_id,
       status,
+      is_unit_manager,
       password,
     } = await req.json();
 
@@ -114,6 +115,7 @@ serve(async (req) => {
         tier_id,
         status: status ?? "active",
         parent_agent_id: null,
+        is_unit_manager: is_unit_manager ?? false,
         is_auto_invite: true,
       })
       .select()

@@ -8,48 +8,45 @@ import { useMyAgentPhoto } from '../hooks/useAgentPhoto';
 type NavItem = { name: string; href: string; icon: LucideIcon };
 type NavGroup = { label?: string; items: NavItem[] };
 
-const agentAdminGroups: NavGroup[] = [
-  { items: [{ name: 'Dashboard', href: '/', icon: LayoutDashboard }] },
-  {
-    label: 'Events',
-    items: [
-      { name: 'Events', href: '/campaigns', icon: CalendarDays },
-      { name: 'My Links', href: '/my-links', icon: Link2 },
-      { name: 'Rewards', href: '/rewards', icon: Award },
-      { name: 'My Agents', href: '/my-agents', icon: UserCog },
-      { name: 'Team Report', href: '/team-report', icon: ClipboardList },
-      { name: 'Partners', href: '/partners', icon: Users },
-    ],
-  },
-  {
-    label: 'Partnership',
-    items: [
-      { name: 'My Link', href: '/my-link', icon: QrCode },
-      { name: 'My Enquiries', href: '/my-enquiries', icon: Inbox },
-    ],
-  },
-  { items: [{ name: 'Account', href: '/account', icon: KeyRound }] },
-];
+// Builds the sidebar for agent/unit users. Sub-agent + business-partner
+// MANAGEMENT (My Agents, Partners) stays admin-only, while unit-wide VIEW pages
+// (Team Report) are also shown to unit managers (isUnitViewer) so they can see
+// the unit without being able to manage its sub-agents.
+function buildAgentGroups(
+  role: 'agent_admin' | 'agent',
+  isUnitViewer: boolean,
+): NavGroup[] {
+  const eventsItems: NavItem[] = [
+    { name: 'Events', href: '/campaigns', icon: CalendarDays },
+    { name: 'My Links', href: '/my-links', icon: Link2 },
+    { name: 'Rewards', href: '/rewards', icon: Award },
+  ];
+  if (role === 'agent_admin') {
+    // Sub-agent management — admin only.
+    eventsItems.push({ name: 'My Agents', href: '/my-agents', icon: UserCog });
+  }
+  if (isUnitViewer) {
+    // Unit-wide reporting — admin + unit managers.
+    eventsItems.push({ name: 'Team Report', href: '/team-report', icon: ClipboardList });
+  }
+  if (role === 'agent_admin') {
+    // Business-partner management — admin only.
+    eventsItems.push({ name: 'Partners', href: '/partners', icon: Users });
+  }
 
-const agentGroups: NavGroup[] = [
-  { items: [{ name: 'Dashboard', href: '/', icon: LayoutDashboard }] },
-  {
-    label: 'Events',
-    items: [
-      { name: 'Events', href: '/campaigns', icon: CalendarDays },
-      { name: 'My Links', href: '/my-links', icon: Link2 },
-      { name: 'Rewards', href: '/rewards', icon: Award },
-    ],
-  },
-  {
-    label: 'Partnership',
-    items: [
-      { name: 'My Link', href: '/my-link', icon: QrCode },
-      { name: 'My Enquiries', href: '/my-enquiries', icon: Inbox },
-    ],
-  },
-  { items: [{ name: 'Account', href: '/account', icon: KeyRound }] },
-];
+  return [
+    { items: [{ name: 'Dashboard', href: '/', icon: LayoutDashboard }] },
+    { label: 'Events', items: eventsItems },
+    {
+      label: 'Partnership',
+      items: [
+        { name: 'My Link', href: '/my-link', icon: QrCode },
+        { name: 'My Enquiries', href: '/my-enquiries', icon: Inbox },
+      ],
+    },
+    { items: [{ name: 'Account', href: '/account', icon: KeyRound }] },
+  ];
+}
 
 const partnerGroups: NavGroup[] = [
   {
@@ -63,7 +60,7 @@ const partnerGroups: NavGroup[] = [
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const { agent, partner, role, isLoading, session, signOut, user } = useAuth();
+  const { agent, partner, role, isUnitViewer, isLoading, session, signOut, user } = useAuth();
   const { data: photoUrl } = useMyAgentPhoto(user?.id);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -90,9 +87,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   const navGroups = role === 'partner'
     ? partnerGroups
-    : role === 'agent_admin'
-      ? agentAdminGroups
-      : agentGroups;
+    : role === 'agent_admin' || role === 'agent'
+      ? buildAgentGroups(role, isUnitViewer)
+      : buildAgentGroups('agent', false);
 
   const displayName = role === 'partner' ? partner?.name : agent?.name;
   const subtitle = role === 'partner'

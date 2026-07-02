@@ -18,7 +18,7 @@ import {
 } from '@agent-system/shared-ui';
 import { Users, UserCheck, ClipboardList } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { useMySubAgents } from '../hooks/useSubAgents';
+import { useUnitRoster } from '../hooks/useSubAgents';
 import { useUnitTeamReport } from '../hooks/useTeamReport';
 
 function fmtDate(value: string | null): string {
@@ -32,18 +32,20 @@ function fmtTime(value: string | null): string {
 }
 
 export function TeamReport() {
-  const { agent, role } = useAuth();
-  const { data: subAgents } = useMySubAgents(agent?.id);
+  const { agent, role, isUnitViewer } = useAuth();
+  // Unit root: own id for a Unit Admin, parent id for a Unit Manager. The roster
+  // is every agent in that unit, so agents with zero registrations still appear
+  // (and rows always resolve to a real agent name rather than "Unknown agent").
+  const unitRoot = agent?.parent_agent_id ?? agent?.id;
+  const { data: unitAgents } = useUnitRoster(unitRoot);
 
-  // Roster = self + sub-agents, so agents with zero registrations still appear.
-  const roster = useMemo(() => {
-    const list: { id: string; name: string }[] = [];
-    if (agent) list.push({ id: agent.id, name: agent.name });
-    for (const a of subAgents ?? []) list.push({ id: a.id, name: a.name });
-    return list;
-  }, [agent, subAgents]);
+  const roster = useMemo(
+    () => (unitAgents ?? []).map((a) => ({ id: a.id, name: a.name })),
+    [unitAgents],
+  );
 
-  const enabled = role === 'agent_admin' && !!agent?.id;
+  // Unit admins and unit managers both get the unit-wide view.
+  const enabled = isUnitViewer && !!agent?.id;
   const { data: performance, isLoading } = useUnitTeamReport(roster, enabled);
 
   const totals = useMemo(() => {
@@ -55,11 +57,11 @@ export function TeamReport() {
     };
   }, [performance]);
 
-  // Non-admins should never reach this route; guard in render (after hooks).
-  if (role && role !== 'agent_admin') {
+  // Only unit viewers (admins + unit managers) may see this; guard in render.
+  if (role && !isUnitViewer) {
     return (
       <div className="p-6 text-center text-muted-foreground">
-        <p>This page is only available to unit administrators.</p>
+        <p>This page is only available to unit administrators and managers.</p>
       </div>
     );
   }

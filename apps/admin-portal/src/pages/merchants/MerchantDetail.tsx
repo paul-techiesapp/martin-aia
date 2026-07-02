@@ -54,7 +54,7 @@ import {
   useCreateBranchLink,
   useDeactivateBranchLink,
 } from '../../hooks/useBranchLinks';
-import { useAgents } from '../../hooks/useAgents';
+import { useAllAgents } from '../../hooks/useAllAgents';
 import { useSystemSettings } from '../../hooks/useSystemSettings';
 import { MerchantStatus, type MerchantBranch } from '@agent-system/shared-types';
 
@@ -76,7 +76,7 @@ function BranchLinksDialog({
   const { data: links, isLoading } = useBranchLinks(branch.id);
   const createLink = useCreateBranchLink();
   const deactivateLink = useDeactivateBranchLink(branch.id);
-  const { data: agents } = useAgents();
+  const { data: agents } = useAllAgents();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedAgentId, setSelectedAgentId] = useState<string>(HOUSE_VALUE);
 

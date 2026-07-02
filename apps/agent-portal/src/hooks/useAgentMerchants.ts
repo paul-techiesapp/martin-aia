@@ -25,24 +25,58 @@ export function useAgentMerchants() {
   });
 }
 
-// Agent proposes a new merchant. RLS requires status='pending' and
-// created_by_agent_id=get_agent_id(); the money split is admin-set on approval.
+export interface ProposeMerchantInput {
+  agentId: string;
+  name: string;
+  contactPerson: string;
+  contactPhone: string;
+  branch: { name: string; address: string; phone: string };
+  agreementFile: File;
+}
+
+// Agent proposes a new merchant with full info + signed agreement.
+// RLS requires status='pending' and created_by_agent_id=get_agent_id();
+// money terms are admin-set on approval. The agreement goes to the private
+// merchant-agreements bucket under the agent's own prefix.
 export function useProposeMerchant() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ name, agentId }: { name: string; agentId: string }) => {
-      const { data, error } = await supabase
+    mutationFn: async (input: ProposeMerchantInput) => {
+      const safeName = input.agreementFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const path = `${input.agentId}/${crypto.randomUUID()}-${safeName}`;
+      const { error: uploadError } = await supabase.storage
+        .from('merchant-agreements')
+        .upload(path, input.agreementFile, {
+          contentType: input.agreementFile.type,
+          upsert: false,
+        });
+      if (uploadError) throw uploadError;
+
+      const { data: merchant, error } = await supabase
         .from('merchants')
         .insert({
-          name,
+          name: input.name,
+          contact_person: input.contactPerson.trim() || null,
+          contact_phone: input.contactPhone.trim() || null,
+          agreement_path: path,
           status: MerchantStatus.PENDING,
-          created_by_agent_id: agentId,
+          created_by_agent_id: input.agentId,
         })
         .select()
         .single();
-
       if (error) throw error;
-      return data as Merchant;
+
+      const { error: branchError } = await supabase.from('merchant_branches').insert({
+        merchant_id: merchant.id,
+        name: input.branch.name.trim() || input.name,
+        address: input.branch.address.trim() || null,
+        phone: input.branch.phone.trim() || null,
+        status: MerchantStatus.PENDING,
+        created_by_agent_id: input.agentId,
+      });
+      if (branchError) throw branchError;
+
+      return merchant as Merchant;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agent-merchants'] });

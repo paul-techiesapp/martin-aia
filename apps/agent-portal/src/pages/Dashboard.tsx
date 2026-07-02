@@ -148,7 +148,7 @@ function AgentDashboard() {
                   </div>
                 </div>
               ) : (
-                <p className="text-muted-foreground">No tier assigned. Contact your unit administrator.</p>
+                <p className="text-muted-foreground">No tier assigned. Contact your unit manager.</p>
               )}
             </CardContent>
           </Card>

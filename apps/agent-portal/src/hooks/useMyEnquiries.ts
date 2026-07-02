@@ -15,24 +15,32 @@ export interface EnquiryWithDetails extends Enquiry {
   /** Legacy branch context (may be null for v2 generic-link enquiries). */
   branch: { name: string; merchant: { name: string } | null } | null;
   vehicles: EnquiryVehicleWithProduct[];
+  /** Owning agent (for unit viewers seeing the whole unit). */
+  agent: { id: string; name: string; agent_code: string } | null;
 }
 
-// Enquiries owned by this agent, with assigned merchant and each vehicle's
-// product, for follow-up and partnership assignment.
-export function useMyEnquiries(agentId: string | undefined) {
+// Enquiries visible to this agent, with assigned merchant and each vehicle's
+// product, for follow-up and partnership assignment. Unit viewers (Unit
+// Manager / Unit Admin) fetch WITHOUT the agent filter — RLS scopes rows to
+// their unit.
+export function useMyEnquiries(agentId: string | undefined, unitWide = false) {
   return useQuery({
-    queryKey: ['my-enquiries', agentId],
+    queryKey: ['my-enquiries', agentId, unitWide],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('enquiries')
         .select(`
           *,
+          agent:agents(id, name, agent_code),
           merchant:merchants(name),
           branch:merchant_branches(name, merchant:merchants(name)),
           vehicles:enquiry_vehicles(*, product:insurance_products(name), merchant:merchants(name))
         `)
-        .eq('agent_id', agentId!)
         .order('created_at', { ascending: false });
+
+      if (!unitWide) query = query.eq('agent_id', agentId!);
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return (data ?? []) as EnquiryWithDetails[];

@@ -61,7 +61,7 @@ export function MyAgents() {
   if (role && role !== 'agent_admin') {
     return (
       <div className="p-6 text-center text-muted-foreground">
-        <p>This page is only available to unit administrators.</p>
+        <p>This page is only available to unit managers.</p>
       </div>
     );
   }

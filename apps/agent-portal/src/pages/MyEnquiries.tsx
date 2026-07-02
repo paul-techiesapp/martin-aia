@@ -18,14 +18,6 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Input,
-  Label,
   getStatusVariant,
   TableSkeleton,
   useToast,
@@ -37,8 +29,9 @@ import { FileText, Store, Download, Plus } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useMyEnquiries, type EnquiryWithDetails } from '../hooks/useMyEnquiries';
 import { useAssignVehicleMerchant } from '../hooks/useAssignVehicleMerchant';
-import { useAgentMerchants, useProposeMerchant, type MerchantWithBranches } from '../hooks/useAgentMerchants';
+import { useAgentMerchants, type MerchantWithBranches } from '../hooks/useAgentMerchants';
 import { useRequestQuote } from '../hooks/useRequestQuote';
+import { ProposePartnerDialog } from '../components/ProposePartnerDialog';
 import { compareMyEnquiries } from './myEnquiriesSort';
 import { MerchantStatus, VehicleStatus, type AgentWithTier } from '@agent-system/shared-types';
 import { useEnquiryAttachments, useViewAttachment } from '../hooks/useEnquiryAttachments';
@@ -47,9 +40,13 @@ interface EnquiryCardProps {
   enq: EnquiryWithDetails;
   activeMerchants: MerchantWithBranches[];
   agentId: string | undefined;
+  /** Show the owning agent (unit viewer looking at unit-wide enquiries). */
+  showAgent?: boolean;
+  /** Hide mutating controls (Assign partner, Get Quote) — viewer doesn't own this row. */
+  readOnly?: boolean;
 }
 
-function EnquiryCard({ enq, activeMerchants, agentId }: EnquiryCardProps) {
+function EnquiryCard({ enq, activeMerchants, agentId, showAgent, readOnly }: EnquiryCardProps) {
   const { toast } = useToast();
   const assignVehicleMerchant = useAssignVehicleMerchant(agentId);
   const requestQuote = useRequestQuote(agentId);
@@ -124,6 +121,9 @@ function EnquiryCard({ enq, activeMerchants, agentId }: EnquiryCardProps) {
           <p className="text-xs text-muted-foreground">
             Submitted {format(parseISO(enq.created_at), 'd MMM yyyy, HH:mm')}
           </p>
+          {showAgent && enq.agent && (
+            <p className="text-xs text-muted-foreground">Agent: {enq.agent.name} ({enq.agent.agent_code})</p>
+          )}
         </div>
         <Badge variant={getStatusVariant(enq.status)} className="capitalize">
           {enq.status}
@@ -162,6 +162,8 @@ function EnquiryCard({ enq, activeMerchants, agentId }: EnquiryCardProps) {
                             <Store className="size-3.5 text-muted-foreground shrink-0" />
                             {v.merchant.name}
                           </span>
+                        ) : readOnly ? (
+                          <span className="text-xs text-muted-foreground">Unassigned</span>
                         ) : (
                           <div className="flex items-center gap-1.5">
                             <Select
@@ -211,6 +213,8 @@ function EnquiryCard({ enq, activeMerchants, agentId }: EnquiryCardProps) {
                           <span className="text-xs text-muted-foreground">
                             Quote requested {format(parseISO(v.quote_requested_at), 'd MMM yyyy')}
                           </span>
+                        ) : readOnly ? (
+                          <span className="text-xs text-muted-foreground">—</span>
                         ) : v.status === VehicleStatus.SUBMITTED ? (
                           <Button
                             size="sm"
@@ -279,8 +283,8 @@ function toEnquiryExportRows(
   for (const e of enquiries) {
     const base = {
       unit,
-      agent: agentName,
-      agentCode,
+      agent: e.agent?.name ?? agentName,
+      agentCode: e.agent?.agent_code ?? agentCode,
       partner: e.merchant?.name ?? 'Unassigned',
       customer: e.customer_name ?? '',
       phone: e.customer_phone ?? '',
@@ -308,40 +312,33 @@ function toEnquiryExportRows(
 }
 
 export function MyEnquiries() {
-  const { agent, role } = useAuth();
+  const { agent, role, isUnitViewer } = useAuth();
   const { toast } = useToast();
-  const { data: enquiries, isLoading, isError, error } = useMyEnquiries(agent?.id);
+  const { data: enquiries, isLoading, isError, error } = useMyEnquiries(agent?.id, isUnitViewer);
   const { data: merchants } = useAgentMerchants();
-  const proposeMerchant = useProposeMerchant();
 
   const [proposeOpen, setProposeOpen] = useState(false);
-  const [proposeName, setProposeName] = useState('');
+  const [agentFilter, setAgentFilter] = useState<string>('all');
 
   const activeMerchants = merchants?.filter((m) => m.status === MerchantStatus.ACTIVE) ?? [];
-
-  const handlePropose = async () => {
-    const name = proposeName.trim();
-    if (!name || !agent?.id) return;
-    try {
-      await proposeMerchant.mutateAsync({ name, agentId: agent.id });
-      toast({ title: 'Submitted for admin approval' });
-      setProposeName('');
-      setProposeOpen(false);
-    } catch (err: unknown) {
-      toast({
-        title: 'Failed to submit',
-        description: (err as Error)?.message,
-        variant: 'error',
-      });
-    }
-  };
 
   // Default ordering: Partner -> Status (open first) -> earliest expiry -> newest.
   const sortedEnquiries = [...(enquiries ?? [])].sort(compareMyEnquiries);
 
+  const agentOptions = Array.from(
+    new Map(
+      (enquiries ?? [])
+        .filter((e) => e.agent)
+        .map((e) => [e.agent!.id, e.agent!])
+    ).values()
+  );
+  const visibleEnquiries = sortedEnquiries.filter(
+    (e) => agentFilter === 'all' || e.agent?.id === agentFilter
+  );
+
   const handleDownload = async () => {
     try {
-      const rows = toEnquiryExportRows(sortedEnquiries, agent);
+      const rows = toEnquiryExportRows(visibleEnquiries, agent);
       await buildEnquiriesWorkbook(rows, { generatedAt: new Date().toISOString().slice(0, 10) });
     } catch (err: unknown) {
       toast({
@@ -365,14 +362,27 @@ export function MyEnquiries() {
           {role === 'agent_admin' && (
             <Button variant="outline" size="sm" onClick={() => setProposeOpen(true)}>
               <Plus className="size-4 mr-2" />
-              Propose Partner
+              Propose Partnership
             </Button>
+          )}
+          {isUnitViewer && agentOptions.length > 1 && (
+            <Select value={agentFilter} onValueChange={setAgentFilter}>
+              <SelectTrigger className="w-44 h-9 text-sm">
+                <SelectValue placeholder="All agents" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All agents</SelectItem>
+                {agentOptions.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>{a.name} ({a.agent_code})</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
           <Button
             variant="outline"
             size="sm"
             onClick={handleDownload}
-            disabled={sortedEnquiries.length === 0}
+            disabled={visibleEnquiries.length === 0}
           >
             <Download className="size-4 mr-2" />
             Download
@@ -380,39 +390,8 @@ export function MyEnquiries() {
         </div>
       </div>
 
-      {role === 'agent_admin' && (
-        <Dialog open={proposeOpen} onOpenChange={setProposeOpen}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Propose a Partner</DialogTitle>
-              <DialogDescription>
-                Suggest a merchant to partner with. It will be submitted to an admin for
-                approval before it becomes active.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-2 py-2">
-              <Label htmlFor="propose-partner-name">Merchant name</Label>
-              <Input
-                id="propose-partner-name"
-                value={proposeName}
-                onChange={(e) => setProposeName(e.target.value)}
-                placeholder="e.g. Golden Jewellers"
-                autoFocus
-              />
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setProposeOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={handlePropose}
-                disabled={!proposeName.trim() || proposeMerchant.isPending}
-              >
-                {proposeMerchant.isPending ? 'Submitting…' : 'Submit'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+      {role === 'agent_admin' && agent?.id && (
+        <ProposePartnerDialog agentId={agent.id} open={proposeOpen} onOpenChange={setProposeOpen} />
       )}
 
       {isLoading ? (
@@ -436,12 +415,14 @@ export function MyEnquiries() {
           </CardContent>
         </Card>
       ) : (
-        sortedEnquiries.map((enq) => (
+        visibleEnquiries.map((enq) => (
           <EnquiryCard
             key={enq.id}
             enq={enq}
             activeMerchants={activeMerchants}
             agentId={agent?.id}
+            showAgent={isUnitViewer}
+            readOnly={isUnitViewer && enq.agent_id !== agent?.id}
           />
         ))
       )}

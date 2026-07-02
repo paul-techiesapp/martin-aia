@@ -50,6 +50,7 @@ export interface CreateAgentInput {
   unit_name: string;
   tier_id: string;
   status: Agent['status'];
+  is_unit_manager: boolean;
   password: string;
 }
 

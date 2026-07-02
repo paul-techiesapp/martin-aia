@@ -18,11 +18,16 @@ import {
   supabase,
 } from '@agent-system/shared-ui';
 import { DEFAULT_ENQUIRY_FORM, type CompanyBranding, type EnquiryFormSettings } from '@agent-system/shared-types';
-import { Upload, Trash2, Image, KeyRound, FileText } from 'lucide-react';
+import { Upload, Trash2, Image, KeyRound, FileText, Palette } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useSystemSettings, useUpdateCompanyBranding, useUpdateEnquirySettings } from '../hooks/useSystemSettings';
+import {
+  useSystemSettings,
+  useUpdateCompanyBranding,
+  useUpdateEnquirySettings,
+  useUpdateFormBranding,
+} from '../hooks/useSystemSettings';
 import { useUploadLogo, useDeleteLogo } from '../hooks/useCompanyAssets';
 import { Link } from '@tanstack/react-router';
 
@@ -249,6 +254,8 @@ export function Settings() {
 
       <EnquiryFormSettingsCard />
 
+      <FormBrandingCard />
+
       <ChangePasswordCard />
     </div>
   );
@@ -362,6 +369,72 @@ function EnquiryFormSettingsCard() {
         <div className="flex justify-end">
           <Button onClick={handleSave} disabled={updateEnquiry.isPending}>
             {updateEnquiry.isPending ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function FormBrandingCard() {
+  const { data: systemSettings } = useSystemSettings();
+  const updateFormBranding = useUpdateFormBranding();
+  const { toast } = useToast();
+
+  const [logoUrl, setLogoUrl] = useState('');
+  const [footerText, setFooterText] = useState('');
+
+  useEffect(() => {
+    if (systemSettings) {
+      setLogoUrl(systemSettings.form_branding?.logo_url ?? '');
+      setFooterText(systemSettings.form_branding?.footer_text ?? '');
+    }
+  }, [systemSettings]);
+
+  const handleSave = async () => {
+    try {
+      await updateFormBranding.mutateAsync({
+        logo_url: logoUrl.trim(),
+        footer_text: footerText.trim(),
+      });
+      toast({ title: 'Saved', description: 'Form branding updated.' });
+    } catch {
+      toast({ title: 'Save failed', description: 'Could not save settings.', variant: 'error' });
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Palette className="size-4" />
+          Form Branding
+        </CardTitle>
+        <CardDescription>
+          Logo and footer shown on public-facing forms.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-5 max-w-2xl">
+        <div className="space-y-2">
+          <Label htmlFor="formBrandingLogo">Logo URL</Label>
+          <Input
+            id="formBrandingLogo"
+            value={logoUrl}
+            onChange={(e) => setLogoUrl(e.target.value)}
+            placeholder="https://..."
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="formBrandingFooter">Footer Text</Label>
+          <Input
+            id="formBrandingFooter"
+            value={footerText}
+            onChange={(e) => setFooterText(e.target.value)}
+          />
+        </div>
+        <div className="flex justify-end">
+          <Button onClick={handleSave} disabled={updateFormBranding.isPending}>
+            {updateFormBranding.isPending ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>
       </CardContent>

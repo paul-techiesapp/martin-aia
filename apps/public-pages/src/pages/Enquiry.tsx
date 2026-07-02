@@ -27,6 +27,7 @@ import { Car, Plus, Trash2, CheckCircle, Paperclip, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { toMalaysianE164 } from '../lib/phone';
 import { useEnquiryFormSettings } from '../hooks/useEnquiryFormSettings';
+import { useFormBranding } from '../hooks/useFormBranding';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
@@ -90,6 +91,7 @@ export function Enquiry() {
   const [fileErrors, setFileErrors] = useState<Record<string, string | null>>({});
 
   const { data: formSettings } = useEnquiryFormSettings();
+  const formBranding = useFormBranding();
 
   const form = useForm<EnquiryFormData>({
     resolver: zodResolver(enquirySchema),
@@ -321,7 +323,8 @@ export function Enquiry() {
 
   // Header/footer + T&C copy: admin-editable Settings take priority, then any
   // branch-merchant branding, then the hardcoded defaults (used while settings load).
-  const headerLogoUrl = formSettings?.header_logo_url || context?.merchant_logo_url || null;
+  const headerLogoUrl =
+    formBranding.logoUrl || formSettings?.header_logo_url || context?.merchant_logo_url || null;
   const headerTitle =
     context?.kind === 'branch' && context.merchant_name
       ? `${context.merchant_name} — Gold Gift Enquiry`
@@ -335,7 +338,8 @@ export function Enquiry() {
       : context?.kind === 'agent'
         ? `Submitted via ${context?.agent_name ?? ''}`
         : '';
-  const footerText = formSettings?.footer_text ?? DEFAULT_ENQUIRY_FORM.footer_text;
+  const footerText =
+    formBranding.footerText || formSettings?.footer_text || DEFAULT_ENQUIRY_FORM.footer_text;
 
   // T&C body with the DPO contact appended (when not already present in the body).
   const tncBody = formSettings?.tnc_body ?? DEFAULT_ENQUIRY_FORM.tnc_body;

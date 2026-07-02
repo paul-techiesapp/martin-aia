@@ -9,6 +9,10 @@ interface AuthState {
   agent: AgentWithTier | null;
   partner: PartnerWithAgent | null;
   role: 'agent_admin' | 'agent' | 'partner' | null;
+  // True for anyone allowed to SEE the whole unit's reporting: the unit admin
+  // (agent_admin) plus sub-agents flagged is_unit_manager. Managing sub-agents
+  // stays restricted to agent_admin.
+  isUnitViewer: boolean;
   isLoading: boolean;
 }
 
@@ -19,6 +23,7 @@ export function useAuth() {
     agent: null,
     partner: null,
     role: null,
+    isUnitViewer: false,
     isLoading: true,
   });
 
@@ -37,7 +42,7 @@ export function useAuth() {
       if (session?.user) {
         fetchUserRole(session.user.id);
       } else {
-        setState(prev => ({ ...prev, agent: null, partner: null, role: null, isLoading: false }));
+        setState(prev => ({ ...prev, agent: null, partner: null, role: null, isUnitViewer: false, isLoading: false }));
       }
     });
 
@@ -53,11 +58,15 @@ export function useAuth() {
 
     if (!agentError && agentData) {
       const agentRole = agentData.parent_agent_id === null ? 'agent_admin' : 'agent';
+      // Unit admins always see the unit; sub-agents flagged is_unit_manager get
+      // the same unit-wide VIEW (but not sub-agent management — see Layout).
+      const isUnitViewer = agentRole === 'agent_admin' || agentData.is_unit_manager === true;
       setState(prev => ({
         ...prev,
         agent: agentData as AgentWithTier,
         partner: null,
         role: agentRole,
+        isUnitViewer,
         isLoading: false,
       }));
       return;
@@ -76,6 +85,7 @@ export function useAuth() {
         agent: null,
         partner: partnerData as PartnerWithAgent,
         role: 'partner',
+        isUnitViewer: false,
         isLoading: false,
       }));
       return;

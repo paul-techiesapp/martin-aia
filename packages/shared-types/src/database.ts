@@ -57,8 +57,21 @@ export interface SystemSettings {
   admin_notification_email: string | null;
   /** Customer gold-gift rate as a percent of the car-insurance renewal premium. */
   customer_gift_rate_pct: number;
+  /** Admin-managed logo + footer shared across all public forms (events + partnership). */
+  form_branding: FormBranding;
   updated_at: string;
 }
+
+/** Shared logo + footer applied to every public form. */
+export interface FormBranding {
+  logo_url: string;
+  footer_text: string;
+}
+
+export const DEFAULT_FORM_BRANDING: FormBranding = {
+  logo_url: '',
+  footer_text: '© RACC Agency. All rights reserved.',
+};
 
 export const DEFAULT_CARD_TEMPLATE: CardTemplate = {
   panelColor: '#0f172a',
@@ -165,6 +178,7 @@ export interface Agent {
   unit_name: string;
   tier_id: string | null;
   parent_agent_id: string | null;
+  is_unit_manager: boolean;
   is_auto_invite: boolean;
   status: AgentStatus;
   photo_url: string | null;

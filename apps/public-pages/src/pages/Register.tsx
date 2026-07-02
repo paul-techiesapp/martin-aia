@@ -27,6 +27,7 @@ import {
 import { CalendarDays, MapPin, Clock, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { toMalaysianE164 } from '../lib/phone';
+import { useFormBranding } from '../hooks/useFormBranding';
 import { TERMS_AND_CONDITIONS } from '../constants/terms';
 import { format, parseISO } from 'date-fns';
 
@@ -79,6 +80,8 @@ export function Register() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const { logoUrl, footerText } = useFormBranding();
 
   // Whether this event requires NRIC. Defaults to true until the link loads, so
   // the stricter rule applies while data is in flight. A ref keeps the resolver
@@ -266,7 +269,11 @@ export function Register() {
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-40" />
       <Card className="w-full max-w-lg bg-card backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
         <CardHeader className="text-center pt-8">
-          <Logo size="lg" showText={false} className="mx-auto mb-4" />
+          {logoUrl ? (
+            <img src={logoUrl} alt="" className="h-12 mx-auto mb-4 object-contain" />
+          ) : (
+            <Logo size="lg" showText={false} className="mx-auto mb-4" />
+          )}
           <CardTitle className="text-xl font-semibold text-foreground">Event Registration</CardTitle>
           <CardDescription className="text-muted-foreground">
             Complete your registration for the event
@@ -435,6 +442,10 @@ export function Register() {
               </Button>
             </form>
           </Form>
+
+          {footerText && (
+            <p className="text-xs text-muted-foreground text-center mt-4">{footerText}</p>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -22,6 +22,8 @@ import {
   DialogTrigger,
   Input,
   Label,
+  Badge,
+  useToast,
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -43,6 +45,13 @@ import {
 import { MerchantStatus, type Merchant } from '@agent-system/shared-types';
 import { useSystemSettings } from '../../hooks/useSystemSettings';
 
+const statusVariant = (status: MerchantStatus) =>
+  status === MerchantStatus.PENDING
+    ? 'warning'
+    : status === MerchantStatus.ACTIVE
+    ? 'active'
+    : 'inactive';
+
 export function MerchantList() {
   const { data: merchants, isLoading, error } = useMerchants();
   const { data: settings } = useSystemSettings();
@@ -51,6 +60,16 @@ export function MerchantList() {
   const updateMerchant = useUpdateMerchant();
   const deleteMerchant = useDeleteMerchant();
   const approveMerchant = useApproveMerchant();
+  const { toast } = useToast();
+
+  const handleApprove = async (id: string) => {
+    try {
+      await approveMerchant.mutateAsync(id);
+      toast({ title: 'Partnership approved', description: 'The merchant is now active.' });
+    } catch (err: any) {
+      toast({ title: 'Approve failed', description: err.message, variant: 'error' });
+    }
+  };
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Merchant | null>(null);
@@ -188,18 +207,23 @@ export function MerchantList() {
                           {merchant.name}
                         </Link>
                       </TableCell>
-                      <TableCell className="capitalize text-muted-foreground">{merchant.status}</TableCell>
+                      <TableCell>
+                        <Badge variant={statusVariant(merchant.status)} className="capitalize">
+                          {merchant.status}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           {merchant.status === MerchantStatus.PENDING && (
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
-                              onClick={() => approveMerchant.mutate(merchant.id)}
+                              onClick={() => handleApprove(merchant.id)}
                               disabled={approveMerchant.isPending}
                               aria-label="Approve merchant"
                             >
-                              <Check className="size-4 text-emerald-600" />
+                              <Check className="size-4 mr-1 text-emerald-600" />
+                              Approve
                             </Button>
                           )}
                           <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(merchant)} aria-label="Edit merchant">

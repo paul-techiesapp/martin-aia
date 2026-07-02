@@ -15,6 +15,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Switch,
   Form,
   FormControl,
   FormDescription,
@@ -38,6 +39,7 @@ const agentSchema = z.object({
   unit_name: z.string().min(1, 'Unit name is required'),
   tier_id: z.string().min(1, 'Tier is required'),
   status: z.nativeEnum(AgentStatus),
+  is_unit_manager: z.boolean(),
   password: z.string().optional(),
 });
 
@@ -65,6 +67,7 @@ export function AgentForm() {
       unit_name: '',
       tier_id: '',
       status: AgentStatus.ACTIVE,
+      is_unit_manager: false,
       password: '',
     },
   });
@@ -80,6 +83,7 @@ export function AgentForm() {
         unit_name: agent.unit_name,
         tier_id: agent.tier_id ?? '',
         status: agent.status,
+        is_unit_manager: agent.is_unit_manager ?? false,
       });
     }
   }, [agent, form]);
@@ -104,6 +108,7 @@ export function AgentForm() {
           unit_name: data.unit_name,
           tier_id: data.tier_id,
           status: data.status,
+          is_unit_manager: data.is_unit_manager,
           password: data.password,
         });
       }
@@ -286,6 +291,24 @@ export function AgentForm() {
                       </SelectContent>
                     </Select>
                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="is_unit_manager"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5 pr-4">
+                      <FormLabel>Unit Manager</FormLabel>
+                      <FormDescription>
+                        Can view their whole unit's data (same as a Unit Admin).
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
                   </FormItem>
                 )}
               />

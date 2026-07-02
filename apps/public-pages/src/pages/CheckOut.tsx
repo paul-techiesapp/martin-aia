@@ -25,6 +25,7 @@ import {
 import { CheckCircle, MessageSquare, ArrowRight, Star } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { toMalaysianE164 } from '../lib/phone';
+import { useFormBranding } from '../hooks/useFormBranding';
 
 // Step 1: Dual identifier schema — NRIC always required + email or phone
 const emailIdentifierSchema = z.object({
@@ -48,6 +49,8 @@ type OtpFormData = z.infer<typeof otpSchema>;
 export function CheckOut() {
   const search = useSearch({ strict: false }) as { slot?: string; ts?: string; sig?: string };
   const slotId = search.slot;
+
+  const { logoUrl, footerText } = useFormBranding();
 
   const [step, setStep] = useState<1 | 2>(1);
   const [identifyBy, setIdentifyBy] = useState<'email' | 'phone'>('email');
@@ -412,7 +415,11 @@ export function CheckOut() {
             {/* Success Header — always shown */}
             <div className="p-8 text-center border-b">
               <div className="flex justify-center mb-4">
-                <Logo size="lg" showText={false} />
+                {logoUrl ? (
+                  <img src={logoUrl} alt="" className="h-12 object-contain" />
+                ) : (
+                  <Logo size="lg" showText={false} />
+                )}
               </div>
               <div className="size-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="size-8 text-emerald-600" />
@@ -519,7 +526,11 @@ export function CheckOut() {
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-40" />
       <Card className="w-full max-w-md bg-card backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
         <CardHeader className="text-center pt-8">
-          <Logo size="lg" showText={false} className="mx-auto mb-4" />
+          {logoUrl ? (
+            <img src={logoUrl} alt="" className="h-12 mx-auto mb-4 object-contain" />
+          ) : (
+            <Logo size="lg" showText={false} className="mx-auto mb-4" />
+          )}
           <CardTitle className="text-xl font-semibold text-foreground">Event Check-Out</CardTitle>
           <CardDescription className="text-muted-foreground">
             {step === 1
@@ -716,6 +727,10 @@ export function CheckOut() {
                 </form>
               </Form>
             </>
+          )}
+
+          {footerText && (
+            <p className="text-xs text-muted-foreground text-center mt-4">{footerText}</p>
           )}
         </CardContent>
       </Card>

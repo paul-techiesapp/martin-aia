@@ -18,6 +18,14 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Label,
   getStatusVariant,
   TableSkeleton,
   useToast,
@@ -25,11 +33,11 @@ import {
   type EnquiryExportRow,
 } from '@agent-system/shared-ui';
 import { format, parseISO } from 'date-fns';
-import { FileText, Store, Download } from 'lucide-react';
+import { FileText, Store, Download, Plus } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useMyEnquiries, type EnquiryWithDetails } from '../hooks/useMyEnquiries';
-import { useAssignEnquiryMerchant } from '../hooks/useMyEnquiryLink';
-import { useAgentMerchants, type MerchantWithBranches } from '../hooks/useAgentMerchants';
+import { useAssignVehicleMerchant } from '../hooks/useAssignVehicleMerchant';
+import { useAgentMerchants, useProposeMerchant, type MerchantWithBranches } from '../hooks/useAgentMerchants';
 import { useRequestQuote } from '../hooks/useRequestQuote';
 import { compareMyEnquiries } from './myEnquiriesSort';
 import { MerchantStatus, VehicleStatus, type AgentWithTier } from '@agent-system/shared-types';
@@ -43,25 +51,36 @@ interface EnquiryCardProps {
 
 function EnquiryCard({ enq, activeMerchants, agentId }: EnquiryCardProps) {
   const { toast } = useToast();
-  const assignMerchant = useAssignEnquiryMerchant(agentId);
+  const assignVehicleMerchant = useAssignVehicleMerchant(agentId);
   const requestQuote = useRequestQuote(agentId);
-  const [selectedMerchant, setSelectedMerchant] = useState('');
+  // Per-vehicle partner selection, keyed by vehicle id (a multi-car enquiry can
+  // send each car to a different partner).
+  const [vehicleMerchant, setVehicleMerchant] = useState<Record<string, string>>({});
+  const [assigningVehicleId, setAssigningVehicleId] = useState<string | null>(null);
   const [quotingVehicleId, setQuotingVehicleId] = useState<string | null>(null);
   const { data: attachments = [] } = useEnquiryAttachments(enq.id);
   const viewAttachment = useViewAttachment();
 
-  const handleAssign = async () => {
-    if (!selectedMerchant) return;
+  const handleAssignVehicle = async (vehicleId: string) => {
+    const merchantId = vehicleMerchant[vehicleId];
+    if (!merchantId) return;
+    setAssigningVehicleId(vehicleId);
     try {
-      await assignMerchant.mutateAsync({ enquiryId: enq.id, merchantId: selectedMerchant });
-      toast({ title: 'Partnership assigned' });
-      setSelectedMerchant('');
+      await assignVehicleMerchant.mutateAsync({ vehicleId, merchantId });
+      toast({ title: 'Partner assigned' });
+      setVehicleMerchant((prev) => {
+        const next = { ...prev };
+        delete next[vehicleId];
+        return next;
+      });
     } catch (err: unknown) {
       toast({
         title: 'Failed to assign',
         description: (err as Error)?.message,
         variant: 'error',
       });
+    } finally {
+      setAssigningVehicleId(null);
     }
   };
 
@@ -111,48 +130,7 @@ function EnquiryCard({ enq, activeMerchants, agentId }: EnquiryCardProps) {
         </Badge>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Partnership assignment */}
-        <div className="flex items-center gap-2">
-          <Store className="size-4 text-muted-foreground shrink-0" />
-          {enq.merchant_id ? (
-            <span className="text-sm font-medium text-foreground">
-              {enq.merchant?.name ?? 'Assigned'}
-            </span>
-          ) : (
-            <>
-              <Select
-                value={selectedMerchant}
-                onValueChange={setSelectedMerchant}
-              >
-                <SelectTrigger className="w-52 h-8 text-sm">
-                  <SelectValue placeholder="Assign to Partnership" />
-                </SelectTrigger>
-                <SelectContent>
-                  {activeMerchants.length === 0 ? (
-                    <SelectItem value="__none" disabled>
-                      No active partnerships
-                    </SelectItem>
-                  ) : (
-                    activeMerchants.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
-                        {m.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              <Button
-                size="sm"
-                disabled={!selectedMerchant || assignMerchant.isPending}
-                onClick={handleAssign}
-              >
-                Assign
-              </Button>
-            </>
-          )}
-        </div>
-
-        {/* Vehicle table */}
+        {/* Vehicle table — partner is assigned per car */}
         <div className="overflow-auto rounded-md border">
           <Table>
             <TableHeader>
@@ -160,6 +138,7 @@ function EnquiryCard({ enq, activeMerchants, agentId }: EnquiryCardProps) {
                 <TableHead>Car Plate</TableHead>
                 <TableHead>Insurance Expiry</TableHead>
                 <TableHead>Product</TableHead>
+                <TableHead>Partner</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Action</TableHead>
               </TableRow>
@@ -176,6 +155,51 @@ function EnquiryCard({ enq, activeMerchants, agentId }: EnquiryCardProps) {
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {v.product?.name ?? '-'}
+                      </TableCell>
+                      <TableCell>
+                        {v.merchant?.name ? (
+                          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
+                            <Store className="size-3.5 text-muted-foreground shrink-0" />
+                            {v.merchant.name}
+                          </span>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <Select
+                              value={vehicleMerchant[v.id] ?? ''}
+                              onValueChange={(val) =>
+                                setVehicleMerchant((prev) => ({ ...prev, [v.id]: val }))
+                              }
+                            >
+                              <SelectTrigger className="w-44 h-8 text-sm">
+                                <SelectValue placeholder="Assign partner" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {activeMerchants.length === 0 ? (
+                                  <SelectItem value="__none" disabled>
+                                    No active partnerships
+                                  </SelectItem>
+                                ) : (
+                                  activeMerchants.map((m) => (
+                                    <SelectItem key={m.id} value={m.id}>
+                                      {m.name}
+                                    </SelectItem>
+                                  ))
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={
+                                !vehicleMerchant[v.id] ||
+                                (assignVehicleMerchant.isPending && assigningVehicleId === v.id)
+                              }
+                              onClick={() => handleAssignVehicle(v.id)}
+                            >
+                              Assign
+                            </Button>
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge variant={getStatusVariant(v.status)} className="capitalize">
@@ -205,7 +229,7 @@ function EnquiryCard({ enq, activeMerchants, agentId }: EnquiryCardProps) {
                     </TableRow>
                     {vehicleAttachments.length > 0 && (
                       <TableRow className="hover:bg-transparent">
-                        <TableCell colSpan={5} className="py-1 pl-4 bg-muted/30">
+                        <TableCell colSpan={6} className="py-1 pl-4 bg-muted/30">
                           <div className="flex flex-wrap gap-1.5">
                             {vehicleAttachments.map(a => (
                               <div
@@ -284,12 +308,33 @@ function toEnquiryExportRows(
 }
 
 export function MyEnquiries() {
-  const { agent } = useAuth();
+  const { agent, role } = useAuth();
   const { toast } = useToast();
   const { data: enquiries, isLoading, isError, error } = useMyEnquiries(agent?.id);
   const { data: merchants } = useAgentMerchants();
+  const proposeMerchant = useProposeMerchant();
+
+  const [proposeOpen, setProposeOpen] = useState(false);
+  const [proposeName, setProposeName] = useState('');
 
   const activeMerchants = merchants?.filter((m) => m.status === MerchantStatus.ACTIVE) ?? [];
+
+  const handlePropose = async () => {
+    const name = proposeName.trim();
+    if (!name || !agent?.id) return;
+    try {
+      await proposeMerchant.mutateAsync({ name, agentId: agent.id });
+      toast({ title: 'Submitted for admin approval' });
+      setProposeName('');
+      setProposeOpen(false);
+    } catch (err: unknown) {
+      toast({
+        title: 'Failed to submit',
+        description: (err as Error)?.message,
+        variant: 'error',
+      });
+    }
+  };
 
   // Default ordering: Partner -> Status (open first) -> earliest expiry -> newest.
   const sortedEnquiries = [...(enquiries ?? [])].sort(compareMyEnquiries);
@@ -316,16 +361,59 @@ export function MyEnquiries() {
             Car-insurance enquiries customers submitted through your enquiry link
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleDownload}
-          disabled={sortedEnquiries.length === 0}
-        >
-          <Download className="size-4 mr-2" />
-          Download
-        </Button>
+        <div className="flex items-center gap-2">
+          {role === 'agent_admin' && (
+            <Button variant="outline" size="sm" onClick={() => setProposeOpen(true)}>
+              <Plus className="size-4 mr-2" />
+              Propose Partner
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownload}
+            disabled={sortedEnquiries.length === 0}
+          >
+            <Download className="size-4 mr-2" />
+            Download
+          </Button>
+        </div>
       </div>
+
+      {role === 'agent_admin' && (
+        <Dialog open={proposeOpen} onOpenChange={setProposeOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Propose a Partner</DialogTitle>
+              <DialogDescription>
+                Suggest a merchant to partner with. It will be submitted to an admin for
+                approval before it becomes active.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 py-2">
+              <Label htmlFor="propose-partner-name">Merchant name</Label>
+              <Input
+                id="propose-partner-name"
+                value={proposeName}
+                onChange={(e) => setProposeName(e.target.value)}
+                placeholder="e.g. Golden Jewellers"
+                autoFocus
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setProposeOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handlePropose}
+                disabled={!proposeName.trim() || proposeMerchant.isPending}
+              >
+                {proposeMerchant.isPending ? 'Submitting…' : 'Submit'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {isLoading ? (
         <Card>

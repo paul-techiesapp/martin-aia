@@ -10,7 +10,8 @@ import {
   useToast,
 } from '@agent-system/shared-ui';
 import { QRCodeSVG } from 'qrcode.react';
-import { Copy, Check, QrCode } from 'lucide-react';
+import QRCode from 'qrcode';
+import { Copy, Check, QrCode, Download } from 'lucide-react';
 import { useMyEnquiryLink } from '../hooks/useMyEnquiryLink';
 
 const enquiryUrl = (code: string) =>
@@ -27,6 +28,24 @@ export function MyEnquiryLink() {
     setCopied(true);
     toast({ title: 'Link copied!', description: 'Share this enquiry link with customers.' });
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSave = async () => {
+    if (!code) return;
+    try {
+      const url = await QRCode.toDataURL(enquiryUrl(code), { width: 512, margin: 1 });
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'my-enquiry-qr.png';
+      a.click();
+      toast({ title: 'QR saved', description: 'Saved as my-enquiry-qr.png.' });
+    } catch (err: unknown) {
+      toast({
+        title: 'Failed to save QR',
+        description: (err as Error)?.message,
+        variant: 'error',
+      });
+    }
   };
 
   return (
@@ -59,17 +78,22 @@ export function MyEnquiryLink() {
               <p className="text-xs text-muted-foreground break-all text-center">
                 {enquiryUrl(code)}
               </p>
-              <Button variant="outline" onClick={handleCopy}>
-                {copied ? (
-                  <>
-                    <Check className="size-4 mr-2 text-emerald-600" /> Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="size-4 mr-2" /> Copy Link
-                  </>
-                )}
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={handleCopy}>
+                  {copied ? (
+                    <>
+                      <Check className="size-4 mr-2 text-emerald-600" /> Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="size-4 mr-2" /> Copy Link
+                    </>
+                  )}
+                </Button>
+                <Button variant="outline" onClick={handleSave}>
+                  <Download className="size-4 mr-2" /> Save as photo
+                </Button>
+              </div>
             </>
           ) : null}
         </CardContent>

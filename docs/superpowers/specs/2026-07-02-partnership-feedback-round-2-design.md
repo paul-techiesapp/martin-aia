@@ -4,9 +4,8 @@ Date: 2026-07-02
 Branch: `feat/merchant-partnership`
 Builds on: `2026-06-30-partnership-feedback-changes-design.md` (round 1, now live on prod)
 
-Status: **DRAFT — awaiting user approval.** Item 3 is BLOCKED pending a decision.
-Defaults below marked ✅ are my recommendation, chosen while the user was away; every
-one is reversible before implementation.
+Status: **APPROVED (2026-07-02).** Item 3 = option (a) — add a Unit Manager role.
+Defaults for items 6/7/8 confirmed. Items 1,2,4,5 as specified. Ready for implementation plan.
 
 This documents 8 feedback items. Each: current state (grounded in code, with
 file refs), the decision, and the implementation approach. No code is written until
@@ -65,16 +64,28 @@ to unit admins via additive RLS (`20260617000001_unit_admin_report_rls.sql`) ove
 `parent_agent_id` tree. **No "Unit Manager" exists anywhere** (zero code matches).
 `unit_name` is free text, not used for scoping.
 
-**Why blocked:** "Unit Manager and Unit Admin, same level, view their respective unit" is
-not a tweak — it introduces a concept that doesn't exist. Three plausible readings, need
-the user to pick:
-- (a) **Add a real Unit Manager role** = same unit-view rights as Unit Admin. Requires a
-  role flag on `agents` + extending unit-scope RLS/UI to managers.
-- (b) **Fix mis-leveled people** — some who should see their unit are set up as sub-agents;
-  promote them to top-level. No new role.
-- (c) **Label-only** — display both titles; behavior already identical for top-level agents.
+**Decision: option (a) — add a real Unit Manager role with the same unit-view rights as
+Unit Admin.** Chosen structure (additive, backward-compatible, no disruption to the
+existing hierarchy):
+- Keep **Unit Admin** exactly as-is: still derived = agent with `parent_agent_id IS NULL`.
+- Add `agents.is_unit_manager BOOLEAN NOT NULL DEFAULT false` — a flag any agent can carry.
+- **Unit-wide view** is granted to `parent_agent_id IS NULL OR is_unit_manager`, scoped to
+  the agent's **unit root** = `COALESCE(parent_agent_id, id)`. A unit manager therefore sees
+  every agent/registration/reward/attendance in the same unit tree they belong to — same
+  view level as the unit admin.
+- Add helper `get_unit_root()` = `COALESCE((SELECT parent_agent_id FROM agents WHERE
+  id = get_agent_id()), get_agent_id())`; extend the existing unit-scope SELECT RLS
+  (`20260617000001_unit_admin_report_rls.sql` set: registrations, rewards, attendance,
+  agent_links, agents) so unit managers get the same visibility, keyed on unit root.
+- **Assignment:** admin toggles "Unit Manager" in the admin-portal agent form
+  (`AgentForm.tsx`); persisted on the `agents` row. (Optionally the unit admin can toggle it
+  on their own sub-agents — default NO, admin-only, to keep it simple.)
+- **Frontend:** agent-portal `useAuth` exposes a `unit_manager` capability; a unit manager
+  sees the same unit-scoped pages a unit admin does (Team Report etc.) but NOT sub-agent
+  management (create/delete sub-agents stays unit-admin-only per `create-sub-agent`).
 
-**Decision:** PENDING user answer. Do not implement until resolved.
+**Note:** this is my recommended concrete model under the approved option (a); flag if the
+org actually needs unit managers to be structural peers rather than a view-grant flag.
 
 ---
 
@@ -186,7 +197,9 @@ built-in title. Partnership's `enquiry_form` keeps its extra fields (title/subti
 - **Sequencing:** items 1,2,4,5,6,7,8 are independent of item 3 and can proceed once the
   ✅ defaults are confirmed; item 3 lands separately after its decision.
 
-## Open questions
-1. **Item 3** — which of (a)/(b)/(c)? (blocks item 3 only)
-2. Confirm ✅ defaults for items 6, 7, 8.
-3. Item 1 — drop `assign_enquiry_merchant` or leave dormant? (default: leave)
+## Resolved decisions (2026-07-02)
+1. **Item 3** — option (a): add Unit Manager role via additive `is_unit_manager` flag (see §3).
+2. Items 6, 7, 8 — ✅ defaults confirmed.
+3. Item 1 — leave `assign_enquiry_merchant` dormant (don't drop); agent UI uses the new
+   per-vehicle RPC.
+4. Items 1, 2, 4, 5 — proceed as specified.

@@ -27,23 +27,26 @@ import { supabase } from '../lib/supabase';
 import { toMalaysianE164 } from '../lib/phone';
 import { useFormBranding } from '../hooks/useFormBranding';
 
-// Step 1: Dual identifier schema — NRIC always required + email or phone
-const emailIdentifierSchema = z.object({
-  nric: z.string().min(9, 'NRIC must be at least 9 characters'),
-  identifier: z.string().email('Please enter a valid email address'),
-});
-
-const phoneIdentifierSchema = z.object({
-  nric: z.string().min(9, 'NRIC must be at least 9 characters'),
-  identifier: z.string().min(8, 'Phone number must be at least 8 characters'),
-});
+// Step 1: Dual-identifier schema. NRIC is required only when the event's
+// `nric_required` setting is on; optional-NRIC events identify the attendee by
+// email/phone alone (mirrors the registration form, where NRIC can be blank).
+const buildIdentifierSchema = (nricRequired: boolean, identifyBy: 'email' | 'phone') =>
+  z.object({
+    nric: nricRequired
+      ? z.string().min(9, 'NRIC must be at least 9 characters')
+      : z.string().optional(),
+    identifier:
+      identifyBy === 'email'
+        ? z.string().email('Please enter a valid email address')
+        : z.string().min(8, 'Phone number must be at least 8 characters'),
+  });
 
 // Step 2: OTP schema
 const otpSchema = z.object({
   otp_code: z.string().length(6, 'OTP must be 6 digits'),
 });
 
-type IdentifierFormData = z.infer<typeof emailIdentifierSchema>;
+type IdentifierFormData = { nric?: string; identifier: string };
 type OtpFormData = z.infer<typeof otpSchema>;
 
 export function CheckOut() {
@@ -54,6 +57,14 @@ export function CheckOut() {
 
   const [step, setStep] = useState<1 | 2>(1);
   const [identifyBy, setIdentifyBy] = useState<'email' | 'phone'>('email');
+
+  // Whether this event requires NRIC at checkout. Mirrors the registration form:
+  // optional-NRIC events let attendees (who may have registered without an NRIC)
+  // identify themselves by email/phone alone. Defaults to true (stricter) until
+  // the slot's campaign setting loads.
+  const [nricRequired, setNricRequired] = useState(true);
+  const [metaLoading, setMetaLoading] = useState(true);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -118,6 +129,27 @@ export function CheckOut() {
       });
   }, [hasQrToken, slotId]);
 
+  // Load the event's NRIC requirement so the form knows whether to ask for it.
+  // Anon can read slots/campaigns (public RLS), same source the registration
+  // page uses. Falls back to "required" on any error (stricter default).
+  useEffect(() => {
+    if (!slotId) {
+      setMetaLoading(false);
+      return;
+    }
+    supabase
+      .from('slots')
+      .select('campaign:campaigns(nric_required)')
+      .eq('id', slotId)
+      .single()
+      .then(({ data }) => {
+        const required = (data as unknown as { campaign?: { nric_required?: boolean } } | null)
+          ?.campaign?.nric_required;
+        setNricRequired(required ?? true);
+        setMetaLoading(false);
+      });
+  }, [slotId]);
+
   // Cleanup timers on unmount
   useEffect(() => {
     return () => {
@@ -160,8 +192,20 @@ export function CheckOut() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
+  // Refs keep the resolver reading the current nricRequired/identifyBy without
+  // recreating the form when the slot meta loads or the tab toggles.
+  const nricRequiredRef = useRef(nricRequired);
+  nricRequiredRef.current = nricRequired;
+  const identifyByRef = useRef(identifyBy);
+  identifyByRef.current = identifyBy;
+
   const identifierForm = useForm<IdentifierFormData>({
-    resolver: zodResolver(identifyBy === 'email' ? emailIdentifierSchema : phoneIdentifierSchema),
+    resolver: (values, context, options) =>
+      zodResolver(buildIdentifierSchema(nricRequiredRef.current, identifyByRef.current))(
+        values,
+        context,
+        options
+      ),
     defaultValues: { nric: '', identifier: '' },
   });
 
@@ -197,7 +241,7 @@ export function CheckOut() {
         },
         body: JSON.stringify({
           slot_id: slotId,
-          nric: formData.nric,
+          nric: (formData.nric ?? '').trim(),
           identifier: submittedIdentifier,
         }),
       });
@@ -214,7 +258,11 @@ export function CheckOut() {
             startResendCooldown();
           }
         } else if (data.error === 'identifier_mismatch') {
-          setError('The email/phone does not match the registration for this NRIC.');
+          setError(
+            nricRequired
+              ? 'The email/phone does not match the registration for this NRIC.'
+              : 'No registration found for this email/phone. Please check and try again.'
+          );
         } else if (data.error === 'registration_not_found') {
           setError('No checked-in attendee found. Please check in first.');
         } else if (data.error === 'not_checked_in') {
@@ -261,7 +309,7 @@ export function CheckOut() {
         },
         body: JSON.stringify({
           slot_id: slotId,
-          nric: identifierForm.getValues('nric'),
+          nric: (identifierForm.getValues('nric') ?? '').trim(),
           identifier,
         }),
       });
@@ -309,7 +357,7 @@ export function CheckOut() {
         },
         body: JSON.stringify({
           slot_id: slotId,
-          nric: identifierForm.getValues('nric'),
+          nric: (identifierForm.getValues('nric') ?? '').trim(),
           identifier,
           code: formData.otp_code,
         }),
@@ -323,7 +371,11 @@ export function CheckOut() {
           setIsSubmitting(false);
           return;
         } else if (data.error === 'identifier_mismatch') {
-          setError('The email/phone does not match the registration for this NRIC.');
+          setError(
+            nricRequired
+              ? 'The email/phone does not match the registration for this NRIC.'
+              : 'No registration found for this email/phone. Please check and try again.'
+          );
           setIsSubmitting(false);
           return;
         } else if (data.error === 'already_checked_out') {
@@ -380,7 +432,7 @@ export function CheckOut() {
   };
 
   // QR verification guard screens
-  if (isVerifying) {
+  if (isVerifying || metaLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 flex items-center justify-center p-4">
         <Card className="w-full max-w-md bg-card backdrop-blur-sm shadow-2xl border-0">
@@ -534,7 +586,9 @@ export function CheckOut() {
           <CardTitle className="text-xl font-semibold text-foreground">Event Check-Out</CardTitle>
           <CardDescription className="text-muted-foreground">
             {step === 1
-              ? 'Enter your NRIC and email or phone to receive an OTP'
+              ? nricRequired
+                ? 'Enter your NRIC and email or phone to receive an OTP'
+                : 'Enter your email or phone to receive an OTP'
               : 'Enter the OTP sent to your WhatsApp'}
           </CardDescription>
 
@@ -567,20 +621,24 @@ export function CheckOut() {
             <>
               <Form {...identifierForm}>
                 <form onSubmit={identifierForm.handleSubmit(handleSendOtp)} className="space-y-4">
-                  {/* NRIC — always required */}
-                  <FormField
-                    control={identifierForm.control}
-                    name="nric"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-foreground">NRIC / MyKad Number</FormLabel>
-                        <FormControl>
-                          <Input placeholder="901020-10-1234" className="h-11" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* NRIC — only when the event requires it. Optional-NRIC events
+                      identify the attendee by email/phone alone, since they may
+                      have registered without an NRIC. */}
+                  {nricRequired && (
+                    <FormField
+                      control={identifierForm.control}
+                      name="nric"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-foreground">NRIC / MyKad Number</FormLabel>
+                          <FormControl>
+                            <Input placeholder="901020-10-1234" className="h-11" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
                   {/* Second identifier toggle */}
                   <Tabs

@@ -129,7 +129,7 @@ export function AgentList() {
               Pending Tier Requests
               <Badge variant="warning">{pendingRequests.length}</Badge>
             </CardTitle>
-            <CardDescription>Review and approve or reject tier assignment requests from unit administrators</CardDescription>
+            <CardDescription>Review and approve or reject tier assignment requests from unit managers</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-auto rounded-md border">

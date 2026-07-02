@@ -301,9 +301,9 @@ export function AgentForm() {
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5 pr-4">
-                      <FormLabel>Unit Manager</FormLabel>
+                      <FormLabel>Unit Admin</FormLabel>
                       <FormDescription>
-                        Can view their whole unit's data (same as a Unit Admin).
+                        Deputy who can view the whole unit's data (same view as the Unit Manager).
                       </FormDescription>
                     </div>
                     <FormControl>

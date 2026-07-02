@@ -40,7 +40,7 @@ export function Campaigns() {
         <Card>
           <CardContent className="py-8 text-center">
             <p className="text-muted-foreground">You need an approved tier assignment before you can generate links.</p>
-            <p className="text-sm text-muted-foreground mt-1">Please contact your unit administrator to request a tier.</p>
+            <p className="text-sm text-muted-foreground mt-1">Please contact your unit manager to request a tier.</p>
           </CardContent>
         </Card>
       </div>

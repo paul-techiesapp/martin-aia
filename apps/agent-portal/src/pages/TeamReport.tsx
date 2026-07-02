@@ -61,7 +61,7 @@ export function TeamReport() {
   if (role && !isUnitViewer) {
     return (
       <div className="p-6 text-center text-muted-foreground">
-        <p>This page is only available to unit administrators and managers.</p>
+        <p>This page is only available to unit managers and unit admins.</p>
       </div>
     );
   }

@@ -95,7 +95,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const subtitle = role === 'partner'
     ? `Partner · ${partner?.agent?.name ?? 'Unknown Unit'}`
     : role === 'agent_admin'
-      ? 'Unit Administrator'
+      ? 'Unit Manager'
       : agent?.tier?.name ?? 'No Tier';
 
   const SidebarContent = () => (

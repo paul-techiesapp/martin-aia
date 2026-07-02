@@ -18,14 +18,6 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Input,
-  Label,
   getStatusVariant,
   TableSkeleton,
   useToast,
@@ -37,8 +29,9 @@ import { FileText, Store, Download, Plus } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useMyEnquiries, type EnquiryWithDetails } from '../hooks/useMyEnquiries';
 import { useAssignVehicleMerchant } from '../hooks/useAssignVehicleMerchant';
-import { useAgentMerchants, useProposeMerchant, type MerchantWithBranches } from '../hooks/useAgentMerchants';
+import { useAgentMerchants, type MerchantWithBranches } from '../hooks/useAgentMerchants';
 import { useRequestQuote } from '../hooks/useRequestQuote';
+import { ProposePartnerDialog } from '../components/ProposePartnerDialog';
 import { compareMyEnquiries } from './myEnquiriesSort';
 import { MerchantStatus, VehicleStatus, type AgentWithTier } from '@agent-system/shared-types';
 import { useEnquiryAttachments, useViewAttachment } from '../hooks/useEnquiryAttachments';
@@ -312,29 +305,10 @@ export function MyEnquiries() {
   const { toast } = useToast();
   const { data: enquiries, isLoading, isError, error } = useMyEnquiries(agent?.id);
   const { data: merchants } = useAgentMerchants();
-  const proposeMerchant = useProposeMerchant();
 
   const [proposeOpen, setProposeOpen] = useState(false);
-  const [proposeName, setProposeName] = useState('');
 
   const activeMerchants = merchants?.filter((m) => m.status === MerchantStatus.ACTIVE) ?? [];
-
-  const handlePropose = async () => {
-    const name = proposeName.trim();
-    if (!name || !agent?.id) return;
-    try {
-      await proposeMerchant.mutateAsync({ name, agentId: agent.id });
-      toast({ title: 'Submitted for admin approval' });
-      setProposeName('');
-      setProposeOpen(false);
-    } catch (err: unknown) {
-      toast({
-        title: 'Failed to submit',
-        description: (err as Error)?.message,
-        variant: 'error',
-      });
-    }
-  };
 
   // Default ordering: Partner -> Status (open first) -> earliest expiry -> newest.
   const sortedEnquiries = [...(enquiries ?? [])].sort(compareMyEnquiries);
@@ -365,7 +339,7 @@ export function MyEnquiries() {
           {role === 'agent_admin' && (
             <Button variant="outline" size="sm" onClick={() => setProposeOpen(true)}>
               <Plus className="size-4 mr-2" />
-              Propose Partner
+              Propose Partnership
             </Button>
           )}
           <Button
@@ -380,39 +354,8 @@ export function MyEnquiries() {
         </div>
       </div>
 
-      {role === 'agent_admin' && (
-        <Dialog open={proposeOpen} onOpenChange={setProposeOpen}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Propose a Partner</DialogTitle>
-              <DialogDescription>
-                Suggest a merchant to partner with. It will be submitted to an admin for
-                approval before it becomes active.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-2 py-2">
-              <Label htmlFor="propose-partner-name">Merchant name</Label>
-              <Input
-                id="propose-partner-name"
-                value={proposeName}
-                onChange={(e) => setProposeName(e.target.value)}
-                placeholder="e.g. Golden Jewellers"
-                autoFocus
-              />
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setProposeOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={handlePropose}
-                disabled={!proposeName.trim() || proposeMerchant.isPending}
-              >
-                {proposeMerchant.isPending ? 'Submitting…' : 'Submit'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+      {role === 'agent_admin' && agent?.id && (
+        <ProposePartnerDialog agentId={agent.id} open={proposeOpen} onOpenChange={setProposeOpen} />
       )}
 
       {isLoading ? (

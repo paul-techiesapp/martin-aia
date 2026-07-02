@@ -39,9 +39,10 @@ import {
   SelectValue,
   useToast,
 } from '@agent-system/shared-ui';
-import { Plus, Pencil, Trash2, Check, ArrowLeft, QrCode, Copy, Link2, Power } from 'lucide-react';
+import { Plus, Pencil, Trash2, Check, ArrowLeft, QrCode, Copy, Link2, Power, FileText } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { useMerchant } from '../../hooks/useMerchants';
+import { useMerchant, useUpdateMerchant } from '../../hooks/useMerchants';
+import { supabase } from '../../lib/supabase';
 import {
   useMerchantBranches,
   useCreateMerchantBranch,
@@ -210,6 +211,35 @@ export function MerchantDetail() {
   const updateBranch = useUpdateMerchantBranch();
   const deleteBranch = useDeleteMerchantBranch(merchantId);
   const approveBranch = useApproveMerchantBranch(merchantId);
+  const { toast } = useToast();
+  const updateMerchant = useUpdateMerchant();
+  const [sharePct, setSharePct] = useState<string>('');
+
+  const handleViewAgreement = async () => {
+    if (!merchant?.agreement_path) return;
+    const { data, error } = await supabase.storage
+      .from('merchant-agreements')
+      .createSignedUrl(merchant.agreement_path, 60);
+    if (error || !data?.signedUrl) {
+      toast({ title: 'Could not open agreement', description: error?.message, variant: 'error' });
+      return;
+    }
+    window.open(data.signedUrl, '_blank');
+  };
+
+  const handleSaveShare = async () => {
+    const pct = Number(sharePct);
+    if (Number.isNaN(pct) || pct < 0 || pct > 100) {
+      toast({ title: 'Invalid share %', description: 'Enter a number 0-100.', variant: 'error' });
+      return;
+    }
+    try {
+      await updateMerchant.mutateAsync({ id: merchantId, merchant_share_pct: pct });
+      toast({ title: 'Merchant share updated' });
+    } catch (err: unknown) {
+      toast({ title: 'Failed to update', description: (err as Error)?.message, variant: 'error' });
+    }
+  };
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editing, setEditing] = useState<MerchantBranch | null>(null);
@@ -280,6 +310,37 @@ export function MerchantDetail() {
           </div>
           <div className="text-xs">
             The gift value (and the merchant payable) is calculated from each renewal premium at confirmation.
+          </div>
+          {(merchant?.contact_person || merchant?.contact_phone) && (
+            <div>
+              Contact:{' '}
+              <span className="text-foreground">
+                {merchant?.contact_person ?? '—'}
+                {merchant?.contact_phone ? ` · ${merchant.contact_phone}` : ''}
+              </span>
+            </div>
+          )}
+          {merchant?.agreement_path && (
+            <div>
+              <Button variant="outline" size="sm" onClick={handleViewAgreement}>
+                <FileText className="size-4 mr-1.5" />
+                View signed agreement
+              </Button>
+            </div>
+          )}
+          <div className="flex items-center gap-2 pt-1">
+            <span>Merchant share %:</span>
+            <Input
+              className="h-8 w-24"
+              inputMode="decimal"
+              placeholder={String(merchant?.merchant_share_pct ?? 0)}
+              value={sharePct}
+              onChange={(e) => setSharePct(e.target.value)}
+            />
+            <Button size="sm" variant="outline" onClick={handleSaveShare}
+              disabled={sharePct.trim() === '' || updateMerchant.isPending}>
+              Save
+            </Button>
           </div>
         </CardContent>
       </Card>

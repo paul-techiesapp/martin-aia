@@ -195,12 +195,29 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Graceful degradation: agent has no email (or no agent tied)
-    if (!agent?.email) {
+    // Item 6: every enquiry notifies the tied agent (when present) AND the admin
+    // catch-all address, so branch/house enquiries with no tied agent still reach
+    // someone. De-duplicate case-insensitively so we never double-send.
+    const { data: settings } = await supabase
+      .from('system_settings')
+      .select('admin_notification_email')
+      .limit(1)
+      .maybeSingle();
+    const adminEmail = settings?.admin_notification_email?.trim() || '';
+
+    const recipients = Array.from(
+      new Map(
+        [agent?.email, adminEmail]
+          .filter((e): e is string => !!e && e.trim() !== '')
+          .map((e) => [e.trim().toLowerCase(), e.trim()]),
+      ).values(),
+    );
+
+    if (recipients.length === 0) {
       const reason = enquiry.agent_id
-        ? `Agent ${enquiry.agent_id} has no email address`
-        : 'Enquiry has no tied agent';
-      console.warn(`send-enquiry-notification: ${reason} — skipping email for enquiry ${enquiryId}`);
+        ? `Agent ${enquiry.agent_id} has no email and no admin_notification_email set`
+        : 'No tied agent and no admin_notification_email set';
+      console.warn(`send-enquiry-notification: ${reason} — skipping for enquiry ${enquiryId}`);
       return new Response(
         JSON.stringify({ skipped: true, reason }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
@@ -210,23 +227,25 @@ Deno.serve(async (req) => {
     const customerName = enquiry.customer_name ?? 'Customer';
     const customerPhone = enquiry.customer_phone ?? '—';
     const customerNric = enquiry.customer_nric ?? null;
-    const agentName = agent.name ?? 'Agent';
+    const agentName = agent?.name ?? 'Agent';
     const vehicleList: VehicleRow[] = (vehicles ?? []).filter(
       (v: any) => v.car_plate && v.insurance_expiry_date,
     );
-
-    const sent = await sendResendEmail(
-      resendApiKey,
-      agent.email,
-      `New enquiry from ${customerName}`,
-      buildAgentNotificationHtml(agentName, customerName, customerPhone, customerNric, vehicleList),
+    const html = buildAgentNotificationHtml(
+      agentName, customerName, customerPhone, customerNric, vehicleList,
     );
+
+    let sentCount = 0;
+    for (const to of recipients) {
+      const ok = await sendResendEmail(resendApiKey, to, `New enquiry from ${customerName}`, html);
+      if (ok) sentCount++;
+    }
 
     return new Response(
       JSON.stringify({
         enquiry_id: enquiryId,
-        agent_email: agent.email,
-        email_sent: sent,
+        recipients,
+        sent_count: sentCount,
         vehicles_included: vehicleList.length,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },

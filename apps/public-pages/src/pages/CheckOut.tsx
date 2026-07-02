@@ -468,7 +468,7 @@ export function CheckOut() {
             <div className="p-8 text-center border-b">
               <div className="flex justify-center mb-4">
                 {logoUrl ? (
-                  <img src={logoUrl} alt="" className="h-12 object-contain" />
+                  <img src={logoUrl} alt="" className="h-16 object-contain" />
                 ) : (
                   <Logo size="lg" showText={false} />
                 )}
@@ -579,7 +579,7 @@ export function CheckOut() {
       <Card className="w-full max-w-md bg-card backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
         <CardHeader className="text-center pt-8">
           {logoUrl ? (
-            <img src={logoUrl} alt="" className="h-12 mx-auto mb-4 object-contain" />
+            <img src={logoUrl} alt="" className="h-20 mx-auto mb-4 object-contain" />
           ) : (
             <Logo size="lg" showText={false} className="mx-auto mb-4" />
           )}

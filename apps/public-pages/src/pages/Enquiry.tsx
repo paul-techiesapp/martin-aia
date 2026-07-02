@@ -357,7 +357,7 @@ export function Enquiry() {
             <img
               src={headerLogoUrl}
               alt={context?.merchant_name ?? 'Logo'}
-              className="mx-auto mb-4 h-12 object-contain"
+              className="mx-auto mb-4 h-20 object-contain"
             />
           ) : (
             <Logo size="lg" showText={false} className="mx-auto mb-4" />

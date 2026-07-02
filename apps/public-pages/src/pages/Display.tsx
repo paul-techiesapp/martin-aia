@@ -186,7 +186,7 @@ export function Display() {
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-8 text-center">
       {logoUrl && (
-        <img src={logoUrl} alt="" className="h-12 mx-auto mb-6 object-contain" />
+        <img src={logoUrl} alt="" className="h-20 mx-auto mb-6 object-contain" />
       )}
 
       <div className="text-xs uppercase tracking-[3px] font-semibold" style={{ color: isActive ? themeColor : '#64748b' }}>

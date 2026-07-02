@@ -270,7 +270,7 @@ export function Register() {
       <Card className="w-full max-w-lg bg-card backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
         <CardHeader className="text-center pt-8">
           {logoUrl ? (
-            <img src={logoUrl} alt="" className="h-12 mx-auto mb-4 object-contain" />
+            <img src={logoUrl} alt="" className="h-20 mx-auto mb-4 object-contain" />
           ) : (
             <Logo size="lg" showText={false} className="mx-auto mb-4" />
           )}

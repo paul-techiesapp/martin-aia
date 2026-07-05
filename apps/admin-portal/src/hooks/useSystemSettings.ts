@@ -6,6 +6,9 @@ import type { SystemSettings, CompanyBranding, CardTemplate, EnquiryFormSettings
 export interface FormBranding {
   logo_url: string;
   footer_text: string;
+  /** Logo for event forms (register/checkout/display), separate from the
+   * partnership enquiry logo_url; blank = built-in RACC logo. */
+  event_logo_url: string;
 }
 
 /** SystemSettings plus the form_branding column (not yet in the shared type). */

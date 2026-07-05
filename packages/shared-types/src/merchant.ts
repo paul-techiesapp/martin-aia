@@ -22,6 +22,10 @@ export interface Merchant {
   created_by_agent_id: string | null;
   approved_by: string | null;
   approved_at: string | null;
+  /** Linked auth user for the merchant portal (read-only access to own data). */
+  user_id: string | null;
+  /** Email used to identify/invite the merchant portal user. */
+  portal_email: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -74,6 +78,8 @@ export interface Enquiry {
   customer_phone_normalized: string;
   customer_email: string | null;
   status: EnquiryStatus;
+  /** Referring staff ID captured on branch (master-partner) enquiry forms; optional. */
+  staff_id: string | null;
   created_at: string;
   updated_at: string;
 }

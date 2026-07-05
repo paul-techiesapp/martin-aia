@@ -195,7 +195,10 @@ export function EnquiryList() {
                           >
                             {e.customer_name}
                           </Link>
-                          <div className="text-xs text-muted-foreground">{e.customer_phone}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {e.customer_phone}
+                            {e.staff_id ? ` · Staff ID: ${e.staff_id}` : ''}
+                          </div>
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {e.merchant?.name ?? 'Unassigned'}

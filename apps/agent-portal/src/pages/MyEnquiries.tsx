@@ -1,4 +1,4 @@
-import { useState, Fragment } from 'react';
+import { useState, useRef, Fragment } from 'react';
 import {
   Card,
   CardContent,
@@ -20,21 +20,35 @@ import {
   SelectValue,
   getStatusVariant,
   TableSkeleton,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
   useToast,
   buildEnquiriesWorkbook,
   type EnquiryExportRow,
 } from '@agent-system/shared-ui';
 import { format, parseISO } from 'date-fns';
-import { FileText, Store, Download, Plus } from 'lucide-react';
+import { FileText, Store, Download, Plus, Paperclip, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useMyEnquiries, type EnquiryWithDetails } from '../hooks/useMyEnquiries';
 import { useAssignVehicleMerchant } from '../hooks/useAssignVehicleMerchant';
 import { useAgentMerchants, type MerchantWithBranches } from '../hooks/useAgentMerchants';
 import { useRequestQuote } from '../hooks/useRequestQuote';
 import { ProposePartnerDialog } from '../components/ProposePartnerDialog';
-import { compareMyEnquiries } from './myEnquiriesSort';
-import { MerchantStatus, VehicleStatus, type AgentWithTier } from '@agent-system/shared-types';
-import { useEnquiryAttachments, useViewAttachment } from '../hooks/useEnquiryAttachments';
+import { compareByKey, type EnquirySortKey } from './myEnquiriesSort';
+import { EnquiryStatus, MerchantStatus, VehicleStatus, type AgentWithTier } from '@agent-system/shared-types';
+import {
+  useEnquiryAttachments,
+  useViewAttachment,
+  useUploadAttachment,
+  useDeleteAttachment,
+  type AttachmentRow,
+} from '../hooks/useEnquiryAttachments';
 
 interface EnquiryCardProps {
   enq: EnquiryWithDetails;
@@ -42,7 +56,11 @@ interface EnquiryCardProps {
   agentId: string | undefined;
   /** Show the owning agent (unit viewer looking at unit-wide enquiries). */
   showAgent?: boolean;
-  /** Hide mutating controls (Assign partner, Get Quote) — viewer doesn't own this row. */
+  /**
+   * Hide mutating controls (Assign partner, Get Quote). Currently always
+   * passed `false` — unit viewers act on unit rows too — but the prop and its
+   * render branches are retained for future per-row gating.
+   */
   readOnly?: boolean;
 }
 
@@ -57,6 +75,14 @@ function EnquiryCard({ enq, activeMerchants, agentId, showAgent, readOnly }: Enq
   const [quotingVehicleId, setQuotingVehicleId] = useState<string | null>(null);
   const { data: attachments = [] } = useEnquiryAttachments(enq.id);
   const viewAttachment = useViewAttachment();
+  const uploadAttachment = useUploadAttachment(enq.id);
+  const deleteAttachment = useDeleteAttachment(enq.id);
+  // Per-vehicle in-flight flags, keyed by vehicle id — a single shared id
+  // would let a second vehicle's upload clobber the first one's disabled
+  // state mid-flight (double-upload risk on multi-car enquiries).
+  const [uploadingVehicles, setUploadingVehicles] = useState<Record<string, boolean>>({});
+  const [deleteTarget, setDeleteTarget] = useState<AttachmentRow | null>(null);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const handleAssignVehicle = async (vehicleId: string) => {
     const merchantId = vehicleMerchant[vehicleId];
@@ -106,6 +132,38 @@ function EnquiryCard({ enq, activeMerchants, agentId, showAgent, readOnly }: Enq
       });
     } finally {
       setQuotingVehicleId(null);
+    }
+  };
+
+  const handleFileSelected = async (vehicleId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting the same file after an error
+    if (!file) return;
+    setUploadingVehicles((prev) => ({ ...prev, [vehicleId]: true }));
+    try {
+      await uploadAttachment.mutateAsync({ vehicleId, file });
+      toast({ title: 'File uploaded' });
+    } catch (err: unknown) {
+      toast({ title: 'Failed to upload', description: (err as Error)?.message, variant: 'error' });
+    } finally {
+      setUploadingVehicles((prev) => {
+        const next = { ...prev };
+        delete next[vehicleId];
+        return next;
+      });
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    const att = deleteTarget;
+    if (!att || deleteAttachment.isPending) return;
+    try {
+      await deleteAttachment.mutateAsync({ id: att.id, storage_path: att.storage_path });
+      toast({ title: 'File removed' });
+    } catch (err: unknown) {
+      toast({ title: 'Failed to remove', description: (err as Error)?.message, variant: 'error' });
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -231,10 +289,10 @@ function EnquiryCard({ enq, activeMerchants, agentId, showAgent, readOnly }: Enq
                         )}
                       </TableCell>
                     </TableRow>
-                    {vehicleAttachments.length > 0 && (
+                    {(vehicleAttachments.length > 0 || !readOnly) && (
                       <TableRow className="hover:bg-transparent">
                         <TableCell colSpan={6} className="py-1 pl-4 bg-muted/30">
-                          <div className="flex flex-wrap gap-1.5">
+                          <div className="flex flex-wrap items-center gap-1.5">
                             {vehicleAttachments.map(a => (
                               <div
                                 key={a.id}
@@ -251,8 +309,42 @@ function EnquiryCard({ enq, activeMerchants, agentId, showAgent, readOnly }: Enq
                                 >
                                   View
                                 </Button>
+                                {!readOnly && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive"
+                                    onClick={() => setDeleteTarget(a)}
+                                    aria-label="Remove file"
+                                  >
+                                    <X className="size-3" />
+                                  </Button>
+                                )}
                               </div>
                             ))}
+                            {!readOnly && (
+                              <>
+                                <input
+                                  ref={(el) => {
+                                    fileInputRefs.current[v.id] = el;
+                                  }}
+                                  type="file"
+                                  accept="image/*,application/pdf"
+                                  className="hidden"
+                                  onChange={(e) => handleFileSelected(v.id, e)}
+                                />
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-5 px-1.5 text-xs text-muted-foreground hover:text-foreground"
+                                  disabled={!!uploadingVehicles[v.id]}
+                                  onClick={() => fileInputRefs.current[v.id]?.click()}
+                                >
+                                  <Paperclip className="size-3 mr-1" />
+                                  {uploadingVehicles[v.id] ? 'Uploading…' : 'Upload'}
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -264,6 +356,28 @@ function EnquiryCard({ enq, activeMerchants, agentId, showAgent, readOnly }: Enq
           </Table>
         </div>
       </CardContent>
+
+      {/* Remove-attachment confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this file?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget ? `"${deleteTarget.file_name}" will be permanently removed from this enquiry.` : ''}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={deleteAttachment.isPending}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleteAttachment.isPending ? 'Removing...' : 'Remove'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
@@ -289,6 +403,8 @@ function toEnquiryExportRows(
       customer: e.customer_name ?? '',
       phone: e.customer_phone ?? '',
       email: e.customer_email ?? '',
+      // Branch-link enquiries owned by an agent carry the referring staff ID.
+      staffId: e.staff_id ?? '',
       enquiryStatus: e.status,
       received: fmtDate(e.created_at),
     };
@@ -312,18 +428,27 @@ function toEnquiryExportRows(
 }
 
 export function MyEnquiries() {
-  const { agent, role, isUnitViewer } = useAuth();
+  const { agent, isUnitViewer } = useAuth();
   const { toast } = useToast();
   const { data: enquiries, isLoading, isError, error } = useMyEnquiries(agent?.id, isUnitViewer);
   const { data: merchants } = useAgentMerchants();
 
   const [proposeOpen, setProposeOpen] = useState(false);
   const [agentFilter, setAgentFilter] = useState<string>('all');
+  const [sortKey, setSortKey] = useState<EnquirySortKey>('default');
+  const [partnerFilter, setPartnerFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const activeMerchants = merchants?.filter((m) => m.status === MerchantStatus.ACTIVE) ?? [];
+  const activeMerchants =
+    merchants?.filter(
+      (m) =>
+        m.status === MerchantStatus.ACTIVE &&
+        (m.created_by_agent_id === null || m.created_by_agent_id === agent?.id),
+    ) ?? [];
 
-  // Default ordering: Partner -> Status (open first) -> earliest expiry -> newest.
-  const sortedEnquiries = [...(enquiries ?? [])].sort(compareMyEnquiries);
+  // Default ordering: Partner -> Status (open first) -> earliest expiry -> newest
+  // (unit viewers get Agent as the leading key instead).
+  const sortedEnquiries = [...(enquiries ?? [])].sort(compareByKey(sortKey, isUnitViewer));
 
   const agentOptions = Array.from(
     new Map(
@@ -332,8 +457,37 @@ export function MyEnquiries() {
         .map((e) => [e.agent!.id, e.agent!])
     ).values()
   );
+
+  // Partner filter options: every merchant actually referenced by the loaded
+  // enquiries (either at enquiry level or per-vehicle), deduped by id.
+  const partnerOptions = Array.from(
+    new Map(
+      (enquiries ?? [])
+        .flatMap((e) => [e.merchant, ...e.vehicles.map((v) => v.merchant)])
+        .filter((m): m is { id: string; name: string } => !!m)
+        .map((m) => [m.id, m])
+    ).values()
+  );
+
+  const matchesPartner = (e: EnquiryWithDetails): boolean => {
+    if (partnerFilter === 'all') return true;
+    const merchantIds = [e.merchant?.id, ...e.vehicles.map((v) => v.merchant?.id)].filter(
+      (id): id is string => !!id
+    );
+    if (partnerFilter === 'unassigned') return merchantIds.length === 0;
+    return merchantIds.includes(partnerFilter);
+  };
+
+  const matchesStatus = (e: EnquiryWithDetails): boolean => {
+    if (statusFilter === 'all') return true;
+    return statusFilter === 'open' ? e.status === EnquiryStatus.OPEN : e.status === EnquiryStatus.CLOSED;
+  };
+
   const visibleEnquiries = sortedEnquiries.filter(
-    (e) => agentFilter === 'all' || e.agent?.id === agentFilter
+    (e) =>
+      (agentFilter === 'all' || e.agent?.id === agentFilter) &&
+      matchesPartner(e) &&
+      matchesStatus(e)
   );
 
   const handleDownload = async () => {
@@ -358,8 +512,8 @@ export function MyEnquiries() {
             Car-insurance enquiries customers submitted through your enquiry link
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {role === 'agent_admin' && (
+        <div className="flex flex-wrap items-center gap-2">
+          {isUnitViewer && (
             <Button variant="outline" size="sm" onClick={() => setProposeOpen(true)}>
               <Plus className="size-4 mr-2" />
               Propose Partnership
@@ -378,6 +532,41 @@ export function MyEnquiries() {
               </SelectContent>
             </Select>
           )}
+          <Select value={sortKey} onValueChange={(val) => setSortKey(val as EnquirySortKey)}>
+            <SelectTrigger className="w-40 h-9 text-sm">
+              <SelectValue placeholder="Sort" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="default">Default order</SelectItem>
+              <SelectItem value="received">Received</SelectItem>
+              <SelectItem value="expiry">Insurance expiry</SelectItem>
+              <SelectItem value="status">Status</SelectItem>
+              <SelectItem value="partner">Partner</SelectItem>
+              <SelectItem value="customer">Customer</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={partnerFilter} onValueChange={setPartnerFilter}>
+            <SelectTrigger className="w-44 h-9 text-sm">
+              <SelectValue placeholder="All partners" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All partners</SelectItem>
+              <SelectItem value="unassigned">Unassigned</SelectItem>
+              {partnerOptions.map((m) => (
+                <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-36 h-9 text-sm">
+              <SelectValue placeholder="All status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All status</SelectItem>
+              <SelectItem value="open">Open</SelectItem>
+              <SelectItem value="closed">Closed</SelectItem>
+            </SelectContent>
+          </Select>
           <Button
             variant="outline"
             size="sm"
@@ -390,7 +579,7 @@ export function MyEnquiries() {
         </div>
       </div>
 
-      {role === 'agent_admin' && agent?.id && (
+      {isUnitViewer && agent?.id && (
         <ProposePartnerDialog agentId={agent.id} open={proposeOpen} onOpenChange={setProposeOpen} />
       )}
 
@@ -422,7 +611,7 @@ export function MyEnquiries() {
             activeMerchants={activeMerchants}
             agentId={agent?.id}
             showAgent={isUnitViewer}
-            readOnly={isUnitViewer && enq.agent_id !== agent?.id}
+            readOnly={false}
           />
         ))
       )}

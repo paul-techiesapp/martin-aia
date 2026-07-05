@@ -41,6 +41,8 @@ export interface EnquiryListRow {
   customer_phone: string;
   customer_email: string | null;
   customer_nric: string;
+  /** Referring staff ID captured on branch (master-partner) enquiry forms; optional. */
+  staff_id: string | null;
   status: EnquiryStatus;
   created_at: string;
   agent_id: string | null;
@@ -72,7 +74,7 @@ export function useEnquiries() {
       const { data, error } = await supabase
         .from('enquiries')
         .select(`
-          id, customer_name, customer_phone, customer_email, customer_nric, status, created_at, agent_id,
+          id, customer_name, customer_phone, customer_email, customer_nric, staff_id, status, created_at, agent_id,
           merchant_id, merchant:merchants(id, name),
           agent:agents(id, name, agent_code, unit_name, parent_agent_id),
           vehicles:enquiry_vehicles(id, status, car_plate, insurance_expiry_date, road_tax_renewal, merchant:merchants(name))

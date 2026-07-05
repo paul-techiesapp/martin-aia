@@ -38,7 +38,7 @@ const passwordSchema = z
 type PasswordForm = z.infer<typeof passwordSchema>;
 
 export function Account() {
-  const { user, role, agent, partner } = useAuth();
+  const { user, role, agent, partner, merchant } = useAuth();
   const { toast } = useToast();
 
   const form = useForm<PasswordForm>({
@@ -81,7 +81,7 @@ export function Account() {
     }
   };
 
-  const displayName = role === 'partner' ? partner?.name : agent?.name;
+  const displayName = role === 'partner' ? partner?.name : role === 'merchant' ? merchant?.name : agent?.name;
 
   const onSubmit = async (data: PasswordForm) => {
     if (!user?.email) {

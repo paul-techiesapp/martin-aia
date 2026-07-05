@@ -39,9 +39,10 @@ import {
   SelectValue,
   useToast,
 } from '@agent-system/shared-ui';
-import { Plus, Pencil, Trash2, Check, ArrowLeft, QrCode, Copy, Link2, Power, FileText } from 'lucide-react';
+import { Plus, Pencil, Trash2, Check, ArrowLeft, QrCode, Copy, Link2, Power, FileText, KeyRound } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useMerchant, useUpdateMerchant } from '../../hooks/useMerchants';
+import { useCreateMerchantUser, useRevokeMerchantUser } from '../../hooks/useMerchantUser';
 import { supabase } from '../../lib/supabase';
 import {
   useMerchantBranches,
@@ -213,7 +214,12 @@ export function MerchantDetail() {
   const approveBranch = useApproveMerchantBranch(merchantId);
   const { toast } = useToast();
   const updateMerchant = useUpdateMerchant();
+  const createMerchantUser = useCreateMerchantUser();
+  const revokeMerchantUser = useRevokeMerchantUser();
   const [sharePct, setSharePct] = useState<string>('');
+  const [portalEmail, setPortalEmail] = useState('');
+  const [portalPassword, setPortalPassword] = useState('');
+  const [revokeConfirmOpen, setRevokeConfirmOpen] = useState(false);
 
   const handleViewAgreement = async () => {
     if (!merchant?.agreement_path) return;
@@ -283,6 +289,40 @@ export function MerchantDetail() {
     }
   };
 
+  const handleCreatePortalLogin = async () => {
+    if (!portalEmail.trim() || portalPassword.length < 6) {
+      toast({
+        title: 'Invalid input',
+        description: 'Enter an email and a password with at least 6 characters.',
+        variant: 'error',
+      });
+      return;
+    }
+    try {
+      await createMerchantUser.mutateAsync({
+        merchant_id: merchantId,
+        email: portalEmail.trim(),
+        password: portalPassword,
+      });
+      toast({ title: 'Portal login created', description: `${portalEmail.trim()} can now sign in to the merchant portal.` });
+      setPortalEmail('');
+      setPortalPassword('');
+    } catch (err) {
+      toast({ title: 'Failed to create login', description: (err as Error)?.message, variant: 'error' });
+    }
+  };
+
+  const handleRevokePortalLogin = async () => {
+    try {
+      await revokeMerchantUser.mutateAsync(merchantId);
+      toast({ title: 'Portal access revoked' });
+    } catch (err) {
+      toast({ title: 'Failed to revoke access', description: (err as Error)?.message, variant: 'error' });
+    } finally {
+      setRevokeConfirmOpen(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4 animate-fade-in">
       <div>
@@ -342,6 +382,60 @@ export function MerchantDetail() {
               Save
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <KeyRound className="size-4" />
+            Portal Access
+          </CardTitle>
+          <CardDescription>
+            Give this Master Partner read-only access to their Branch Performance dashboard.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {merchant?.portal_email ? (
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-sm">
+                <span className="text-muted-foreground">Login email: </span>
+                <span className="text-foreground font-medium">{merchant.portal_email}</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setRevokeConfirmOpen(true)}
+                disabled={revokeMerchantUser.isPending}
+              >
+                {revokeMerchantUser.isPending ? 'Revoking...' : 'Revoke access'}
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="flex-1">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={portalEmail}
+                  onChange={(e) => setPortalEmail(e.target.value)}
+                  placeholder="merchant@example.com"
+                />
+              </div>
+              <div className="flex-1">
+                <Label>Password</Label>
+                <Input
+                  type="password"
+                  value={portalPassword}
+                  onChange={(e) => setPortalPassword(e.target.value)}
+                  placeholder="At least 6 characters"
+                />
+              </div>
+              <Button onClick={handleCreatePortalLogin} disabled={createMerchantUser.isPending}>
+                {createMerchantUser.isPending ? 'Creating...' : 'Create login'}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -483,6 +577,24 @@ export function MerchantDetail() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={revokeConfirmOpen} onOpenChange={setRevokeConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revoke Portal Access</AlertDialogTitle>
+            <AlertDialogDescription>
+              This deletes the merchant's login ({merchant?.portal_email}). They will no longer be able to sign in to
+              the Branch Performance dashboard. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRevokePortalLogin} className="bg-red-600 hover:bg-red-700">
+              Revoke
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

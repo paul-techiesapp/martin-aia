@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
-import type { AgentWithTier, PartnerWithAgent } from '@agent-system/shared-types';
+import type { AgentWithTier, PartnerWithAgent, Merchant } from '@agent-system/shared-types';
 
 interface AuthState {
   user: User | null;
   session: Session | null;
   agent: AgentWithTier | null;
   partner: PartnerWithAgent | null;
-  role: 'agent_admin' | 'agent' | 'partner' | null;
-  // True for anyone allowed to SEE the whole unit's reporting: the unit admin
-  // (agent_admin) plus sub-agents flagged is_unit_manager. Managing sub-agents
-  // stays restricted to agent_admin.
+  merchant: Merchant | null;
+  role: 'agent_admin' | 'agent' | 'partner' | 'merchant' | null;
+  // True for anyone allowed to see AND manage the whole unit (agents,
+  // partners, reporting): the unit admin (agent_admin) plus sub-agents
+  // flagged is_unit_manager (deputy unit admins).
   isUnitViewer: boolean;
   isLoading: boolean;
 }
@@ -22,6 +23,7 @@ export function useAuth() {
     session: null,
     agent: null,
     partner: null,
+    merchant: null,
     role: null,
     isUnitViewer: false,
     isLoading: true,
@@ -42,7 +44,7 @@ export function useAuth() {
       if (session?.user) {
         fetchUserRole(session.user.id);
       } else {
-        setState(prev => ({ ...prev, agent: null, partner: null, role: null, isUnitViewer: false, isLoading: false }));
+        setState(prev => ({ ...prev, agent: null, partner: null, merchant: null, role: null, isUnitViewer: false, isLoading: false }));
       }
     });
 
@@ -58,13 +60,14 @@ export function useAuth() {
 
     if (!agentError && agentData) {
       const agentRole = agentData.parent_agent_id === null ? 'agent_admin' : 'agent';
-      // Unit admins always see the unit; sub-agents flagged is_unit_manager get
-      // the same unit-wide VIEW (but not sub-agent management — see Layout).
+      // Unit admins always see + manage the unit; sub-agents flagged
+      // is_unit_manager (deputy) get the same unit-wide view + manage powers.
       const isUnitViewer = agentRole === 'agent_admin' || agentData.is_unit_manager === true;
       setState(prev => ({
         ...prev,
         agent: agentData as AgentWithTier,
         partner: null,
+        merchant: null,
         role: agentRole,
         isUnitViewer,
         isLoading: false,
@@ -84,6 +87,7 @@ export function useAuth() {
         ...prev,
         agent: null,
         partner: partnerData as PartnerWithAgent,
+        merchant: null,
         role: 'partner',
         isUnitViewer: false,
         isLoading: false,
@@ -91,12 +95,32 @@ export function useAuth() {
       return;
     }
 
-    // No agent or partner profile is linked to this authenticated user.
+    // Master Partner (merchant) portal user: read-only branch performance access.
+    const { data: merchantData } = await supabase
+      .from('merchants')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (merchantData) {
+      setState(prev => ({
+        ...prev,
+        agent: null,
+        partner: null,
+        merchant: merchantData as Merchant,
+        role: 'merchant',
+        isUnitViewer: false,
+        isLoading: false,
+      }));
+      return;
+    }
+
+    // No agent, partner, or merchant profile is linked to this authenticated user.
     // Do NOT sign out here: destroying a valid session causes a silent redirect
     // loop back to /login on every page load (the auth guard sees no session).
     // Leave the session intact and expose role=null so the UI can show a clear
     // "account not linked" message (handled in Layout) instead of looping.
-    setState(prev => ({ ...prev, agent: null, partner: null, role: null, isLoading: false }));
+    setState(prev => ({ ...prev, agent: null, partner: null, merchant: null, role: null, isLoading: false }));
   };
 
   const signIn = async (email: string, password: string) => {

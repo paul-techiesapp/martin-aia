@@ -42,6 +42,7 @@ interface QuoteEmailData {
   carPlate: string;
   insuranceExpiry: string;
   roadTax: string;
+  partner: string;
 }
 
 function row(label: string, value: string): string {
@@ -84,6 +85,7 @@ function buildQuoteRequestHtml(d: QuoteEmailData): string {
         ${row('Car Plate', d.carPlate)}
         ${row('Insurance Expiry', d.insuranceExpiry)}
         ${row('Road Tax', d.roadTax)}
+        ${row('Partner', d.partner)}
       </table>
     </div>
 
@@ -98,6 +100,7 @@ async function sendResendEmail(
   to: string,
   subject: string,
   html: string,
+  attachments?: { filename: string; content: string }[],
 ): Promise<boolean> {
   try {
     const response = await fetch('https://api.resend.com/emails', {
@@ -111,6 +114,7 @@ async function sendResendEmail(
         to,
         subject,
         html,
+        ...(attachments && attachments.length > 0 ? { attachments } : {}),
       }),
     });
     if (!response.ok) {
@@ -202,20 +206,37 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Authorization (object-level): a non-service, non-admin caller may only act
-    // on an enquiry tied to their OWN agent record. Prevents an authenticated
-    // agent from triggering emails / stamping vehicles on enquiries they don't own.
+    const agent = (enquiry as any).agent as {
+      name: string | null;
+      agent_code: string | null;
+      unit_name: string | null;
+      parent_agent_id: string | null;
+    } | null;
+
+    // Authorization (object-level): a non-service, non-admin caller may act on
+    // an enquiry tied to their OWN agent record, OR — as a unit viewer (Unit
+    // Manager / Unit Admin) — on any enquiry belonging to an agent sharing
+    // their unit root. Prevents an authenticated agent from triggering
+    // emails / stamping vehicles on enquiries outside their own unit.
     if (!isServiceRole && !callerIsAdmin) {
-      let ownsEnquiry = false;
+      let authorizedForEnquiry = false;
       if (callerUserId && enquiry.agent_id) {
         const { data: callerAgent } = await supabase
           .from('agents')
-          .select('id')
+          .select('id, parent_agent_id, is_unit_manager')
           .eq('user_id', callerUserId)
           .maybeSingle();
-        ownsEnquiry = !!callerAgent && callerAgent.id === enquiry.agent_id;
+        if (callerAgent) {
+          if (callerAgent.id === enquiry.agent_id) {
+            authorizedForEnquiry = true;
+          } else if (callerAgent.parent_agent_id === null || callerAgent.is_unit_manager) {
+            const callerUnitRoot = callerAgent.parent_agent_id ?? callerAgent.id;
+            const enquiryUnitRoot = agent?.parent_agent_id ?? enquiry.agent_id;
+            authorizedForEnquiry = callerUnitRoot === enquiryUnitRoot;
+          }
+        }
       }
-      if (!ownsEnquiry) {
+      if (!authorizedForEnquiry) {
         return new Response(
           JSON.stringify({ error: 'forbidden', message: 'You do not own this enquiry' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
@@ -226,7 +247,7 @@ Deno.serve(async (req) => {
     // Load the specific vehicle — must belong to this enquiry.
     const { data: vehicle, error: vErr } = await supabase
       .from('enquiry_vehicles')
-      .select('car_plate, insurance_expiry_date, road_tax_renewal, quote_requested_at')
+      .select('car_plate, insurance_expiry_date, road_tax_renewal, quote_requested_at, merchant_id')
       .eq('id', vehicleId)
       .eq('enquiry_id', enquiryId)
       .single();
@@ -247,13 +268,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    const agent = (enquiry as any).agent as {
-      name: string | null;
-      agent_code: string | null;
-      unit_name: string | null;
-      parent_agent_id: string | null;
-    } | null;
-
     // Resolve the "Unit Admin" (parent agent) name when applicable.
     let unitAdmin = '—';
     if (agent?.parent_agent_id) {
@@ -266,6 +280,21 @@ Deno.serve(async (req) => {
         console.error(`Parent agent ${agent.parent_agent_id} lookup failed:`, pErr);
       } else if (parent?.name) {
         unitAdmin = parent.name;
+      }
+    }
+
+    // Resolve the assigned partner (merchant) name when the vehicle has one.
+    let partner = '—';
+    if (vehicle.merchant_id) {
+      const { data: merchant, error: mErr } = await supabase
+        .from('merchants')
+        .select('name')
+        .eq('id', vehicle.merchant_id)
+        .single();
+      if (mErr) {
+        console.error(`Merchant ${vehicle.merchant_id} lookup failed:`, mErr);
+      } else if (merchant?.name) {
+        partner = merchant.name;
       }
     }
 
@@ -317,6 +346,7 @@ Deno.serve(async (req) => {
       carPlate,
       insuranceExpiry: formatExpiryDate(vehicle.insurance_expiry_date),
       roadTax: vehicle.road_tax_renewal ? 'Yes' : 'No',
+      partner,
     };
 
     // Atomically CLAIM the request slot before sending so concurrent or repeat
@@ -344,11 +374,39 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Attach the customer's uploaded documents so admin can prepare the quote.
+    // Best-effort: downloaded only after the claim succeeds (so a failed claim
+    // doesn't waste downloads), and a download failure never blocks the email.
+    const { data: atts } = await supabase
+      .from('enquiry_attachments')
+      .select('id, storage_path, file_name, content_type')
+      .eq('enquiry_vehicle_id', vehicleId);
+
+    const MAX_TOTAL = 15 * 1024 * 1024;
+    let total = 0;
+    const attachments: { filename: string; content: string }[] = [];
+    for (const a of atts ?? []) {
+      const { data: blob, error } = await supabase.storage.from('enquiry-attachments').download(a.storage_path);
+      // Privacy: log the attachment id, never the customer-supplied filename or
+      // storage path (filenames can contain PII, e.g. an NRIC).
+      if (error || !blob) { console.error(`attachment download failed: attachment ${a.id}`, error); continue; }
+      const buf = new Uint8Array(await blob.arrayBuffer());
+      if (total + buf.byteLength > MAX_TOTAL) { console.warn(`skipping attachment ${a.id}: attachment budget exceeded`); continue; }
+      total += buf.byteLength;
+      // Chunked base64 to avoid call-stack limits on large files.
+      let binary = '';
+      for (let i = 0; i < buf.length; i += 0x8000) {
+        binary += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+      }
+      attachments.push({ filename: a.file_name, content: btoa(binary) });
+    }
+
     const sent = await sendResendEmail(
       resendApiKey,
       adminEmail,
       `Quote requested — ${customerName} / ${carPlate}`,
       buildQuoteRequestHtml(emailData),
+      attachments,
     );
 
     if (!sent) {

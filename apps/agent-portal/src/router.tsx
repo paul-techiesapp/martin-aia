@@ -15,10 +15,12 @@ import { Rewards } from './pages/Rewards';
 import { Partners } from './pages/Partners';
 import { MyEnquiryLink } from './pages/MyEnquiryLink';
 import { MyEnquiries } from './pages/MyEnquiries';
+import { MyPartners } from './pages/MyPartners';
 import { MyCommissions } from './pages/MyCommissions';
 import { PartnerLinks } from './pages/PartnerLinks';
 import { MyAgents } from './pages/MyAgents';
 import { TeamReport } from './pages/TeamReport';
+import { BranchPerformance } from './pages/BranchPerformance';
 import { Account } from './pages/Account';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
@@ -121,6 +123,12 @@ const myEnquiriesRoute = createRoute({
   component: MyEnquiries,
 });
 
+const myPartnersRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/my-partners',
+  component: MyPartners,
+});
+
 const myCommissionsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/my-commissions',
@@ -146,6 +154,13 @@ const teamReportRoute = createRoute({
   component: TeamReport,
 });
 
+// Master Partner (merchant) portal — read-only branch performance dashboard.
+const branchPerformanceRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/branch-performance',
+  component: BranchPerformance,
+});
+
 // Available to every role (Unit Admin, Agent, Partner) for self-service password change
 const accountRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
@@ -166,10 +181,12 @@ const routeTree = rootRoute.addChildren([
     partnersRoute,
     myLinkRoute,
     myEnquiriesRoute,
+    myPartnersRoute,
     myCommissionsRoute,
     partnerLinksRoute,
     myAgentsRoute,
     teamReportRoute,
+    branchPerformanceRoute,
     accountRoute,
   ]),
 ]);

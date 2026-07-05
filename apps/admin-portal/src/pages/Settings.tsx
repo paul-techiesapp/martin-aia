@@ -28,7 +28,7 @@ import {
   useUpdateEnquirySettings,
   useUpdateFormBranding,
 } from '../hooks/useSystemSettings';
-import { useUploadLogo, useDeleteLogo } from '../hooks/useCompanyAssets';
+import { useUploadLogo, useDeleteLogo, useUploadFormImage } from '../hooks/useCompanyAssets';
 import { Link } from '@tanstack/react-router';
 
 export function Settings() {
@@ -264,11 +264,17 @@ export function Settings() {
 function EnquiryFormSettingsCard() {
   const { data: systemSettings } = useSystemSettings();
   const updateEnquiry = useUpdateEnquirySettings();
+  const uploadFormImage = useUploadFormImage();
   const { toast } = useToast();
 
   const [giftRate, setGiftRate] = useState(10);
   const [adminEmail, setAdminEmail] = useState('');
   const [form, setForm] = useState<EnquiryFormSettings>(DEFAULT_ENQUIRY_FORM);
+  const [uploadingImageKey, setUploadingImageKey] = useState<
+    'header_image_url' | 'footer_image_url' | null
+  >(null);
+  const headerImageInputRef = useRef<HTMLInputElement>(null);
+  const footerImageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (systemSettings) {
@@ -280,6 +286,48 @@ function EnquiryFormSettingsCard() {
 
   const setField = (key: keyof EnquiryFormSettings, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  const handleImageUpload = async (
+    key: 'header_image_url' | 'footer_image_url',
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/png', 'image/jpeg'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please upload a PNG or JPEG image.',
+        variant: 'error',
+      });
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: 'Image must be under 2MB.',
+        variant: 'error',
+      });
+      return;
+    }
+
+    setUploadingImageKey(key);
+    try {
+      const url = await uploadFormImage.mutateAsync({ file, key });
+      setField(key, url);
+      toast({ title: 'Image uploaded', description: 'Remember to save your changes.' });
+    } catch {
+      toast({ title: 'Upload failed', description: 'Could not upload image.', variant: 'error' });
+    } finally {
+      setUploadingImageKey(null);
+      const ref = key === 'header_image_url' ? headerImageInputRef : footerImageInputRef;
+      if (ref.current) ref.current.value = '';
+    }
+  };
+
+  const handleRemoveImage = (key: 'header_image_url' | 'footer_image_url') => setField(key, '');
 
   const handleSave = async () => {
     try {
@@ -348,10 +396,112 @@ function EnquiryFormSettingsCard() {
           <Label htmlFor="headerLogo">Header Logo URL (optional)</Label>
           <Input id="headerLogo" value={form.header_logo_url} onChange={(e) => setField('header_logo_url', e.target.value)} placeholder="https://..." />
         </div>
+
+        <div className="space-y-2">
+          <Label>Header Image</Label>
+          <input
+            ref={headerImageInputRef}
+            type="file"
+            accept="image/png,image/jpeg"
+            className="hidden"
+            onChange={(e) => handleImageUpload('header_image_url', e)}
+          />
+          {form.header_image_url ? (
+            <div className="flex items-center gap-4">
+              <div className="h-16 w-40 border rounded-lg flex items-center justify-center bg-muted overflow-hidden">
+                <img
+                  src={form.header_image_url}
+                  alt="Header"
+                  className="max-w-full max-h-full object-contain"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => headerImageInputRef.current?.click()}
+                  disabled={uploadingImageKey === 'header_image_url'}
+                >
+                  <Upload className="size-4 mr-1" />
+                  Replace
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleRemoveImage('header_image_url')}>
+                  <Trash2 className="size-4 mr-1" />
+                  Remove
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div
+              className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+              onClick={() => headerImageInputRef.current?.click()}
+            >
+              <Image className="size-6 mx-auto text-muted-foreground mb-1" />
+              <p className="text-sm text-muted-foreground">
+                {uploadingImageKey === 'header_image_url' ? 'Uploading...' : 'Click to upload header image'}
+              </p>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Recommended 1600×400 (header) / 1600×200 (footer), PNG or JPEG, max 2MB.
+          </p>
+        </div>
+
         <div className="space-y-2">
           <Label htmlFor="footerText">Footer Text</Label>
           <Input id="footerText" value={form.footer_text} onChange={(e) => setField('footer_text', e.target.value)} />
         </div>
+
+        <div className="space-y-2">
+          <Label>Footer Image</Label>
+          <input
+            ref={footerImageInputRef}
+            type="file"
+            accept="image/png,image/jpeg"
+            className="hidden"
+            onChange={(e) => handleImageUpload('footer_image_url', e)}
+          />
+          {form.footer_image_url ? (
+            <div className="flex items-center gap-4">
+              <div className="h-16 w-40 border rounded-lg flex items-center justify-center bg-muted overflow-hidden">
+                <img
+                  src={form.footer_image_url}
+                  alt="Footer"
+                  className="max-w-full max-h-full object-contain"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => footerImageInputRef.current?.click()}
+                  disabled={uploadingImageKey === 'footer_image_url'}
+                >
+                  <Upload className="size-4 mr-1" />
+                  Replace
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleRemoveImage('footer_image_url')}>
+                  <Trash2 className="size-4 mr-1" />
+                  Remove
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div
+              className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+              onClick={() => footerImageInputRef.current?.click()}
+            >
+              <Image className="size-6 mx-auto text-muted-foreground mb-1" />
+              <p className="text-sm text-muted-foreground">
+                {uploadingImageKey === 'footer_image_url' ? 'Uploading...' : 'Click to upload footer image'}
+              </p>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Recommended 1600×400 (header) / 1600×200 (footer), PNG or JPEG, max 2MB.
+          </p>
+        </div>
+
         <div className="space-y-2">
           <Label htmlFor="dpoContact">Data Protection Officer (DPO) Contact</Label>
           <Input id="dpoContact" value={form.dpo_contact} onChange={(e) => setField('dpo_contact', e.target.value)} placeholder="dpo@raccagency.com" />
@@ -383,11 +533,13 @@ function FormBrandingCard() {
 
   const [logoUrl, setLogoUrl] = useState('');
   const [footerText, setFooterText] = useState('');
+  const [eventLogoUrl, setEventLogoUrl] = useState('');
 
   useEffect(() => {
     if (systemSettings) {
       setLogoUrl(systemSettings.form_branding?.logo_url ?? '');
       setFooterText(systemSettings.form_branding?.footer_text ?? '');
+      setEventLogoUrl(systemSettings.form_branding?.event_logo_url ?? '');
     }
   }, [systemSettings]);
 
@@ -396,6 +548,7 @@ function FormBrandingCard() {
       await updateFormBranding.mutateAsync({
         logo_url: logoUrl.trim(),
         footer_text: footerText.trim(),
+        event_logo_url: eventLogoUrl.trim(),
       });
       toast({ title: 'Saved', description: 'Form branding updated.' });
     } catch {
@@ -416,13 +569,26 @@ function FormBrandingCard() {
       </CardHeader>
       <CardContent className="space-y-5 max-w-2xl">
         <div className="space-y-2">
-          <Label htmlFor="formBrandingLogo">Logo URL</Label>
+          <Label htmlFor="formBrandingLogo">Partnership Form Logo URL</Label>
           <Input
             id="formBrandingLogo"
             value={logoUrl}
             onChange={(e) => setLogoUrl(e.target.value)}
             placeholder="https://..."
           />
+          <p className="text-xs text-muted-foreground">Shown on the merchant partnership enquiry form.</p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="formBrandingEventLogo">Event Forms Logo URL</Label>
+          <Input
+            id="formBrandingEventLogo"
+            value={eventLogoUrl}
+            onChange={(e) => setEventLogoUrl(e.target.value)}
+            placeholder="https://..."
+          />
+          <p className="text-xs text-muted-foreground">
+            Shown on event registration, check-out, and display screens. Leave blank to use the built-in RACC logo.
+          </p>
         </div>
         <div className="space-y-2">
           <Label htmlFor="formBrandingFooter">Footer Text</Label>

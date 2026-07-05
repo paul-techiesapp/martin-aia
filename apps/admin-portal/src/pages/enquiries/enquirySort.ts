@@ -41,6 +41,7 @@ export function toEnquiryExportRows(rows: EnquiryListRow[]): EnquiryExportRow[] 
       customer: e.customer_name ?? '',
       phone: e.customer_phone ?? '',
       email: e.customer_email ?? '',
+      staffId: e.staff_id ?? '',
       enquiryStatus: e.status,
       received: fmt(e.created_at),
     };

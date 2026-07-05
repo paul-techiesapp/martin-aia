@@ -53,7 +53,7 @@ serve(async (req) => {
 
     const { data: agent, error: agentError } = await supabase
       .from("agents")
-      .select("id, unit_name, parent_agent_id")
+      .select("id, unit_name, parent_agent_id, is_unit_manager")
       .eq("user_id", caller.id)
       .single();
 
@@ -64,12 +64,17 @@ serve(async (req) => {
       );
     }
 
-    if (agent.parent_agent_id !== null) {
+    // Unit root (parent_agent_id null) or a deputy flagged is_unit_manager.
+    if (agent.parent_agent_id !== null && agent.is_unit_manager !== true) {
       return new Response(
-        JSON.stringify({ error: "Only Agent Admins can create sub-agents" }),
+        JSON.stringify({ error: "Only unit managers or unit admins can create sub-agents" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // New sub-agents always hang off the UNIT ROOT (a deputy's own parent),
+    // keeping the unit tree flat regardless of who created them.
+    const unitRootId = agent.parent_agent_id ?? agent.id;
 
     const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
       email,
@@ -95,7 +100,7 @@ serve(async (req) => {
         nric: nric || null,
         agent_code,
         unit_name: agent.unit_name,
-        parent_agent_id: agent.id,
+        parent_agent_id: unitRootId,
       })
       .select()
       .single();

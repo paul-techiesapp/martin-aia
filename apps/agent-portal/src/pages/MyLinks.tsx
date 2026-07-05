@@ -24,6 +24,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
   useToast,
+  resolveCardGradient,
 } from '@agent-system/shared-ui';
 import { Link2, Copy, Check, MapPin, UserCheck, CheckCircle, Users, FileDown, FileSpreadsheet, Loader2, ArrowRight } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
@@ -40,14 +41,17 @@ import { DEFAULT_CARD_TEMPLATE, DEFAULT_COMPANY_BRANDING, getEffectiveTemplate }
 import type { Slot } from '@agent-system/shared-types';
 
 export function MyLinks() {
-  const { agent, role } = useAuth();
-  const isUnitAdmin = role === 'agent_admin';
+  const { agent, isUnitViewer } = useAuth();
+  // Unit-wide rollups key off the unit ROOT: the boss's own id, or a deputy's
+  // parent (the unit tree is flat — every member hangs off the root).
+  const unitRootId = agent ? agent.parent_agent_id ?? agent.id : undefined;
   const { data: campaigns, isLoading: campaignsLoading } = useActiveCampaigns();
   const { data: links, isLoading: linksLoading } = useMyLinks(agent?.id);
-  // Unit Admins see their whole unit's totals; plain agents see only their own.
+  // Unit viewers (boss + is_unit_manager deputies) see their whole unit's
+  // totals; plain agents see only their own.
   const { data: ownStats, isLoading: ownStatsLoading } = useRegistrationStats(agent?.id);
-  const { data: unitStats, isLoading: unitStatsLoading } = useUnitRegistrationStats(isUnitAdmin ? agent?.id : undefined);
-  const stats = isUnitAdmin ? unitStats : ownStats;
+  const { data: unitStats, isLoading: unitStatsLoading } = useUnitRegistrationStats(isUnitViewer ? unitRootId : undefined);
+  const stats = isUnitViewer ? unitStats : ownStats;
   const statsLoading = ownStatsLoading || unitStatsLoading;
   const createLink = useCreateLink();
   const { toast } = useToast();
@@ -383,7 +387,13 @@ export function MyLinks() {
           <CardContent>
             <TooltipProvider>
               <div className="space-y-3">
-                {activeLinks.map((link) => (
+                {activeLinks.map((link) => {
+                  const [gradientFrom, gradientTo] = resolveCardGradient(
+                    link.slot?.campaign?.id,
+                    link.slot?.campaign?.card_template_overrides,
+                    systemSettings?.card_template ?? DEFAULT_CARD_TEMPLATE,
+                  );
+                  return (
                   <InvitationCard
                     key={link.id}
                     eventName={link.slot?.campaign?.name ?? 'Unknown Event'}
@@ -393,6 +403,8 @@ export function MyLinks() {
                     registeredCount={link.registration_count}
                     companyName={systemSettings?.company_branding?.companyName}
                     logoUrl={systemSettings?.company_branding?.logoUrl}
+                    gradientFrom={gradientFrom}
+                    gradientTo={gradientTo}
                     actions={
                       <div className="flex items-center gap-1">
                         <Tooltip>
@@ -460,7 +472,8 @@ export function MyLinks() {
                       </div>
                     }
                   />
-                ))}
+                  );
+                })}
               </div>
             </TooltipProvider>
           </CardContent>

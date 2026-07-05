@@ -45,6 +45,10 @@ export interface EnquiryFormSettings {
   footer_text: string;
   tnc_body: string;
   dpo_contact: string;
+  /** Designer-supplied photo header image (recommended 1600x400, 4:1); blank = none. */
+  header_image_url: string;
+  /** Designer-supplied photo footer image (recommended 1600x200, 8:1); blank = none. */
+  footer_image_url: string;
 }
 
 export interface SystemSettings {
@@ -66,11 +70,14 @@ export interface SystemSettings {
 export interface FormBranding {
   logo_url: string;
   footer_text: string;
+  /** Logo for event forms (register/checkout/display), separate from the partnership enquiry logo_url; blank = built-in RACC logo. */
+  event_logo_url: string;
 }
 
 export const DEFAULT_FORM_BRANDING: FormBranding = {
   logo_url: '',
   footer_text: '© RACC Agency. All rights reserved.',
+  event_logo_url: '',
 };
 
 export const DEFAULT_CARD_TEMPLATE: CardTemplate = {
@@ -100,6 +107,8 @@ export const DEFAULT_ENQUIRY_FORM: EnquiryFormSettings = {
   header_subtitle: 'Submit your details and our team will be in touch about your renewal and gold gift.',
   footer_text: '© RACC Agency. All rights reserved.',
   dpo_contact: 'dpo@raccagency.com',
+  header_image_url: '',
+  footer_image_url: '',
   tnc_body: `Personal Data Protection Act (PDPA)
 Consent & Disclosure Clause
 

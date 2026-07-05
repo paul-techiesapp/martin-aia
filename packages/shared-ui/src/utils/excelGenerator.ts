@@ -108,6 +108,8 @@ export interface EnquiryExportRow {
   customer: string;
   phone: string;
   email: string;
+  /** Referring staff ID captured on branch (master-partner) enquiry forms; optional. */
+  staffId?: string;
   carPlate: string;
   insuranceExpiry: string;
   roadTax: string;
@@ -129,6 +131,7 @@ export async function buildEnquiriesWorkbook(
     { width: 22, header: { value: 'Customer', fontWeight: 'bold' }, cell: (r) => r.customer },
     { width: 16, header: { value: 'Phone', fontWeight: 'bold' }, cell: (r) => r.phone },
     { width: 26, header: { value: 'Email', fontWeight: 'bold' }, cell: (r) => r.email },
+    { width: 14, header: { value: 'Staff ID', fontWeight: 'bold' }, cell: (r) => r.staffId ?? '' },
     { width: 14, header: { value: 'Car Plate', fontWeight: 'bold' }, cell: (r) => r.carPlate },
     { width: 16, header: { value: 'Insurance Expiry', fontWeight: 'bold' }, cell: (r) => r.insuranceExpiry },
     { width: 10, header: { value: 'Road Tax', fontWeight: 'bold' }, cell: (r) => r.roadTax },

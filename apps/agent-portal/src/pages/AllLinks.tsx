@@ -16,6 +16,7 @@ import {
   generateBulkInvitationCards,
   generateRegistrantsWorkbook,
   formatSlotTime,
+  resolveCardGradient,
 } from '@agent-system/shared-ui';
 import type { InvitationCardData } from '@agent-system/shared-ui';
 import { Link } from '@tanstack/react-router';
@@ -178,6 +179,11 @@ export function AllLinks() {
               <div className="space-y-3">
                 {sortedLinks.map((link) => {
                   const ended = link.slot ? parseISO(link.slot.end_at) < now : false;
+                  const [gradientFrom, gradientTo] = resolveCardGradient(
+                    link.slot?.campaign?.id,
+                    link.slot?.campaign?.card_template_overrides,
+                    systemSettings?.card_template ?? DEFAULT_CARD_TEMPLATE,
+                  );
                   return (
                     <InvitationCard
                       key={link.id}
@@ -189,6 +195,8 @@ export function AllLinks() {
                       registeredCount={link.registration_count}
                       companyName={systemSettings?.company_branding?.companyName}
                       logoUrl={systemSettings?.company_branding?.logoUrl}
+                      gradientFrom={gradientFrom}
+                      gradientTo={gradientTo}
                       actions={
                         <div className="flex items-center gap-1">
                           <Tooltip>

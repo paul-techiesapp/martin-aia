@@ -51,11 +51,11 @@ import { useMyTierRequests, useRequestTier, useAvailableTiers } from '../hooks/u
 import { TierRequestStatus } from '@agent-system/shared-types';
 
 export function Partners() {
-  const { agent, role } = useAuth();
+  const { agent, role, isUnitViewer } = useAuth();
   const { toast } = useToast();
 
-  // Role guard: only agent_admin can access this page
-  if (role && role !== 'agent_admin') {
+  // Role guard: admin + unit managers (deputy) can access this page
+  if (role && !isUnitViewer) {
     return (
       <div className="p-6 text-center text-muted-foreground">
         <p>This page is only available to agents.</p>
@@ -187,7 +187,7 @@ export function Partners() {
     <div className="flex flex-col gap-4 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Partners</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Event Partners</h1>
           <p className="text-sm text-muted-foreground">Manage your recruitment partners and track their activity</p>
         </div>
         <Button onClick={() => setIsAddOpen(true)}>

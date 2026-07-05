@@ -17,16 +17,19 @@ import { useMyPartners } from '../hooks/usePartners';
 import { useMySubAgents } from '../hooks/useSubAgents';
 
 function AgentDashboard() {
-  const { agent, role } = useAuth();
-  const isUnitAdmin = role === 'agent_admin';
+  const { agent, isUnitViewer } = useAuth();
+  // Unit-wide rollups key off the unit ROOT: the boss's own id, or a deputy's
+  // parent (the unit tree is flat — every member hangs off the root).
+  const unitRootId = agent ? agent.parent_agent_id ?? agent.id : undefined;
   const { data: stats, isLoading: statsLoading } = useRegistrationStats(agent?.id);
-  // Unit Admins roll up their whole unit's registrations (own + all sub-agents').
-  const { data: unitStats, isLoading: unitStatsLoading } = useUnitRegistrationStats(isUnitAdmin ? agent?.id : undefined);
+  // Unit viewers (boss + is_unit_manager deputies) roll up the whole unit's
+  // registrations (root's + all sub-agents').
+  const { data: unitStats, isLoading: unitStatsLoading } = useUnitRegistrationStats(isUnitViewer ? unitRootId : undefined);
   const { data: campaigns, isLoading: campaignsLoading } = useActiveCampaigns();
   const { data: partners, isLoading: partnersLoading } = useMyPartners(agent?.id);
-  const { data: subAgents, isLoading: subAgentsLoading } = useMySubAgents(isUnitAdmin ? agent?.id : undefined);
+  const { data: subAgents, isLoading: subAgentsLoading } = useMySubAgents(isUnitViewer ? unitRootId : undefined);
 
-  const reportStats = isUnitAdmin ? unitStats : stats;
+  const reportStats = isUnitViewer ? unitStats : stats;
   const activeCampaigns = campaigns?.length ?? 0;
   const activePartners = partners?.filter(p => p.status === 'active').length ?? 0;
   const activeSubAgents = subAgents?.filter(a => a.status === 'active').length ?? 0;
@@ -56,10 +59,10 @@ function AgentDashboard() {
           value={reportStats?.registered ?? 0}
           icon={UserCheck}
           iconColor="amber"
-          description={isUnitAdmin ? 'Across your unit' : 'Signed up via your links'}
+          description={isUnitViewer ? 'Across your unit' : 'Signed up via your links'}
           loading={isLoading}
         />
-        {role === 'agent_admin' ? (
+        {isUnitViewer ? (
           <>
             <StatCard
               title="Active Agents"
@@ -101,7 +104,7 @@ function AgentDashboard() {
       </StatCardGrid>
 
       <div className="grid gap-3 md:grid-cols-2">
-        {role === 'agent_admin' ? (
+        {isUnitViewer ? (
           <Card>
             <CardHeader>
               <CardTitle>Your Unit</CardTitle>
@@ -174,7 +177,7 @@ function AgentDashboard() {
               <span className="text-sm font-medium text-foreground group-hover:text-foreground">View My Links</span>
               <ChevronRight className="size-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all" />
             </Link>
-            {role === 'agent_admin' && (
+            {isUnitViewer && (
               <>
                 <Link
                   to="/my-agents"

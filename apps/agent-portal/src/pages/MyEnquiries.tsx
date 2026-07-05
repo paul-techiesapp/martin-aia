@@ -42,7 +42,11 @@ interface EnquiryCardProps {
   agentId: string | undefined;
   /** Show the owning agent (unit viewer looking at unit-wide enquiries). */
   showAgent?: boolean;
-  /** Hide mutating controls (Assign partner, Get Quote) — viewer doesn't own this row. */
+  /**
+   * Hide mutating controls (Assign partner, Get Quote). Currently always
+   * passed `false` — unit viewers act on unit rows too — but the prop and its
+   * render branches are retained for future per-row gating.
+   */
   readOnly?: boolean;
 }
 

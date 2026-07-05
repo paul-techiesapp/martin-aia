@@ -40,14 +40,17 @@ import { DEFAULT_CARD_TEMPLATE, DEFAULT_COMPANY_BRANDING, getEffectiveTemplate }
 import type { Slot } from '@agent-system/shared-types';
 
 export function MyLinks() {
-  const { agent, role } = useAuth();
-  const isUnitAdmin = role === 'agent_admin';
+  const { agent, isUnitViewer } = useAuth();
+  // Unit-wide rollups key off the unit ROOT: the boss's own id, or a deputy's
+  // parent (the unit tree is flat — every member hangs off the root).
+  const unitRootId = agent ? agent.parent_agent_id ?? agent.id : undefined;
   const { data: campaigns, isLoading: campaignsLoading } = useActiveCampaigns();
   const { data: links, isLoading: linksLoading } = useMyLinks(agent?.id);
-  // Unit Admins see their whole unit's totals; plain agents see only their own.
+  // Unit viewers (boss + is_unit_manager deputies) see their whole unit's
+  // totals; plain agents see only their own.
   const { data: ownStats, isLoading: ownStatsLoading } = useRegistrationStats(agent?.id);
-  const { data: unitStats, isLoading: unitStatsLoading } = useUnitRegistrationStats(isUnitAdmin ? agent?.id : undefined);
-  const stats = isUnitAdmin ? unitStats : ownStats;
+  const { data: unitStats, isLoading: unitStatsLoading } = useUnitRegistrationStats(isUnitViewer ? unitRootId : undefined);
+  const stats = isUnitViewer ? unitStats : ownStats;
   const statsLoading = ownStatsLoading || unitStatsLoading;
   const createLink = useCreateLink();
   const { toast } = useToast();

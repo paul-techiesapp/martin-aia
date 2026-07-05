@@ -36,6 +36,7 @@ const enquirySchema = z.object({
   customer_nric: z.string().min(6, 'NRIC / MyKad is required'),
   customer_phone: z.string().min(8, 'Phone number must be at least 8 characters'),
   customer_email: z.string().email('A valid email is required'),
+  staff_id: z.string().optional(),
   acceptedTerms: z.literal(true, {
     errorMap: () => ({ message: 'You must accept the Terms & Conditions' }),
   }),
@@ -101,6 +102,7 @@ export function Enquiry() {
       customer_nric: '',
       customer_phone: '',
       customer_email: '',
+      staff_id: '',
       acceptedTerms: false as unknown as true,
       vehicles: [blankVehicle()],
     },
@@ -230,6 +232,11 @@ export function Enquiry() {
 
     setSubmitPhase('submitting');
 
+    // Only include p_staff_id when non-empty so agent-link submissions (no
+    // staff field shown) keep working against a DB that hasn't yet been
+    // migrated to the 7-arg submit_enquiry signature.
+    const staffId = formData.staff_id?.trim();
+
     const { error: rpcError } = await supabase.rpc('submit_enquiry', {
       p_link_code: linkCode,
       p_customer_name: formData.customer_name,
@@ -242,6 +249,7 @@ export function Enquiry() {
         road_tax_renewal: v.road_tax_renewal === 'yes',
         attachments: vehicleAttachments[i] ?? [],
       })),
+      ...(staffId ? { p_staff_id: staffId } : {}),
     });
 
     setSubmitPhase(null);
@@ -450,6 +458,22 @@ export function Enquiry() {
                   </FormItem>
                 )}
               />
+
+              {context?.kind === 'branch' && (
+                <FormField
+                  control={form.control}
+                  name="staff_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-foreground">Staff ID</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Referring staff ID (optional)" className="h-11" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               {/* Vehicles */}
               <div className="border-t pt-4 mt-2 space-y-3">

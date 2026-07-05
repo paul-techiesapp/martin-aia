@@ -1,4 +1,4 @@
-import { useState, Fragment } from 'react';
+import { useState, useRef, Fragment } from 'react';
 import {
   Card,
   CardContent,
@@ -25,7 +25,7 @@ import {
   type EnquiryExportRow,
 } from '@agent-system/shared-ui';
 import { format, parseISO } from 'date-fns';
-import { FileText, Store, Download, Plus } from 'lucide-react';
+import { FileText, Store, Download, Plus, Paperclip, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useMyEnquiries, type EnquiryWithDetails } from '../hooks/useMyEnquiries';
 import { useAssignVehicleMerchant } from '../hooks/useAssignVehicleMerchant';
@@ -34,7 +34,13 @@ import { useRequestQuote } from '../hooks/useRequestQuote';
 import { ProposePartnerDialog } from '../components/ProposePartnerDialog';
 import { compareMyEnquiries } from './myEnquiriesSort';
 import { MerchantStatus, VehicleStatus, type AgentWithTier } from '@agent-system/shared-types';
-import { useEnquiryAttachments, useViewAttachment } from '../hooks/useEnquiryAttachments';
+import {
+  useEnquiryAttachments,
+  useViewAttachment,
+  useUploadAttachment,
+  useDeleteAttachment,
+  type AttachmentRow,
+} from '../hooks/useEnquiryAttachments';
 
 interface EnquiryCardProps {
   enq: EnquiryWithDetails;
@@ -61,6 +67,10 @@ function EnquiryCard({ enq, activeMerchants, agentId, showAgent, readOnly }: Enq
   const [quotingVehicleId, setQuotingVehicleId] = useState<string | null>(null);
   const { data: attachments = [] } = useEnquiryAttachments(enq.id);
   const viewAttachment = useViewAttachment();
+  const uploadAttachment = useUploadAttachment(enq.id);
+  const deleteAttachment = useDeleteAttachment(enq.id);
+  const [uploadingVehicleId, setUploadingVehicleId] = useState<string | null>(null);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const handleAssignVehicle = async (vehicleId: string) => {
     const merchantId = vehicleMerchant[vehicleId];
@@ -110,6 +120,31 @@ function EnquiryCard({ enq, activeMerchants, agentId, showAgent, readOnly }: Enq
       });
     } finally {
       setQuotingVehicleId(null);
+    }
+  };
+
+  const handleFileSelected = async (vehicleId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting the same file after an error
+    if (!file) return;
+    setUploadingVehicleId(vehicleId);
+    try {
+      await uploadAttachment.mutateAsync({ vehicleId, file });
+      toast({ title: 'File uploaded' });
+    } catch (err: unknown) {
+      toast({ title: 'Failed to upload', description: (err as Error)?.message, variant: 'error' });
+    } finally {
+      setUploadingVehicleId(null);
+    }
+  };
+
+  const handleDeleteAttachment = async (att: AttachmentRow) => {
+    if (!window.confirm('Remove this file?')) return;
+    try {
+      await deleteAttachment.mutateAsync({ id: att.id, storage_path: att.storage_path });
+      toast({ title: 'File removed' });
+    } catch (err: unknown) {
+      toast({ title: 'Failed to remove', description: (err as Error)?.message, variant: 'error' });
     }
   };
 
@@ -235,10 +270,10 @@ function EnquiryCard({ enq, activeMerchants, agentId, showAgent, readOnly }: Enq
                         )}
                       </TableCell>
                     </TableRow>
-                    {vehicleAttachments.length > 0 && (
+                    {(vehicleAttachments.length > 0 || !readOnly) && (
                       <TableRow className="hover:bg-transparent">
                         <TableCell colSpan={6} className="py-1 pl-4 bg-muted/30">
-                          <div className="flex flex-wrap gap-1.5">
+                          <div className="flex flex-wrap items-center gap-1.5">
                             {vehicleAttachments.map(a => (
                               <div
                                 key={a.id}
@@ -255,8 +290,42 @@ function EnquiryCard({ enq, activeMerchants, agentId, showAgent, readOnly }: Enq
                                 >
                                   View
                                 </Button>
+                                {!readOnly && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive"
+                                    onClick={() => handleDeleteAttachment(a)}
+                                    aria-label="Remove file"
+                                  >
+                                    <X className="size-3" />
+                                  </Button>
+                                )}
                               </div>
                             ))}
+                            {!readOnly && (
+                              <>
+                                <input
+                                  ref={(el) => {
+                                    fileInputRefs.current[v.id] = el;
+                                  }}
+                                  type="file"
+                                  accept="image/*,application/pdf"
+                                  className="hidden"
+                                  onChange={(e) => handleFileSelected(v.id, e)}
+                                />
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-5 px-1.5 text-xs text-muted-foreground hover:text-foreground"
+                                  disabled={uploadingVehicleId === v.id}
+                                  onClick={() => fileInputRefs.current[v.id]?.click()}
+                                >
+                                  <Paperclip className="size-3 mr-1" />
+                                  {uploadingVehicleId === v.id ? 'Uploading…' : 'Upload'}
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>

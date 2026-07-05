@@ -1,4 +1,5 @@
-import { Link } from '@tanstack/react-router';
+import { useEffect } from 'react';
+import { Link, useNavigate } from '@tanstack/react-router';
 import {
   Card,
   CardContent,
@@ -263,5 +264,16 @@ function PartnerDashboard() {
 
 export function Dashboard() {
   const { role } = useAuth();
+  const navigate = useNavigate();
+
+  // Master Partner (merchant) has no dashboard of its own — land on Branch
+  // Performance, the only page in its nav.
+  useEffect(() => {
+    if (role === 'merchant') {
+      navigate({ to: '/branch-performance', replace: true });
+    }
+  }, [role, navigate]);
+
+  if (role === 'merchant') return null;
   return role === 'partner' ? <PartnerDashboard /> : <AgentDashboard />;
 }

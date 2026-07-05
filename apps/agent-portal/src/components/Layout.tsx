@@ -1,7 +1,7 @@
 import { useState, Fragment } from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
 import { cn, Button, Sheet, SheetContent, SheetTrigger, Logo, Avatar } from '@agent-system/shared-ui';
-import { LayoutDashboard, CalendarDays, Link2, Award, LogOut, Menu, Users, UserCog, KeyRound, ClipboardList, QrCode, Inbox, Store, type LucideIcon } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Link2, Award, LogOut, Menu, Users, UserCog, KeyRound, ClipboardList, QrCode, Inbox, Store, BarChart3, type LucideIcon } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useMyAgentPhoto } from '../hooks/useAgentPhoto';
 
@@ -56,9 +56,19 @@ const partnerGroups: NavGroup[] = [
   },
 ];
 
+// Master Partner (merchant) portal — read-only Branch Performance dashboard.
+const merchantGroups: NavGroup[] = [
+  {
+    items: [
+      { name: 'Branch Performance', href: '/branch-performance', icon: BarChart3 },
+      { name: 'Account', href: '/account', icon: KeyRound },
+    ],
+  },
+];
+
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const { agent, partner, role, isUnitViewer, isLoading, session, signOut, user } = useAuth();
+  const { agent, partner, merchant, role, isUnitViewer, isLoading, session, signOut, user } = useAuth();
   const { data: photoUrl } = useMyAgentPhoto(user?.id);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -85,25 +95,29 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   const navGroups = role === 'partner'
     ? partnerGroups
-    : role === 'agent_admin' || role === 'agent'
-      ? buildAgentGroups(isUnitViewer)
-      : buildAgentGroups(false);
+    : role === 'merchant'
+      ? merchantGroups
+      : role === 'agent_admin' || role === 'agent'
+        ? buildAgentGroups(isUnitViewer)
+        : buildAgentGroups(false);
 
-  const displayName = role === 'partner' ? partner?.name : agent?.name;
+  const displayName = role === 'partner' ? partner?.name : role === 'merchant' ? merchant?.name : agent?.name;
   const subtitle = role === 'partner'
     ? `Partner · ${partner?.agent?.name ?? 'Unknown Unit'}`
-    : role === 'agent_admin'
-      ? 'Unit Manager'
-      : agent?.is_unit_manager
-        ? 'Unit Admin'
-        : agent?.tier?.name ?? 'No Tier';
+    : role === 'merchant'
+      ? 'Master Partner'
+      : role === 'agent_admin'
+        ? 'Unit Manager'
+        : agent?.is_unit_manager
+          ? 'Unit Admin'
+          : agent?.tier?.name ?? 'No Tier';
 
   const SidebarContent = () => (
     <>
       <div className="flex h-16 items-center gap-3 px-6 border-b border-white/10">
         <Logo size="md" showText={false} />
         <span className="font-semibold text-lg text-white tracking-tight">
-          {role === 'partner' ? 'RACC Partner' : 'RACC Unit'}
+          {role === 'partner' || role === 'merchant' ? 'RACC Partner' : 'RACC Unit'}
         </span>
       </div>
       <nav className="px-3 py-4 space-y-0.5">
@@ -163,7 +177,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   </Button>
                 </SheetTrigger>
               </Sheet>
-              {role !== 'partner' && <Avatar src={photoUrl} name={displayName} size="sm" />}
+              {role !== 'partner' && role !== 'merchant' && <Avatar src={photoUrl} name={displayName} size="sm" />}
               {displayName && (
                 <p className="text-sm text-muted-foreground">
                   Welcome, <span className="font-medium text-foreground">{displayName}</span>

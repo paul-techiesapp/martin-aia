@@ -29,3 +29,25 @@ export function useDeleteLogo() {
     },
   });
 }
+
+/**
+ * Uploads an admin-supplied form image (e.g. enquiry-form header/footer banner)
+ * to the public `company-assets` bucket under `form-images/{key}-{timestamp}.{ext}`.
+ * Mirrors useUploadLogo but supports multiple named images instead of one fixed logo.
+ */
+export function useUploadFormImage() {
+  return useMutation({
+    mutationFn: async ({ file, key }: { file: File; key: string }) => {
+      const ext = file.name.split('.').pop();
+      const fileName = `form-images/${key}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage
+        .from('company-assets')
+        .upload(fileName, file, { upsert: true });
+      if (error) throw error;
+      const { data: urlData } = supabase.storage
+        .from('company-assets')
+        .getPublicUrl(fileName);
+      return urlData.publicUrl;
+    },
+  });
+}

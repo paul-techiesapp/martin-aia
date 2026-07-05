@@ -352,6 +352,13 @@ export function Enquiry() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 flex items-center justify-center p-4">
       <Card className="w-full max-w-lg bg-card backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
+        {formSettings?.header_image_url && (
+          <img
+            src={formSettings.header_image_url}
+            alt=""
+            className="w-full h-auto rounded-t-lg object-cover"
+          />
+        )}
         <CardHeader className="text-center pt-8">
           {headerLogoUrl ? (
             <img
@@ -620,6 +627,14 @@ export function Enquiry() {
               </Button>
             </form>
           </Form>
+
+          {formSettings?.footer_image_url && (
+            <img
+              src={formSettings.footer_image_url}
+              alt=""
+              className="w-full h-auto object-cover"
+            />
+          )}
 
           {footerText && (
             <p className="text-center text-xs text-muted-foreground pt-2">{footerText}</p>

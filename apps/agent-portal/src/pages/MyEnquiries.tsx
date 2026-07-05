@@ -20,6 +20,14 @@ import {
   SelectValue,
   getStatusVariant,
   TableSkeleton,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
   useToast,
   buildEnquiriesWorkbook,
   type EnquiryExportRow,
@@ -69,7 +77,11 @@ function EnquiryCard({ enq, activeMerchants, agentId, showAgent, readOnly }: Enq
   const viewAttachment = useViewAttachment();
   const uploadAttachment = useUploadAttachment(enq.id);
   const deleteAttachment = useDeleteAttachment(enq.id);
-  const [uploadingVehicleId, setUploadingVehicleId] = useState<string | null>(null);
+  // Per-vehicle in-flight flags, keyed by vehicle id — a single shared id
+  // would let a second vehicle's upload clobber the first one's disabled
+  // state mid-flight (double-upload risk on multi-car enquiries).
+  const [uploadingVehicles, setUploadingVehicles] = useState<Record<string, boolean>>({});
+  const [deleteTarget, setDeleteTarget] = useState<AttachmentRow | null>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const handleAssignVehicle = async (vehicleId: string) => {
@@ -127,24 +139,31 @@ function EnquiryCard({ enq, activeMerchants, agentId, showAgent, readOnly }: Enq
     const file = e.target.files?.[0];
     e.target.value = ''; // allow re-selecting the same file after an error
     if (!file) return;
-    setUploadingVehicleId(vehicleId);
+    setUploadingVehicles((prev) => ({ ...prev, [vehicleId]: true }));
     try {
       await uploadAttachment.mutateAsync({ vehicleId, file });
       toast({ title: 'File uploaded' });
     } catch (err: unknown) {
       toast({ title: 'Failed to upload', description: (err as Error)?.message, variant: 'error' });
     } finally {
-      setUploadingVehicleId(null);
+      setUploadingVehicles((prev) => {
+        const next = { ...prev };
+        delete next[vehicleId];
+        return next;
+      });
     }
   };
 
-  const handleDeleteAttachment = async (att: AttachmentRow) => {
-    if (!window.confirm('Remove this file?')) return;
+  const handleConfirmDelete = async () => {
+    const att = deleteTarget;
+    if (!att || deleteAttachment.isPending) return;
     try {
       await deleteAttachment.mutateAsync({ id: att.id, storage_path: att.storage_path });
       toast({ title: 'File removed' });
     } catch (err: unknown) {
       toast({ title: 'Failed to remove', description: (err as Error)?.message, variant: 'error' });
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -295,7 +314,7 @@ function EnquiryCard({ enq, activeMerchants, agentId, showAgent, readOnly }: Enq
                                     variant="ghost"
                                     size="sm"
                                     className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive"
-                                    onClick={() => handleDeleteAttachment(a)}
+                                    onClick={() => setDeleteTarget(a)}
                                     aria-label="Remove file"
                                   >
                                     <X className="size-3" />
@@ -318,11 +337,11 @@ function EnquiryCard({ enq, activeMerchants, agentId, showAgent, readOnly }: Enq
                                   variant="ghost"
                                   size="sm"
                                   className="h-5 px-1.5 text-xs text-muted-foreground hover:text-foreground"
-                                  disabled={uploadingVehicleId === v.id}
+                                  disabled={!!uploadingVehicles[v.id]}
                                   onClick={() => fileInputRefs.current[v.id]?.click()}
                                 >
                                   <Paperclip className="size-3 mr-1" />
-                                  {uploadingVehicleId === v.id ? 'Uploading…' : 'Upload'}
+                                  {uploadingVehicles[v.id] ? 'Uploading…' : 'Upload'}
                                 </Button>
                               </>
                             )}
@@ -337,6 +356,28 @@ function EnquiryCard({ enq, activeMerchants, agentId, showAgent, readOnly }: Enq
           </Table>
         </div>
       </CardContent>
+
+      {/* Remove-attachment confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this file?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget ? `"${deleteTarget.file_name}" will be permanently removed from this enquiry.` : ''}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={deleteAttachment.isPending}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleteAttachment.isPending ? 'Removing...' : 'Remove'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

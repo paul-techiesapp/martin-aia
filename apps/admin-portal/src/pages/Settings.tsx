@@ -383,11 +383,13 @@ function FormBrandingCard() {
 
   const [logoUrl, setLogoUrl] = useState('');
   const [footerText, setFooterText] = useState('');
+  const [eventLogoUrl, setEventLogoUrl] = useState('');
 
   useEffect(() => {
     if (systemSettings) {
       setLogoUrl(systemSettings.form_branding?.logo_url ?? '');
       setFooterText(systemSettings.form_branding?.footer_text ?? '');
+      setEventLogoUrl(systemSettings.form_branding?.event_logo_url ?? '');
     }
   }, [systemSettings]);
 
@@ -396,6 +398,7 @@ function FormBrandingCard() {
       await updateFormBranding.mutateAsync({
         logo_url: logoUrl.trim(),
         footer_text: footerText.trim(),
+        event_logo_url: eventLogoUrl.trim(),
       });
       toast({ title: 'Saved', description: 'Form branding updated.' });
     } catch {
@@ -416,13 +419,26 @@ function FormBrandingCard() {
       </CardHeader>
       <CardContent className="space-y-5 max-w-2xl">
         <div className="space-y-2">
-          <Label htmlFor="formBrandingLogo">Logo URL</Label>
+          <Label htmlFor="formBrandingLogo">Partnership Form Logo URL</Label>
           <Input
             id="formBrandingLogo"
             value={logoUrl}
             onChange={(e) => setLogoUrl(e.target.value)}
             placeholder="https://..."
           />
+          <p className="text-xs text-muted-foreground">Shown on the merchant partnership enquiry form.</p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="formBrandingEventLogo">Event Forms Logo URL</Label>
+          <Input
+            id="formBrandingEventLogo"
+            value={eventLogoUrl}
+            onChange={(e) => setEventLogoUrl(e.target.value)}
+            placeholder="https://..."
+          />
+          <p className="text-xs text-muted-foreground">
+            Shown on event registration, check-out, and display screens. Leave blank to use the built-in RACC logo.
+          </p>
         </div>
         <div className="space-y-2">
           <Label htmlFor="formBrandingFooter">Footer Text</Label>

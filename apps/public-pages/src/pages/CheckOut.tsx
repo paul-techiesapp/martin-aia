@@ -53,7 +53,7 @@ export function CheckOut() {
   const search = useSearch({ strict: false }) as { slot?: string; ts?: string; sig?: string };
   const slotId = search.slot;
 
-  const { logoUrl, footerText } = useFormBranding();
+  const { eventLogoUrl, footerText } = useFormBranding();
 
   const [step, setStep] = useState<1 | 2>(1);
   const [identifyBy, setIdentifyBy] = useState<'email' | 'phone'>('email');
@@ -467,8 +467,8 @@ export function CheckOut() {
             {/* Success Header — always shown */}
             <div className="p-8 text-center border-b">
               <div className="flex justify-center mb-4">
-                {logoUrl ? (
-                  <img src={logoUrl} alt="" className="h-16 object-contain" />
+                {eventLogoUrl ? (
+                  <img src={eventLogoUrl} alt="" className="h-16 object-contain" />
                 ) : (
                   <Logo size="lg" showText={false} />
                 )}
@@ -578,8 +578,8 @@ export function CheckOut() {
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-40" />
       <Card className="w-full max-w-md bg-card backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
         <CardHeader className="text-center pt-8">
-          {logoUrl ? (
-            <img src={logoUrl} alt="" className="h-20 mx-auto mb-4 object-contain" />
+          {eventLogoUrl ? (
+            <img src={eventLogoUrl} alt="" className="h-20 mx-auto mb-4 object-contain" />
           ) : (
             <Logo size="lg" showText={false} className="mx-auto mb-4" />
           )}

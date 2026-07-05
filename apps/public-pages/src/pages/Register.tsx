@@ -81,7 +81,7 @@ export function Register() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { logoUrl, footerText } = useFormBranding();
+  const { eventLogoUrl, footerText } = useFormBranding();
 
   // Whether this event requires NRIC. Defaults to true until the link loads, so
   // the stricter rule applies while data is in flight. A ref keeps the resolver
@@ -269,8 +269,8 @@ export function Register() {
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-40" />
       <Card className="w-full max-w-lg bg-card backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
         <CardHeader className="text-center pt-8">
-          {logoUrl ? (
-            <img src={logoUrl} alt="" className="h-20 mx-auto mb-4 object-contain" />
+          {eventLogoUrl ? (
+            <img src={eventLogoUrl} alt="" className="h-20 mx-auto mb-4 object-contain" />
           ) : (
             <Logo size="lg" showText={false} className="mx-auto mb-4" />
           )}

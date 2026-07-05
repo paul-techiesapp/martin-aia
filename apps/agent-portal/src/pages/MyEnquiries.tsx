@@ -40,8 +40,8 @@ import { useAssignVehicleMerchant } from '../hooks/useAssignVehicleMerchant';
 import { useAgentMerchants, type MerchantWithBranches } from '../hooks/useAgentMerchants';
 import { useRequestQuote } from '../hooks/useRequestQuote';
 import { ProposePartnerDialog } from '../components/ProposePartnerDialog';
-import { compareMyEnquiries } from './myEnquiriesSort';
-import { MerchantStatus, VehicleStatus, type AgentWithTier } from '@agent-system/shared-types';
+import { compareByKey, type EnquirySortKey } from './myEnquiriesSort';
+import { EnquiryStatus, MerchantStatus, VehicleStatus, type AgentWithTier } from '@agent-system/shared-types';
 import {
   useEnquiryAttachments,
   useViewAttachment,
@@ -433,6 +433,9 @@ export function MyEnquiries() {
 
   const [proposeOpen, setProposeOpen] = useState(false);
   const [agentFilter, setAgentFilter] = useState<string>('all');
+  const [sortKey, setSortKey] = useState<EnquirySortKey>('default');
+  const [partnerFilter, setPartnerFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const activeMerchants =
     merchants?.filter(
@@ -441,8 +444,9 @@ export function MyEnquiries() {
         (m.created_by_agent_id === null || m.created_by_agent_id === agent?.id),
     ) ?? [];
 
-  // Default ordering: Partner -> Status (open first) -> earliest expiry -> newest.
-  const sortedEnquiries = [...(enquiries ?? [])].sort(compareMyEnquiries);
+  // Default ordering: Partner -> Status (open first) -> earliest expiry -> newest
+  // (unit viewers get Agent as the leading key instead).
+  const sortedEnquiries = [...(enquiries ?? [])].sort(compareByKey(sortKey, isUnitViewer));
 
   const agentOptions = Array.from(
     new Map(
@@ -451,8 +455,37 @@ export function MyEnquiries() {
         .map((e) => [e.agent!.id, e.agent!])
     ).values()
   );
+
+  // Partner filter options: every merchant actually referenced by the loaded
+  // enquiries (either at enquiry level or per-vehicle), deduped by id.
+  const partnerOptions = Array.from(
+    new Map(
+      (enquiries ?? [])
+        .flatMap((e) => [e.merchant, ...e.vehicles.map((v) => v.merchant)])
+        .filter((m): m is { id: string; name: string } => !!m)
+        .map((m) => [m.id, m])
+    ).values()
+  );
+
+  const matchesPartner = (e: EnquiryWithDetails): boolean => {
+    if (partnerFilter === 'all') return true;
+    const merchantIds = [e.merchant?.id, ...e.vehicles.map((v) => v.merchant?.id)].filter(
+      (id): id is string => !!id
+    );
+    if (partnerFilter === 'unassigned') return merchantIds.length === 0;
+    return merchantIds.includes(partnerFilter);
+  };
+
+  const matchesStatus = (e: EnquiryWithDetails): boolean => {
+    if (statusFilter === 'all') return true;
+    return statusFilter === 'open' ? e.status === EnquiryStatus.OPEN : e.status === EnquiryStatus.CLOSED;
+  };
+
   const visibleEnquiries = sortedEnquiries.filter(
-    (e) => agentFilter === 'all' || e.agent?.id === agentFilter
+    (e) =>
+      (agentFilter === 'all' || e.agent?.id === agentFilter) &&
+      matchesPartner(e) &&
+      matchesStatus(e)
   );
 
   const handleDownload = async () => {
@@ -477,7 +510,7 @@ export function MyEnquiries() {
             Car-insurance enquiries customers submitted through your enquiry link
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {isUnitViewer && (
             <Button variant="outline" size="sm" onClick={() => setProposeOpen(true)}>
               <Plus className="size-4 mr-2" />
@@ -497,6 +530,41 @@ export function MyEnquiries() {
               </SelectContent>
             </Select>
           )}
+          <Select value={sortKey} onValueChange={(val) => setSortKey(val as EnquirySortKey)}>
+            <SelectTrigger className="w-40 h-9 text-sm">
+              <SelectValue placeholder="Sort" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="default">Default order</SelectItem>
+              <SelectItem value="received">Received</SelectItem>
+              <SelectItem value="expiry">Insurance expiry</SelectItem>
+              <SelectItem value="status">Status</SelectItem>
+              <SelectItem value="partner">Partner</SelectItem>
+              <SelectItem value="customer">Customer</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={partnerFilter} onValueChange={setPartnerFilter}>
+            <SelectTrigger className="w-44 h-9 text-sm">
+              <SelectValue placeholder="All partners" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All partners</SelectItem>
+              <SelectItem value="unassigned">Unassigned</SelectItem>
+              {partnerOptions.map((m) => (
+                <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-36 h-9 text-sm">
+              <SelectValue placeholder="All status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All status</SelectItem>
+              <SelectItem value="open">Open</SelectItem>
+              <SelectItem value="closed">Closed</SelectItem>
+            </SelectContent>
+          </Select>
           <Button
             variant="outline"
             size="sm"

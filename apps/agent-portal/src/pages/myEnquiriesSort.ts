@@ -7,7 +7,7 @@ const NAME_LAST = '￿';
 const DATE_LAST = '9999-12-31';
 
 // Open enquiries before closed ones.
-const statusRank = (s: EnquiryStatus): number => (s === EnquiryStatus.OPEN ? 0 : 1);
+export const statusRank = (s: EnquiryStatus): number => (s === EnquiryStatus.OPEN ? 0 : 1);
 
 // Earliest insurance-expiry date across the enquiry's vehicles. Missing dates
 // and empty vehicle lists sort last.
@@ -36,4 +36,26 @@ export function compareMyEnquiries(a: EnquiryWithDetails, b: EnquiryWithDetails)
 
   // Received: newest first.
   return (b.created_at ?? '').localeCompare(a.created_at ?? '');
+}
+
+export type EnquirySortKey = 'default' | 'received' | 'expiry' | 'status' | 'partner' | 'customer';
+
+// Unit view default: Agent -> (then the standard default keys).
+export function compareUnitEnquiries(a: EnquiryWithDetails, b: EnquiryWithDetails): number {
+  const agent = (a.agent?.name ?? NAME_LAST).localeCompare(b.agent?.name ?? NAME_LAST);
+  if (agent !== 0) return agent;
+  return compareMyEnquiries(a, b);
+}
+
+export function compareByKey(key: EnquirySortKey, isUnitView: boolean) {
+  return (a: EnquiryWithDetails, b: EnquiryWithDetails): number => {
+    switch (key) {
+      case 'received': return (b.created_at ?? '').localeCompare(a.created_at ?? '');
+      case 'expiry':   return earliestExpiry(a.vehicles).localeCompare(earliestExpiry(b.vehicles));
+      case 'status':   return statusRank(a.status) - statusRank(b.status) || compareMyEnquiries(a, b);
+      case 'partner':  return compareMyEnquiries(a, b); // partner is already the leading default key
+      case 'customer': return (a.customer_name ?? '').localeCompare(b.customer_name ?? '');
+      default:         return isUnitView ? compareUnitEnquiries(a, b) : compareMyEnquiries(a, b);
+    }
+  };
 }

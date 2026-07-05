@@ -46,13 +46,18 @@ serve(async (req) => {
 
     const { data: callerAgent, error: agentError } = await supabase
       .from("agents")
-      .select("id, parent_agent_id")
+      .select("id, parent_agent_id, is_unit_manager")
       .eq("user_id", caller.id)
       .single();
 
-    if (agentError || !callerAgent || callerAgent.parent_agent_id !== null) {
+    // Unit root (parent_agent_id null) or a deputy flagged is_unit_manager.
+    if (
+      agentError ||
+      !callerAgent ||
+      (callerAgent.parent_agent_id !== null && callerAgent.is_unit_manager !== true)
+    ) {
       return new Response(
-        JSON.stringify({ error: "Only Agent Admins can deactivate sub-agents" }),
+        JSON.stringify({ error: "Only unit managers or unit admins can deactivate sub-agents" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -70,9 +75,31 @@ serve(async (req) => {
       );
     }
 
-    if (targetAgent.parent_agent_id !== callerAgent.id) {
+    // The unit root (parent_agent_id null) can never be removed — this was
+    // implicit before (a root could never match target.parent === caller.id)
+    // and must stay explicit now that deputies can call this function.
+    if (targetAgent.parent_agent_id === null) {
       return new Response(
-        JSON.stringify({ error: "You can only deactivate your own sub-agents" }),
+        JSON.stringify({ error: "You cannot deactivate the unit manager" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Callers cannot remove themselves (previously impossible: only the root
+    // could call this and the root was never a valid target).
+    if (targetAgent.id === callerAgent.id) {
+      return new Response(
+        JSON.stringify({ error: "You cannot deactivate yourself" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Target must belong to the caller's unit: same unit root on both sides.
+    const callerUnitRootId = callerAgent.parent_agent_id ?? callerAgent.id;
+    const targetUnitRootId = targetAgent.parent_agent_id ?? targetAgent.id;
+    if (targetUnitRootId !== callerUnitRootId) {
+      return new Response(
+        JSON.stringify({ error: "You can only deactivate sub-agents in your own unit" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

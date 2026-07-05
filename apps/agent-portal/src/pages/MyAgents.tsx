@@ -66,7 +66,12 @@ export function MyAgents() {
     );
   }
 
-  const { data: subAgents, isLoading } = useMySubAgents(agent?.id);
+  // Roster keys off the unit ROOT (the boss's own id, or a deputy's parent —
+  // the unit tree is flat, every member hangs off the root). The root itself
+  // never appears in the results (the hook filters parent_agent_id = root),
+  // so the boss's row is never rendered — and never deletable — here.
+  const unitRootId = agent ? agent.parent_agent_id ?? agent.id : undefined;
+  const { data: subAgents, isLoading } = useMySubAgents(unitRootId);
   const { data: tierRequests } = useMyTierRequests(agent?.id);
   const { data: tiers } = useAvailableTiers();
   const createSubAgent = useCreateSubAgent();
@@ -100,8 +105,14 @@ export function MyAgents() {
   const [deactivateId, setDeactivateId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', email: '', phone: '', nric: '', agent_code: '', password: '' });
 
+  // Own row renders separately at the top ("You"); for a deputy it would
+  // otherwise repeat inside the roster (the deputy is a child of the root).
+  // Filtering it out also removes any self-delete button (the deactivate edge
+  // function rejects self-targets anyway).
+  const rosterAgents = subAgents?.filter((a) => a.id !== agent?.id);
+
   const activeCount = subAgents?.filter(a => a.status === 'active').length ?? 0;
-  const totalCount = (subAgents?.length ?? 0) + 1; // +1 for self
+  const totalCount = (subAgents?.length ?? 0) + 1; // +1 for the unit root (self for the boss)
   const pendingRequests = tierRequests?.filter(r => r.status === TierRequestStatus.PENDING).length ?? 0;
 
   const getTierRequestForAgent = (agentId: string) => {
@@ -309,8 +320,8 @@ export function MyAgents() {
                       </TableCell>
                     </TableRow>
                   )}
-                  {/* Sub-agent rows */}
-                  {subAgents?.map((a) => (
+                  {/* Sub-agent rows (own row excluded — rendered above) */}
+                  {rosterAgents?.map((a) => (
                     <TableRow key={a.id}>
                       <TableCell className="font-medium">{a.name}</TableCell>
                       <TableCell className="text-muted-foreground">{a.agent_code}</TableCell>
@@ -337,7 +348,7 @@ export function MyAgents() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {subAgents?.length === 0 && (
+                  {rosterAgents?.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center text-muted-foreground py-6">
                         No sub-agents yet. Click "Add Agent" to get started.

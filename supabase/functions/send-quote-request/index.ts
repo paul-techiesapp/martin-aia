@@ -379,7 +379,7 @@ Deno.serve(async (req) => {
     // doesn't waste downloads), and a download failure never blocks the email.
     const { data: atts } = await supabase
       .from('enquiry_attachments')
-      .select('storage_path, file_name, content_type')
+      .select('id, storage_path, file_name, content_type')
       .eq('enquiry_vehicle_id', vehicleId);
 
     const MAX_TOTAL = 15 * 1024 * 1024;
@@ -387,9 +387,11 @@ Deno.serve(async (req) => {
     const attachments: { filename: string; content: string }[] = [];
     for (const a of atts ?? []) {
       const { data: blob, error } = await supabase.storage.from('enquiry-attachments').download(a.storage_path);
-      if (error || !blob) { console.error(`attachment download failed: ${a.storage_path}`, error); continue; }
+      // Privacy: log the attachment id, never the customer-supplied filename or
+      // storage path (filenames can contain PII, e.g. an NRIC).
+      if (error || !blob) { console.error(`attachment download failed: attachment ${a.id}`, error); continue; }
       const buf = new Uint8Array(await blob.arrayBuffer());
-      if (total + buf.byteLength > MAX_TOTAL) { console.warn(`skipping ${a.file_name}: attachment budget exceeded`); continue; }
+      if (total + buf.byteLength > MAX_TOTAL) { console.warn(`skipping attachment ${a.id}: attachment budget exceeded`); continue; }
       total += buf.byteLength;
       // Chunked base64 to avoid call-stack limits on large files.
       let binary = '';

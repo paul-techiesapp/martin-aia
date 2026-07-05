@@ -403,6 +403,8 @@ function toEnquiryExportRows(
       customer: e.customer_name ?? '',
       phone: e.customer_phone ?? '',
       email: e.customer_email ?? '',
+      // Branch-link enquiries owned by an agent carry the referring staff ID.
+      staffId: e.staff_id ?? '',
       enquiryStatus: e.status,
       received: fmtDate(e.created_at),
     };

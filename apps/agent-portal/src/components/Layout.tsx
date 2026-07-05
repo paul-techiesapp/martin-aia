@@ -1,7 +1,7 @@
 import { useState, Fragment } from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
 import { cn, Button, Sheet, SheetContent, SheetTrigger, Logo, Avatar } from '@agent-system/shared-ui';
-import { LayoutDashboard, CalendarDays, Link2, Award, LogOut, Menu, Users, UserCog, KeyRound, ClipboardList, QrCode, Inbox, type LucideIcon } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Link2, Award, LogOut, Menu, Users, UserCog, KeyRound, ClipboardList, QrCode, Inbox, Store, type LucideIcon } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useMyAgentPhoto } from '../hooks/useAgentPhoto';
 
@@ -39,6 +39,7 @@ function buildAgentGroups(isUnitViewer: boolean): NavGroup[] {
       items: [
         { name: 'My Link', href: '/my-link', icon: QrCode },
         { name: 'My Enquiries', href: '/my-enquiries', icon: Inbox },
+        { name: 'My Partners', href: '/my-partners', icon: Store },
       ],
     },
     { items: [{ name: 'Account', href: '/account', icon: KeyRound }] },

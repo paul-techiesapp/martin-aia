@@ -15,6 +15,7 @@ import { Rewards } from './pages/Rewards';
 import { Partners } from './pages/Partners';
 import { MyEnquiryLink } from './pages/MyEnquiryLink';
 import { MyEnquiries } from './pages/MyEnquiries';
+import { MyPartners } from './pages/MyPartners';
 import { MyCommissions } from './pages/MyCommissions';
 import { PartnerLinks } from './pages/PartnerLinks';
 import { MyAgents } from './pages/MyAgents';
@@ -121,6 +122,12 @@ const myEnquiriesRoute = createRoute({
   component: MyEnquiries,
 });
 
+const myPartnersRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/my-partners',
+  component: MyPartners,
+});
+
 const myCommissionsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/my-commissions',
@@ -166,6 +173,7 @@ const routeTree = rootRoute.addChildren([
     partnersRoute,
     myLinkRoute,
     myEnquiriesRoute,
+    myPartnersRoute,
     myCommissionsRoute,
     partnerLinksRoute,
     myAgentsRoute,

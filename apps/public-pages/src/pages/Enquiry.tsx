@@ -262,7 +262,7 @@ export function Enquiry() {
       } else if (rpcError.code === 'P0007') {
         setError('One of these vehicles has already been submitted at this branch.');
       } else if (rpcError.code === 'P0009') {
-        setError('This IC has already been registered. Each IC can only register once.');
+        setError('This IC was registered within the last month. Please try again later.');
       } else {
         setError('Failed to submit your enquiry. Please try again.');
       }

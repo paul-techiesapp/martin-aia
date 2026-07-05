@@ -54,11 +54,11 @@ import {
 import { TierRequestStatus } from '@agent-system/shared-types';
 
 export function MyAgents() {
-  const { agent, role } = useAuth();
+  const { agent, role, isUnitViewer } = useAuth();
   const { toast } = useToast();
 
-  // Role guard: only agent_admin can access
-  if (role && role !== 'agent_admin') {
+  // Role guard: admin + unit managers (deputy) can access
+  if (role && !isUnitViewer) {
     return (
       <div className="p-6 text-center text-muted-foreground">
         <p>This page is only available to unit managers.</p>

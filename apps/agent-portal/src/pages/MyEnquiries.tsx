@@ -312,7 +312,7 @@ function toEnquiryExportRows(
 }
 
 export function MyEnquiries() {
-  const { agent, role, isUnitViewer } = useAuth();
+  const { agent, isUnitViewer } = useAuth();
   const { toast } = useToast();
   const { data: enquiries, isLoading, isError, error } = useMyEnquiries(agent?.id, isUnitViewer);
   const { data: merchants } = useAgentMerchants();
@@ -320,7 +320,12 @@ export function MyEnquiries() {
   const [proposeOpen, setProposeOpen] = useState(false);
   const [agentFilter, setAgentFilter] = useState<string>('all');
 
-  const activeMerchants = merchants?.filter((m) => m.status === MerchantStatus.ACTIVE) ?? [];
+  const activeMerchants =
+    merchants?.filter(
+      (m) =>
+        m.status === MerchantStatus.ACTIVE &&
+        (m.created_by_agent_id === null || m.created_by_agent_id === agent?.id),
+    ) ?? [];
 
   // Default ordering: Partner -> Status (open first) -> earliest expiry -> newest.
   const sortedEnquiries = [...(enquiries ?? [])].sort(compareMyEnquiries);
@@ -359,7 +364,7 @@ export function MyEnquiries() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {role === 'agent_admin' && (
+          {isUnitViewer && (
             <Button variant="outline" size="sm" onClick={() => setProposeOpen(true)}>
               <Plus className="size-4 mr-2" />
               Propose Partnership
@@ -390,7 +395,7 @@ export function MyEnquiries() {
         </div>
       </div>
 
-      {role === 'agent_admin' && agent?.id && (
+      {isUnitViewer && agent?.id && (
         <ProposePartnerDialog agentId={agent.id} open={proposeOpen} onOpenChange={setProposeOpen} />
       )}
 
@@ -422,7 +427,7 @@ export function MyEnquiries() {
             activeMerchants={activeMerchants}
             agentId={agent?.id}
             showAgent={isUnitViewer}
-            readOnly={isUnitViewer && enq.agent_id !== agent?.id}
+            readOnly={false}
           />
         ))
       )}

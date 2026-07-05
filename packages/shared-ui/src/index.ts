@@ -136,6 +136,9 @@ export type { RegistrantRow, RegistrantsWorkbookMeta, EnquiryExportRow, RenewalE
 // Font Utilities
 export { CURATED_FONTS, loadFont, getFontDisplayName } from './utils/fonts';
 
+// Card Gradient (per-event link card colors)
+export { resolveCardGradient } from './utils/cardGradient';
+
 // Design System
 export * from './lib/design-tokens';
 

@@ -38,6 +38,10 @@ export interface InvitationCardProps {
   /** Action buttons rendered in bottom-right of right panel */
   actions?: React.ReactNode;
   className?: string;
+
+  /** Left-panel gradient override — defaults preserve the classic navy card. */
+  gradientFrom?: string;
+  gradientTo?: string;
 }
 
 export function InvitationCard({
@@ -54,6 +58,8 @@ export function InvitationCard({
   logoUrl,
   actions,
   className,
+  gradientFrom,
+  gradientTo,
 }: InvitationCardProps) {
   // All events are Singapore events; render the date in the event timezone so
   // it is correct regardless of the viewer's device timezone. The `date` prop
@@ -84,7 +90,7 @@ export function InvitationCard({
       {/* Left Panel — gradient date display */}
       <div
         className="w-[100px] md:w-[120px] flex-shrink-0 flex flex-col justify-between p-4"
-        style={{ background: 'linear-gradient(135deg, #0F172A, #0369A1)' }}
+        style={{ background: `linear-gradient(135deg, ${gradientFrom ?? '#0F172A'}, ${gradientTo ?? '#0369A1'})` }}
       >
         <div>
           {logoUrl && (

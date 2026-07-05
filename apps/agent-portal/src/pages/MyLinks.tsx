@@ -24,6 +24,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
   useToast,
+  resolveCardGradient,
 } from '@agent-system/shared-ui';
 import { Link2, Copy, Check, MapPin, UserCheck, CheckCircle, Users, FileDown, FileSpreadsheet, Loader2, ArrowRight } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
@@ -386,7 +387,13 @@ export function MyLinks() {
           <CardContent>
             <TooltipProvider>
               <div className="space-y-3">
-                {activeLinks.map((link) => (
+                {activeLinks.map((link) => {
+                  const [gradientFrom, gradientTo] = resolveCardGradient(
+                    link.slot?.campaign?.id,
+                    link.slot?.campaign?.card_template_overrides,
+                    systemSettings?.card_template ?? DEFAULT_CARD_TEMPLATE,
+                  );
+                  return (
                   <InvitationCard
                     key={link.id}
                     eventName={link.slot?.campaign?.name ?? 'Unknown Event'}
@@ -396,6 +403,8 @@ export function MyLinks() {
                     registeredCount={link.registration_count}
                     companyName={systemSettings?.company_branding?.companyName}
                     logoUrl={systemSettings?.company_branding?.logoUrl}
+                    gradientFrom={gradientFrom}
+                    gradientTo={gradientTo}
                     actions={
                       <div className="flex items-center gap-1">
                         <Tooltip>
@@ -463,7 +472,8 @@ export function MyLinks() {
                       </div>
                     }
                   />
-                ))}
+                  );
+                })}
               </div>
             </TooltipProvider>
           </CardContent>

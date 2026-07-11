@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useParams } from '@tanstack/react-router';
 import {
   Button,
@@ -37,12 +37,14 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Switch,
   useToast,
 } from '@agent-system/shared-ui';
 import { Plus, Pencil, Trash2, Check, ArrowLeft, QrCode, Copy, Link2, Power, FileText, KeyRound } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useMerchant, useUpdateMerchant } from '../../hooks/useMerchants';
 import { useCreateMerchantUser, useRevokeMerchantUser } from '../../hooks/useMerchantUser';
+import { useUploadFormImage } from '../../hooks/useCompanyAssets';
 import { supabase } from '../../lib/supabase';
 import {
   useMerchantBranches,
@@ -58,7 +60,7 @@ import {
 } from '../../hooks/useBranchLinks';
 import { useAllAgents } from '../../hooks/useAllAgents';
 import { useSystemSettings } from '../../hooks/useSystemSettings';
-import { MerchantStatus, type MerchantBranch } from '@agent-system/shared-types';
+import { MerchantStatus, type MerchantBranch, type MerchantFormSettings } from '@agent-system/shared-types';
 
 const publicBaseUrl = () => import.meta.env.VITE_PUBLIC_PAGES_URL || window.location.origin;
 const enquiryUrl = (code: string) => `${publicBaseUrl()}/public/enquiry/${code}`;
@@ -203,6 +205,121 @@ function BranchLinksDialog({
   );
 }
 
+function FormDesignCard({ merchantId, formSettings }: { merchantId: string; formSettings: MerchantFormSettings | null }) {
+  const { toast } = useToast();
+  const updateMerchant = useUpdateMerchant();
+  const uploadFormImage = useUploadFormImage();
+  const [draft, setDraft] = useState<MerchantFormSettings>(formSettings ?? {});
+  const [uploadingKey, setUploadingKey] = useState<'header_image_url' | 'header_logo_url' | null>(null);
+
+  // Reseed the draft only when the SAVED settings content changes (a plain
+  // object identity check would wipe drafts on every unrelated refetch).
+  const settingsKey = JSON.stringify(formSettings ?? {});
+  useEffect(() => {
+    setDraft(formSettings ?? {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settingsKey]);
+
+  const handleUpload = async (
+    key: 'header_image_url' | 'header_logo_url',
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    if (uploadingKey) return;
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!['image/png', 'image/jpeg'].includes(file.type)) {
+      toast({ title: 'Invalid file type', description: 'Please upload a PNG or JPEG image.', variant: 'error' });
+      return;
+    }
+    setUploadingKey(key);
+    try {
+      const url = await uploadFormImage.mutateAsync({ file, key: `merchant-${merchantId}-${key}` });
+      setDraft((prev) => ({ ...prev, [key]: url }));
+      toast({ title: 'Image uploaded', description: 'Remember to save the form design.' });
+    } catch {
+      toast({ title: 'Upload failed', variant: 'error' });
+    } finally {
+      setUploadingKey(null);
+    }
+  };
+
+  const handleSave = async () => {
+    // Empty strings mean "use the global setting" — strip them so the public
+    // form's per-field fallback works.
+    const cleaned = Object.fromEntries(
+      Object.entries(draft).filter(([, v]) => typeof v === 'string' && v.trim() !== ''),
+    ) as MerchantFormSettings;
+    try {
+      await updateMerchant.mutateAsync({
+        id: merchantId,
+        form_settings: Object.keys(cleaned).length > 0 ? cleaned : null,
+      });
+      toast({ title: 'Form design saved' });
+    } catch (err: unknown) {
+      toast({ title: 'Failed to save', description: (err as Error)?.message, variant: 'error' });
+    }
+  };
+
+  const textField = (key: 'header_title' | 'header_subtitle' | 'footer_text', label: string, placeholder: string) => (
+    <div>
+      <Label>{label}</Label>
+      <Input
+        value={draft[key] ?? ''}
+        onChange={(e) => setDraft((prev) => ({ ...prev, [key]: e.target.value }))}
+        placeholder={placeholder}
+      />
+    </div>
+  );
+
+  const imageField = (key: 'header_image_url' | 'header_logo_url', label: string) => (
+    <div>
+      <Label>{label}</Label>
+      <div className="mt-1 flex items-center gap-3">
+        {draft[key] ? (
+          <img src={draft[key]} alt="" className="h-12 rounded border object-contain" />
+        ) : (
+          <span className="text-xs text-muted-foreground">Using global image</span>
+        )}
+        <Button variant="outline" size="sm" asChild disabled={uploadingKey === key}>
+          <label className="cursor-pointer">
+            {uploadingKey === key ? 'Uploading…' : 'Upload'}
+            <input type="file" accept="image/png,image/jpeg" className="hidden" disabled={uploadingKey === key} onChange={(e) => handleUpload(key, e)} />
+          </label>
+        </Button>
+        {draft[key] && (
+          <Button variant="ghost" size="sm" onClick={() => setDraft((prev) => ({ ...prev, [key]: '' }))}>
+            Reset to global
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Form Design</CardTitle>
+        <CardDescription>
+          Customise this partner's branch enquiry form. Empty fields fall back to the global form settings.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {imageField('header_image_url', 'Header banner image')}
+        {imageField('header_logo_url', 'Form logo')}
+        {textField('header_title', 'Header title', 'Car Insurance Enquiry — Gold Gift on Renewal')}
+        {textField('header_subtitle', 'Header subtitle', 'Submit your details and our team will be in touch…')}
+        {textField('footer_text', 'Footer text', '© RACC Agency. All rights reserved.')}
+        <div className="flex justify-end">
+          <Button onClick={handleSave} disabled={updateMerchant.isPending}>
+            {updateMerchant.isPending ? 'Saving…' : 'Save form design'}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function MerchantDetail() {
   const { merchantId } = useParams({ strict: false }) as { merchantId: string };
   const { data: merchant } = useMerchant(merchantId);
@@ -242,6 +359,20 @@ export function MerchantDetail() {
     try {
       await updateMerchant.mutateAsync({ id: merchantId, merchant_share_pct: pct });
       toast({ title: 'Merchant share updated' });
+    } catch (err: unknown) {
+      toast({ title: 'Failed to update', description: (err as Error)?.message, variant: 'error' });
+    }
+  };
+
+  const handleToggleMaster = async (checked: boolean) => {
+    try {
+      await updateMerchant.mutateAsync({ id: merchantId, is_master: checked });
+      toast({
+        title: checked ? 'Marked as Master Partner' : 'Master Partner removed',
+        description: checked
+          ? 'Every agent can now assign this partner.'
+          : 'Only the proposing/linked agents can assign this partner now.',
+      });
     } catch (err: unknown) {
       toast({ title: 'Failed to update', description: (err as Error)?.message, variant: 'error' });
     }
@@ -382,6 +513,16 @@ export function MerchantDetail() {
               Save
             </Button>
           </div>
+          <div className="flex items-center gap-2 pt-2">
+            <Switch
+              checked={!!merchant?.is_master}
+              onCheckedChange={handleToggleMaster}
+              disabled={updateMerchant.isPending}
+            />
+            <span>
+              Master Partner — appears in <span className="text-foreground">every</span> agent's Assign-partner list
+            </span>
+          </div>
         </CardContent>
       </Card>
 
@@ -438,6 +579,8 @@ export function MerchantDetail() {
           )}
         </CardContent>
       </Card>
+
+      {merchant && <FormDesignCard merchantId={merchantId} formSettings={merchant.form_settings ?? null} />}
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">

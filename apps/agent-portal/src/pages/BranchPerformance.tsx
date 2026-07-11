@@ -5,6 +5,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
   Badge, getStatusVariant, TableSkeleton,
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Input,
 } from '@agent-system/shared-ui';
 import { format, parseISO } from 'date-fns';
 import { supabase } from '../lib/supabase';
@@ -46,12 +47,32 @@ export function BranchPerformance() {
 
   const [branchFilter, setBranchFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [sortKey, setSortKey] = useState<'newest' | 'oldest' | 'staff' | 'branch'>('newest');
   const branchNames = Array.from(new Set((leads ?? []).map((l) => l.branch_name)));
-  const visibleLeads = (leads ?? []).filter(
-    (l) =>
-      (branchFilter === 'all' || l.branch_name === branchFilter) &&
-      (statusFilter === 'all' || l.vehicle_status === statusFilter),
-  );
+  // Date range compares the yyyy-mm-dd prefix of the ISO timestamp; empty
+  // bounds are unbounded. From > To simply matches nothing.
+  const visibleLeads = (leads ?? [])
+    .filter(
+      (l) =>
+        (branchFilter === 'all' || l.branch_name === branchFilter) &&
+        (statusFilter === 'all' || l.vehicle_status === statusFilter) &&
+        (!dateFrom || l.lead_created_at.slice(0, 10) >= dateFrom) &&
+        (!dateTo || l.lead_created_at.slice(0, 10) <= dateTo),
+    )
+    .sort((a, b) => {
+      switch (sortKey) {
+        case 'oldest':
+          return a.lead_created_at.localeCompare(b.lead_created_at);
+        case 'staff':
+          return (a.staff_id ?? '').localeCompare(b.staff_id ?? '') || b.lead_created_at.localeCompare(a.lead_created_at);
+        case 'branch':
+          return a.branch_name.localeCompare(b.branch_name) || b.lead_created_at.localeCompare(a.lead_created_at);
+        default:
+          return b.lead_created_at.localeCompare(a.lead_created_at);
+      }
+    });
 
   return (
     <div className="flex flex-col gap-4 animate-fade-in">
@@ -111,6 +132,31 @@ export function BranchPerformance() {
             </CardDescription>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <Select value={sortKey} onValueChange={(v) => setSortKey(v as typeof sortKey)}>
+              <SelectTrigger className="w-36 h-9 text-sm">
+                <SelectValue placeholder="Sort" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest first</SelectItem>
+                <SelectItem value="oldest">Oldest first</SelectItem>
+                <SelectItem value="staff">Staff ID</SelectItem>
+                <SelectItem value="branch">Branch</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="w-36 h-9 text-sm"
+              aria-label="Submitted from"
+            />
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="w-36 h-9 text-sm"
+              aria-label="Submitted to"
+            />
             {branchNames.length > 1 && (
               <Select value={branchFilter} onValueChange={setBranchFilter}>
                 <SelectTrigger className="w-40 h-9 text-sm">

@@ -22,7 +22,7 @@ import {
   Checkbox,
   Logo,
 } from '@agent-system/shared-ui';
-import { DEFAULT_ENQUIRY_FORM } from '@agent-system/shared-types';
+import { DEFAULT_ENQUIRY_FORM, type MerchantFormSettings } from '@agent-system/shared-types';
 import { Car, Plus, Trash2, CheckCircle, Paperclip, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { toMalaysianE164 } from '../lib/phone';
@@ -69,6 +69,7 @@ interface EnquiryContext {
   merchant_name: string | null;
   merchant_logo_url: string | null;
   branch_name: string | null;
+  merchant_form_settings: MerchantFormSettings | null;
 }
 
 type Attachment = {
@@ -331,25 +332,35 @@ export function Enquiry() {
     );
   }
 
-  // Header/footer + T&C copy: admin-editable Settings take priority, then any
-  // branch-merchant branding, then the hardcoded defaults (used while settings load).
+  // Header/footer + T&C copy resolution (Round 5 items 3 + 6):
+  // per-merchant form_settings → admin-editable global Settings → shared
+  // branding → hardcoded defaults. Branch forms no longer use a
+  // merchant-specific title — the merchant identity renders as a small
+  // "Submitted via …" line instead, matching the agent form.
+  const merchantForm = context?.merchant_form_settings ?? null;
+  const headerImageUrl = merchantForm?.header_image_url || formSettings?.header_image_url || null;
   const headerLogoUrl =
-    formBranding.logoUrl || formSettings?.header_logo_url || context?.merchant_logo_url || null;
+    merchantForm?.header_logo_url ||
+    formBranding.logoUrl ||
+    formSettings?.header_logo_url ||
+    context?.merchant_logo_url ||
+    null;
   const headerTitle =
-    context?.kind === 'branch' && context.merchant_name
-      ? `${context.merchant_name} — Gold Gift Enquiry`
-      : formSettings?.header_title ?? 'Car Insurance Enquiry — Gold Gift on Renewal';
+    merchantForm?.header_title ||
+    formSettings?.header_title ||
+    'Car Insurance Enquiry — Gold Gift on Renewal';
   const headerSubtitle =
-    formSettings?.header_subtitle ??
+    merchantForm?.header_subtitle ||
+    formSettings?.header_subtitle ||
     'Submit your details and our team will be in touch about your renewal and gold gift.';
   const overlayCopy =
-    context?.kind === 'branch'
-      ? `Renew your car insurance at ${context.merchant_name ?? 'this merchant'}${context.branch_name ? ` (${context.branch_name})` : ''} and receive a gold gift.`
+    context?.kind === 'branch' && context.merchant_name
+      ? `Submitted via ${context.merchant_name}${context.branch_name ? ` (${context.branch_name})` : ''}`
       : context?.kind === 'agent'
         ? `Submitted via ${context?.agent_name ?? ''}`
         : '';
   const footerText =
-    formBranding.footerText || formSettings?.footer_text || DEFAULT_ENQUIRY_FORM.footer_text;
+    merchantForm?.footer_text || formBranding.footerText || formSettings?.footer_text || DEFAULT_ENQUIRY_FORM.footer_text;
 
   // T&C body with the DPO contact appended (when not already present in the body).
   const tncBody = formSettings?.tnc_body ?? DEFAULT_ENQUIRY_FORM.tnc_body;
@@ -362,9 +373,9 @@ export function Enquiry() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 flex items-center justify-center p-4">
       <Card className="w-full max-w-lg bg-card backdrop-blur-sm shadow-2xl border-0 animate-slide-up">
-        {formSettings?.header_image_url && (
+        {headerImageUrl && (
           <img
-            src={formSettings.header_image_url}
+            src={headerImageUrl}
             alt=""
             className="w-full h-auto rounded-t-lg object-cover"
           />

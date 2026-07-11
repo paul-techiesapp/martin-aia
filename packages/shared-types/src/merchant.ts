@@ -6,6 +6,15 @@ import {
   RewardStatus,
 } from './enums';
 
+/** Per-partner overrides for the public branch enquiry form (Round 5 item 3). */
+export interface MerchantFormSettings {
+  header_image_url?: string;
+  header_logo_url?: string;
+  header_title?: string;
+  header_subtitle?: string;
+  footer_text?: string;
+}
+
 export interface Merchant {
   id: string;
   name: string;
@@ -26,6 +35,10 @@ export interface Merchant {
   user_id: string | null;
   /** Email used to identify/invite the merchant portal user. */
   portal_email: string | null;
+  /** Master Partner: assignable/visible to every agent (Round 5 item 1). */
+  is_master: boolean;
+  /** Per-partner form design; null = use global enquiry-form settings. */
+  form_settings: MerchantFormSettings | null;
   created_at: string;
   updated_at: string;
 }

@@ -25,7 +25,7 @@ import {
   FormMessage,
 } from '@agent-system/shared-ui';
 import { ArrowLeft } from 'lucide-react';
-import { CreateAgentError, useAgent, useCreateAgent, useUpdateAgent } from '../../hooks/useAgents';
+import { CreateAgentError, useAgent, useAgents, useCreateAgent, useUpdateAgent } from '../../hooks/useAgents';
 import { useTiers } from '../../hooks/useTiers';
 import { AgentStatus } from '@agent-system/shared-types';
 import { useEffect, useState } from 'react';
@@ -40,7 +40,16 @@ const agentSchema = z.object({
   tier_id: z.string().min(1, 'Tier is required'),
   status: z.nativeEnum(AgentStatus),
   is_unit_manager: z.boolean(),
+  parent_agent_id: z.string().optional(),
   password: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.is_unit_manager && !data.parent_agent_id) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['parent_agent_id'],
+      message: 'Select the unit this Unit Admin belongs to',
+    });
+  }
 });
 
 type AgentFormData = z.infer<typeof agentSchema>;
@@ -52,6 +61,11 @@ export function AgentForm() {
 
   const { data: agent, isLoading: isLoadingAgent } = useAgent(agentId ?? '');
   const { data: tiers, isLoading: isLoadingTiers } = useTiers();
+  const { data: allUnits } = useAgents();
+  // Only true top-level units can be a parent; exclude self when editing.
+  const unitOptions = (allUnits ?? []).filter(
+    (u) => u.parent_agent_id === null && u.id !== agentId,
+  );
   const createAgent = useCreateAgent();
   const updateAgent = useUpdateAgent();
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -68,6 +82,7 @@ export function AgentForm() {
       tier_id: '',
       status: AgentStatus.ACTIVE,
       is_unit_manager: false,
+      parent_agent_id: '',
       password: '',
     },
   });
@@ -84,6 +99,7 @@ export function AgentForm() {
         tier_id: agent.tier_id ?? '',
         status: agent.status,
         is_unit_manager: agent.is_unit_manager ?? false,
+        parent_agent_id: agent.parent_agent_id ?? '',
       });
     }
   }, [agent, form]);
@@ -91,9 +107,10 @@ export function AgentForm() {
   const onSubmit = async (data: AgentFormData) => {
     setSubmitError(null);
     try {
+      const parentId = data.is_unit_manager ? data.parent_agent_id || null : null;
       if (isEditing && agentId) {
-        const { password: _password, ...updates } = data;
-        await updateAgent.mutateAsync({ id: agentId, ...updates });
+        const { password: _password, parent_agent_id: _p, ...updates } = data;
+        await updateAgent.mutateAsync({ id: agentId, ...updates, parent_agent_id: parentId });
       } else {
         if (!data.password || data.password.length < 6) {
           form.setError('password', { message: 'Password must be at least 6 characters' });
@@ -109,6 +126,7 @@ export function AgentForm() {
           tier_id: data.tier_id,
           status: data.status,
           is_unit_manager: data.is_unit_manager,
+          parent_agent_id: parentId,
           password: data.password,
         });
       }
@@ -312,6 +330,44 @@ export function AgentForm() {
                   </FormItem>
                 )}
               />
+
+              {form.watch('is_unit_manager') && (
+                <FormField
+                  control={form.control}
+                  name="parent_agent_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Unit</FormLabel>
+                      <Select
+                        onValueChange={(v) => {
+                          field.onChange(v);
+                          // Deputy inherits the unit's name for reporting.
+                          const unit = unitOptions.find((u) => u.id === v);
+                          if (unit) form.setValue('unit_name', unit.unit_name);
+                        }}
+                        value={field.value ?? ''}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select the unit this account belongs to" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {unitOptions.map((u) => (
+                            <SelectItem key={u.id} value={u.id}>
+                              {u.name} — {u.unit_name} ({u.agent_code})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        The Unit Admin sees this unit's data (same view as the unit owner).
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               {!isEditing && (
                 <FormField

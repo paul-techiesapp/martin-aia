@@ -12,7 +12,7 @@ export function useAgents() {
           *,
           tier:tiers(*)
         `)
-        .is('parent_agent_id', null)
+        .or('parent_agent_id.is.null,is_unit_manager.eq.true')
         .order('name', { ascending: true });
 
       if (error) throw error;
@@ -51,6 +51,7 @@ export interface CreateAgentInput {
   tier_id: string;
   status: Agent['status'];
   is_unit_manager: boolean;
+  parent_agent_id?: string | null;
   password: string;
 }
 

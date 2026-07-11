@@ -13,6 +13,7 @@ import {
   TableRow,
   Badge,
   Button,
+  Input,
   Select,
   SelectContent,
   SelectItem,
@@ -37,11 +38,12 @@ import { FileText, Store, Download, Plus, Paperclip, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useMyEnquiries, type EnquiryWithDetails } from '../hooks/useMyEnquiries';
 import { useAssignVehicleMerchant } from '../hooks/useAssignVehicleMerchant';
-import { useAgentMerchants, type MerchantWithBranches } from '../hooks/useAgentMerchants';
+import { useAgentMerchants, useMyLinkedMerchantIds, type MerchantWithBranches } from '../hooks/useAgentMerchants';
+import { isMerchantAvailableToAgent } from '../lib/partnerScope';
 import { useRequestQuote } from '../hooks/useRequestQuote';
 import { ProposePartnerDialog } from '../components/ProposePartnerDialog';
 import { compareByKey, type EnquirySortKey } from './myEnquiriesSort';
-import { EnquiryStatus, MerchantStatus, VehicleStatus, type AgentWithTier } from '@agent-system/shared-types';
+import { EnquiryStatus, VehicleStatus, type AgentWithTier } from '@agent-system/shared-types';
 import {
   useEnquiryAttachments,
   useViewAttachment,
@@ -432,18 +434,21 @@ export function MyEnquiries() {
   const { toast } = useToast();
   const { data: enquiries, isLoading, isError, error } = useMyEnquiries(agent?.id, isUnitViewer);
   const { data: merchants } = useAgentMerchants();
+  const { data: linkedMerchantIds } = useMyLinkedMerchantIds(agent?.id);
 
   const [proposeOpen, setProposeOpen] = useState(false);
   const [agentFilter, setAgentFilter] = useState<string>('all');
   const [sortKey, setSortKey] = useState<EnquirySortKey>('default');
   const [partnerFilter, setPartnerFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
+  // Round 5 item 1: only Master Partners, own proposals, or branch-linked
+  // merchants may be assigned — never every admin-created partner.
   const activeMerchants =
-    merchants?.filter(
-      (m) =>
-        m.status === MerchantStatus.ACTIVE &&
-        (m.created_by_agent_id === null || m.created_by_agent_id === agent?.id),
+    merchants?.filter((m) =>
+      isMerchantAvailableToAgent(m, agent?.id, linkedMerchantIds ?? new Set<string>()),
     ) ?? [];
 
   // Default ordering: Partner -> Status (open first) -> earliest expiry -> newest
@@ -483,11 +488,18 @@ export function MyEnquiries() {
     return statusFilter === 'open' ? e.status === EnquiryStatus.OPEN : e.status === EnquiryStatus.CLOSED;
   };
 
+  // Round 5 item 8.1: filter by submission date (yyyy-mm-dd prefix of the ISO
+  // timestamp); empty bounds are unbounded.
+  const matchesDate = (e: EnquiryWithDetails): boolean =>
+    (!dateFrom || e.created_at.slice(0, 10) >= dateFrom) &&
+    (!dateTo || e.created_at.slice(0, 10) <= dateTo);
+
   const visibleEnquiries = sortedEnquiries.filter(
     (e) =>
       (agentFilter === 'all' || e.agent?.id === agentFilter) &&
       matchesPartner(e) &&
-      matchesStatus(e)
+      matchesStatus(e) &&
+      matchesDate(e)
   );
 
   const handleDownload = async () => {
@@ -532,6 +544,20 @@ export function MyEnquiries() {
               </SelectContent>
             </Select>
           )}
+          <Input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="w-36 h-9 text-sm"
+            aria-label="Submitted from"
+          />
+          <Input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="w-36 h-9 text-sm"
+            aria-label="Submitted to"
+          />
           <Select value={sortKey} onValueChange={(val) => setSortKey(val as EnquirySortKey)}>
             <SelectTrigger className="w-40 h-9 text-sm">
               <SelectValue placeholder="Sort" />

@@ -188,7 +188,9 @@ export function Partners() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Event Partners</h1>
-          <p className="text-sm text-muted-foreground">Manage your recruitment partners and track their activity</p>
+          <p className="text-sm text-muted-foreground">
+            Recruitment partners for events — insurance partnership merchants are managed under Partnership → My Partners
+          </p>
         </div>
         <Button onClick={() => setIsAddOpen(true)}>
           <UserPlus className="size-4 mr-1.5" />

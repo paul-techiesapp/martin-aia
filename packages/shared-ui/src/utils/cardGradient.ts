@@ -91,3 +91,41 @@ export function resolveCardGradient(
 
   return campaignGradient(campaignId);
 }
+
+/**
+ * Round 5 item 5: assign every campaign in a rendered list a DISTINCT palette
+ * gradient. The hash in campaignGradient() can collide (8 slots), which put
+ * two different events on the same color. Campaigns whose gradient derives
+ * from an explicit panelColor override keep it (admin's choice, collisions
+ * intentional). Palette-derived campaigns probe forward (ids processed in
+ * sorted order for determinism) to the next free slot; after 8 palette
+ * campaigns the slots cycle.
+ */
+export function assignCampaignGradients(
+  campaigns: Array<
+    { id: string; card_template_overrides?: Partial<CardTemplate> | null } | null | undefined
+  >,
+  systemTemplate: CardTemplate,
+): Map<string, [string, string]> {
+  const unique = new Map<string, Partial<CardTemplate> | null | undefined>();
+  for (const c of campaigns) {
+    if (c?.id && !unique.has(c.id)) unique.set(c.id, c.card_template_overrides);
+  }
+  const result = new Map<string, [string, string]>();
+  const usedSlots = new Set<number>();
+  for (const id of Array.from(unique.keys()).sort()) {
+    const resolved = resolveCardGradient(id, unique.get(id), systemTemplate);
+    const paletteIdx = CARD_GRADIENTS.findIndex(([f, t]) => f === resolved[0] && t === resolved[1]);
+    if (paletteIdx === -1) {
+      result.set(id, resolved); // override-derived — keep as-is
+      continue;
+    }
+    let idx = paletteIdx;
+    if (usedSlots.size < CARD_GRADIENTS.length) {
+      while (usedSlots.has(idx)) idx = (idx + 1) % CARD_GRADIENTS.length;
+    }
+    usedSlots.add(idx);
+    result.set(id, CARD_GRADIENTS[idx]);
+  }
+  return result;
+}

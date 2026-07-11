@@ -37,11 +37,12 @@ import { FileText, Store, Download, Plus, Paperclip, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useMyEnquiries, type EnquiryWithDetails } from '../hooks/useMyEnquiries';
 import { useAssignVehicleMerchant } from '../hooks/useAssignVehicleMerchant';
-import { useAgentMerchants, type MerchantWithBranches } from '../hooks/useAgentMerchants';
+import { useAgentMerchants, useMyLinkedMerchantIds, type MerchantWithBranches } from '../hooks/useAgentMerchants';
+import { isMerchantAvailableToAgent } from '../lib/partnerScope';
 import { useRequestQuote } from '../hooks/useRequestQuote';
 import { ProposePartnerDialog } from '../components/ProposePartnerDialog';
 import { compareByKey, type EnquirySortKey } from './myEnquiriesSort';
-import { EnquiryStatus, MerchantStatus, VehicleStatus, type AgentWithTier } from '@agent-system/shared-types';
+import { EnquiryStatus, VehicleStatus, type AgentWithTier } from '@agent-system/shared-types';
 import {
   useEnquiryAttachments,
   useViewAttachment,
@@ -432,6 +433,7 @@ export function MyEnquiries() {
   const { toast } = useToast();
   const { data: enquiries, isLoading, isError, error } = useMyEnquiries(agent?.id, isUnitViewer);
   const { data: merchants } = useAgentMerchants();
+  const { data: linkedMerchantIds } = useMyLinkedMerchantIds(agent?.id);
 
   const [proposeOpen, setProposeOpen] = useState(false);
   const [agentFilter, setAgentFilter] = useState<string>('all');
@@ -439,11 +441,11 @@ export function MyEnquiries() {
   const [partnerFilter, setPartnerFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
+  // Round 5 item 1: only Master Partners, own proposals, or branch-linked
+  // merchants may be assigned — never every admin-created partner.
   const activeMerchants =
-    merchants?.filter(
-      (m) =>
-        m.status === MerchantStatus.ACTIVE &&
-        (m.created_by_agent_id === null || m.created_by_agent_id === agent?.id),
+    merchants?.filter((m) =>
+      isMerchantAvailableToAgent(m, agent?.id, linkedMerchantIds ?? new Set<string>()),
     ) ?? [];
 
   // Default ordering: Partner -> Status (open first) -> earliest expiry -> newest

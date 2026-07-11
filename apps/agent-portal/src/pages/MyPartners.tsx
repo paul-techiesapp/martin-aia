@@ -61,7 +61,7 @@ export function MyPartners() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <TableSkeleton rows={3} columns={5} />
+            <TableSkeleton rows={3} columns={6} />
           ) : myMerchants.length === 0 ? (
             <p className="py-6 text-center text-muted-foreground">
               No partners available yet. Master partners appear here automatically once set up.
@@ -74,7 +74,7 @@ export function MyPartners() {
                   <TableHead>Contact</TableHead>
                   <TableHead>Branches</TableHead>
                   <TableHead>Source</TableHead>
-                  <TableHead>Proposed</TableHead>
+                  <TableHead>Added</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>

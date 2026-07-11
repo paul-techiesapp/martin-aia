@@ -27,6 +27,7 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
           SELECT 1 FROM branch_links bl
           JOIN merchant_branches b ON b.id = bl.merchant_branch_id
           WHERE bl.agent_id = p_agent_id AND b.merchant_id = m.id
+            AND bl.is_active AND b.status = 'active'
         )
       )
   );

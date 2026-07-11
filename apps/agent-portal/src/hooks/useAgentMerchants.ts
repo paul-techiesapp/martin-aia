@@ -126,6 +126,8 @@ export function useProposeBranch() {
 
 // Merchant ids the agent is branch-linked to (their own branch QR links).
 // RLS "Agents manage own branch_links" already scopes rows to the caller.
+// Only active links into active branches count, mirroring
+// merchant_available_to_agent() in the database.
 export function useMyLinkedMerchantIds(agentId: string | undefined) {
   return useQuery({
     queryKey: ['my-linked-merchants', agentId],
@@ -133,12 +135,13 @@ export function useMyLinkedMerchantIds(agentId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('branch_links')
-        .select('branch:merchant_branches(merchant_id)')
-        .eq('agent_id', agentId!);
+        .select('branch:merchant_branches(merchant_id, status)')
+        .eq('agent_id', agentId!)
+        .eq('is_active', true);
       if (error) throw error;
       const ids = new Set<string>();
-      for (const row of (data ?? []) as unknown as { branch: { merchant_id: string } | null }[]) {
-        if (row.branch?.merchant_id) ids.add(row.branch.merchant_id);
+      for (const row of (data ?? []) as unknown as { branch: { merchant_id: string; status: string } | null }[]) {
+        if (row.branch?.merchant_id && row.branch.status === 'active') ids.add(row.branch.merchant_id);
       }
       return ids;
     },

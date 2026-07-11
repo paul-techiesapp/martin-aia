@@ -36,6 +36,7 @@ serve(async (req) => {
       tier_id,
       status,
       is_unit_manager,
+      parent_agent_id,
       password,
     } = await req.json();
 
@@ -83,6 +84,22 @@ serve(async (req) => {
       );
     }
 
+    // A Unit Admin (deputy) must hang off a real top-level unit; otherwise
+    // get_unit_root() makes them their own empty unit and they see nothing.
+    if (parent_agent_id) {
+      const { data: parentRow, error: parentError } = await supabase
+        .from("agents")
+        .select("id, parent_agent_id")
+        .eq("id", parent_agent_id)
+        .single();
+      if (parentError || !parentRow || parentRow.parent_agent_id !== null) {
+        return new Response(
+          JSON.stringify({ error: "parent_agent_id must reference a top-level unit" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
       email,
       password,
@@ -114,7 +131,7 @@ serve(async (req) => {
         unit_name,
         tier_id,
         status: status ?? "active",
-        parent_agent_id: null,
+        parent_agent_id: parent_agent_id ?? null,
         is_unit_manager: is_unit_manager ?? false,
         is_auto_invite: true,
       })

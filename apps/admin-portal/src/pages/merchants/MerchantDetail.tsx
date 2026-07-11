@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useParams } from '@tanstack/react-router';
 import {
   Button,
@@ -212,10 +212,19 @@ function FormDesignCard({ merchantId, formSettings }: { merchantId: string; form
   const [draft, setDraft] = useState<MerchantFormSettings>(formSettings ?? {});
   const [uploadingKey, setUploadingKey] = useState<'header_image_url' | 'header_logo_url' | null>(null);
 
+  // Reseed the draft only when the SAVED settings content changes (a plain
+  // object identity check would wipe drafts on every unrelated refetch).
+  const settingsKey = JSON.stringify(formSettings ?? {});
+  useEffect(() => {
+    setDraft(formSettings ?? {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settingsKey]);
+
   const handleUpload = async (
     key: 'header_image_url' | 'header_logo_url',
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
+    if (uploadingKey) return;
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
@@ -275,7 +284,7 @@ function FormDesignCard({ merchantId, formSettings }: { merchantId: string; form
         <Button variant="outline" size="sm" asChild disabled={uploadingKey === key}>
           <label className="cursor-pointer">
             {uploadingKey === key ? 'Uploading…' : 'Upload'}
-            <input type="file" accept="image/png,image/jpeg" className="hidden" onChange={(e) => handleUpload(key, e)} />
+            <input type="file" accept="image/png,image/jpeg" className="hidden" disabled={uploadingKey === key} onChange={(e) => handleUpload(key, e)} />
           </label>
         </Button>
         {draft[key] && (
@@ -571,7 +580,7 @@ export function MerchantDetail() {
         </CardContent>
       </Card>
 
-      {merchant && <FormDesignCard merchantId={merchantId} formSettings={merchant.form_settings ?? null} key={merchant.updated_at} />}
+      {merchant && <FormDesignCard merchantId={merchantId} formSettings={merchant.form_settings ?? null} />}
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">

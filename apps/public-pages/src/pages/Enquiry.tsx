@@ -346,12 +346,12 @@ export function Enquiry() {
     context?.merchant_logo_url ||
     null;
   const headerTitle =
-    merchantForm?.header_title ??
-    formSettings?.header_title ??
+    merchantForm?.header_title ||
+    formSettings?.header_title ||
     'Car Insurance Enquiry — Gold Gift on Renewal';
   const headerSubtitle =
-    merchantForm?.header_subtitle ??
-    formSettings?.header_subtitle ??
+    merchantForm?.header_subtitle ||
+    formSettings?.header_subtitle ||
     'Submit your details and our team will be in touch about your renewal and gold gift.';
   const overlayCopy =
     context?.kind === 'branch' && context.merchant_name

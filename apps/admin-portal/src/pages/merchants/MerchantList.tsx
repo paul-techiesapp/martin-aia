@@ -206,6 +206,7 @@ export function MerchantList() {
                         <Link to="/merchants/$merchantId" params={{ merchantId: merchant.id }} className="hover:underline">
                           {merchant.name}
                         </Link>
+                        {merchant.is_master && <Badge className="ml-2">Master</Badge>}
                       </TableCell>
                       <TableCell>
                         <Badge variant={statusVariant(merchant.status)} className="capitalize">

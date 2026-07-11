@@ -16,6 +16,7 @@ import {
   TooltipTrigger,
   useToast,
   resolveCardGradient,
+  assignCampaignGradients,
 } from '@agent-system/shared-ui';
 import { Link2, Copy, Check, MapPin, UserCheck, CheckCircle, Users, FileDown, FileSpreadsheet, Loader2, ArrowRight } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
@@ -190,6 +191,11 @@ export function PartnerLinks() {
   // "My Active Links" lists only links whose event slot has not yet ended.
   const now = new Date();
   const activeLinks = links?.filter((l) => !l.slot || parseISO(l.slot.end_at) >= now);
+
+  const activeGradients = assignCampaignGradients(
+    (activeLinks ?? []).map((l) => l.slot?.campaign),
+    systemSettings?.card_template ?? DEFAULT_CARD_TEMPLATE,
+  );
 
   return (
     <div className="flex flex-col gap-4 animate-fade-in">
@@ -373,11 +379,13 @@ export function PartnerLinks() {
             <TooltipProvider>
               <div className="space-y-3">
                 {activeLinks.map((link) => {
-                  const [gradientFrom, gradientTo] = resolveCardGradient(
-                    link.slot?.campaign?.id,
-                    link.slot?.campaign?.card_template_overrides,
-                    systemSettings?.card_template ?? DEFAULT_CARD_TEMPLATE,
-                  );
+                  const [gradientFrom, gradientTo] =
+                    activeGradients.get(link.slot?.campaign?.id ?? '') ??
+                    resolveCardGradient(
+                      link.slot?.campaign?.id,
+                      link.slot?.campaign?.card_template_overrides,
+                      systemSettings?.card_template ?? DEFAULT_CARD_TEMPLATE,
+                    );
                   return (
                   <InvitationCard
                     key={link.id}

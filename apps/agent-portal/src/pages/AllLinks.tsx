@@ -17,6 +17,7 @@ import {
   generateRegistrantsWorkbook,
   formatSlotTime,
   resolveCardGradient,
+  assignCampaignGradients,
 } from '@agent-system/shared-ui';
 import type { InvitationCardData } from '@agent-system/shared-ui';
 import { Link } from '@tanstack/react-router';
@@ -139,6 +140,11 @@ export function AllLinks() {
     return aEnded ? bStart - aStart : aStart - bStart;
   });
 
+  const linkGradients = assignCampaignGradients(
+    (sortedLinks ?? []).map((l) => l.slot?.campaign),
+    systemSettings?.card_template ?? DEFAULT_CARD_TEMPLATE,
+  );
+
   return (
     <div className="flex flex-col gap-4 animate-fade-in">
       <div>
@@ -179,11 +185,13 @@ export function AllLinks() {
               <div className="space-y-3">
                 {sortedLinks.map((link) => {
                   const ended = link.slot ? parseISO(link.slot.end_at) < now : false;
-                  const [gradientFrom, gradientTo] = resolveCardGradient(
-                    link.slot?.campaign?.id,
-                    link.slot?.campaign?.card_template_overrides,
-                    systemSettings?.card_template ?? DEFAULT_CARD_TEMPLATE,
-                  );
+                  const [gradientFrom, gradientTo] =
+                    linkGradients.get(link.slot?.campaign?.id ?? '') ??
+                    resolveCardGradient(
+                      link.slot?.campaign?.id,
+                      link.slot?.campaign?.card_template_overrides,
+                      systemSettings?.card_template ?? DEFAULT_CARD_TEMPLATE,
+                    );
                   return (
                     <InvitationCard
                       key={link.id}

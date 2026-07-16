@@ -139,6 +139,9 @@ export { CURATED_FONTS, loadFont, getFontDisplayName } from './utils/fonts';
 // Card Gradient (per-event link card colors)
 export { resolveCardGradient, assignCampaignGradients } from './utils/cardGradient';
 
+export { readEdgeFunctionError } from './utils/edgeFunction';
+export type { EdgeFunctionFailure } from './utils/edgeFunction';
+
 // Design System
 export * from './lib/design-tokens';
 

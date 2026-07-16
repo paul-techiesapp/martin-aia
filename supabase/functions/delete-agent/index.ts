@@ -21,7 +21,7 @@ serve(async (req) => {
   }
 
   try {
-    const { agent_id } = await req.json();
+    const { agent_id, force } = await req.json();
 
     if (!agent_id) {
       return new Response(
@@ -79,6 +79,40 @@ serve(async (req) => {
       .eq("parent_agent_id", target.id);
 
     const agentIds = [target.id, ...(subAgents ?? []).map((a) => a.id)];
+
+    // enquiries.agent_id is ON DELETE SET NULL, so deleting this unit would
+    // silently orphan its customers to agent_id NULL — invisible in every agent
+    // portal, with no record of the prior owner. Refuse while open work remains
+    // unless the admin explicitly forces it. Spans the whole unit because
+    // deleting a unit deletes its sub-agents too.
+    if (!force) {
+      const { data: openEnquiries, error: openError } = await supabase
+        .from("enquiries")
+        .select("id, enquiry_vehicles!inner(id)")
+        .in("agent_id", agentIds)
+        .in("enquiry_vehicles.status", ["submitted", "quoted"]);
+
+      if (openError) {
+        return new Response(
+          JSON.stringify({ error: `Failed to check open enquiries: ${openError.message}` }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const openCount = (openEnquiries ?? []).length;
+      if (openCount > 0) {
+        return new Response(
+          JSON.stringify({
+            error:
+              `This unit still has ${openCount} open partnership enquiry(s). ` +
+              `Reassign those customers to another agent first (Enquiries > Reassign agent), ` +
+              `or they will be left with no agent.`,
+            open_enquiry_count: openCount,
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
 
     // Partners belonging to the agent or any of its sub-agents
     const { data: partners } = await supabase

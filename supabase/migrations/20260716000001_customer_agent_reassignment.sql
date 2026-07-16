@@ -10,10 +10,16 @@
 -- customer_nric_normalized. So reassignment keys on the NRIC, which also means it
 -- still works on already-orphaned customers.
 --
--- Only OPEN work moves. An enquiry moves only if it still has a submitted/quoted
--- vehicle. Enquiries whose vehicles are all renewed/lost keep their original
--- agent_id, so historical reports and recorded renewal credit are not rewritten
--- away from the agent who actually closed them.
+-- Only OPEN work moves, but the unit of movement is the ENQUIRY, not the
+-- vehicle. An enquiry moves only if it still has a submitted/quoted vehicle;
+-- once it qualifies, it moves wholesale, including any vehicles inside it
+-- that are already renewed/lost. So an enquiry holding one renewed vehicle
+-- and one still-quoted vehicle will move both to the new agent. (The money
+-- itself stays correct regardless: merchant_commissions snapshots agent_id
+-- at renewal time. But a report attributing by enquiries.agent_id would
+-- restate that renewed vehicle's credit to the new agent.) Enquiries whose
+-- vehicles are ALL renewed/lost never match the EXISTS clause below, so they
+-- keep their original agent_id untouched.
 
 CREATE TABLE customer_agent_reassignments (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -30,9 +36,16 @@ CREATE INDEX idx_customer_agent_reassignments_nric
 
 ALTER TABLE customer_agent_reassignments ENABLE ROW LEVEL SECURITY;
 
--- Admins only. No agent and no anon policy: this is an audit log of an admin action.
-CREATE POLICY "Admin full access to customer_agent_reassignments"
-  ON customer_agent_reassignments FOR ALL TO authenticated USING (is_admin());
+-- Admins only, and read-only. No agent and no anon policy: this is an audit
+-- log of an admin action. The RPC below is SECURITY DEFINER (owned by
+-- postgres) and writes the audit row directly, bypassing RLS entirely, so no
+-- INSERT/UPDATE/DELETE policy is needed for the write path. A FOR ALL policy
+-- here would reuse USING as WITH CHECK (Postgres' default when WITH CHECK is
+-- omitted), letting any admin fabricate rows via INSERT, tamper with
+-- enquiry_count via UPDATE, or erase the whole table via DELETE through
+-- PostgREST — i.e. the audited role could erase its own audit trail.
+CREATE POLICY "Admins read customer_agent_reassignments"
+  ON customer_agent_reassignments FOR SELECT TO authenticated USING (is_admin());
 
 CREATE OR REPLACE FUNCTION reassign_customer_agent(
   p_customer_nric text,
@@ -68,10 +81,20 @@ BEGIN
     RAISE EXCEPTION 'Target agent not found or not active' USING ERRCODE = 'P0011';
   END IF;
 
-  -- Recorded as the "from" for audit: the agent on the newest matching enquiry.
+  -- Recorded as the "from" for audit: the agent on the newest MOVING enquiry.
+  -- Must use the identical EXISTS predicate as the UPDATE below — otherwise,
+  -- when a customer's enquiries are split across two agents, this could pick
+  -- the newest enquiry overall (which may be closed and owned by a different
+  -- agent than the one whose open enquiry is actually being reassigned) and
+  -- record the wrong from_agent_id.
   SELECT e.agent_id INTO v_from_agent_id
   FROM enquiries e
   WHERE e.customer_nric_normalized = v_nric_norm
+    AND EXISTS (
+      SELECT 1 FROM enquiry_vehicles v
+      WHERE v.enquiry_id = e.id
+        AND v.status IN ('submitted', 'quoted')
+    )
   ORDER BY e.created_at DESC
   LIMIT 1;
 

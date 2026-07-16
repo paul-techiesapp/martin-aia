@@ -126,6 +126,27 @@ export interface EnquiryVehicle {
   updated_at: string;
 }
 
+/**
+ * Audit row for an admin moving a customer from one agent to another.
+ * Keyed on the normalized NRIC because there is no customers table — a
+ * "customer" is every enquiry sharing a customer_nric_normalized.
+ *
+ * Distinct from Enquiry.assigned_at / assigned_by, which record MERCHANT
+ * assignment (assign_enquiry_merchant) and are unrelated to agent ownership.
+ */
+export interface CustomerAgentReassignment {
+  id: string;
+  nric_normalized: string;
+  /** Agent on the customer's newest enquiry at the time of the move; null if orphaned. */
+  from_agent_id: string | null;
+  to_agent_id: string | null;
+  /** How many enquiries actually moved. Zero is valid: no open work to move. */
+  enquiry_count: number;
+  /** auth.uid() of the admin who performed the move. */
+  reassigned_by: string;
+  created_at: string;
+}
+
 export interface Gift {
   id: string;
   enquiry_vehicle_id: string;

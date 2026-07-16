@@ -124,11 +124,17 @@ All are `SECURITY DEFINER` with `SET search_path = public`, matching existing co
 ### `reassign_customer_agent`
 
 ```sql
-reassign_customer_agent(p_nric_normalized text, p_new_agent_id uuid) RETURNS int
+reassign_customer_agent(p_customer_nric text, p_new_agent_id uuid) RETURNS int
 -- GRANT EXECUTE TO authenticated
 ```
 
+Takes the **raw** NRIC and normalizes it internally with the same expression as
+`submit_enquiry`. The admin client only holds `enquiries.customer_nric` (raw), and normalizing
+server-side keeps the client from passing an arbitrary or empty key.
+
 - Requires `is_admin()`, else `42501`.
+- Rejects an NRIC that normalizes to empty, else `22023`. Without this guard a blank NRIC
+  would match every blank-NRIC customer at once and move all of them.
 - Requires target agent to exist and be `active`, else `P0011`.
 - Updates `enquiries` where `customer_nric_normalized = p_nric_normalized` AND an
   `EXISTS` subquery finds a vehicle in `('submitted','quoted')` that is not removed.
@@ -249,8 +255,14 @@ or it returns wrong numbers rather than an error. Each is a distinct implementat
 
 ### `packages/shared-types`
 
-Add `removed_at` / `removed_by_customer` to the `enquiry_vehicles` type; add
-`customer_portal_tokens` and `customer_agent_reassignments` types.
+All enquiry-domain types live in `src/merchant.ts`, **not** `src/database.ts` (which holds the
+older events/agents/rewards domain). Add `removed_at` / `removed_by_customer` to
+`EnquiryVehicle`; add `CustomerPortalToken` and `CustomerAgentReassignment` after
+`EnquiryVehicle` and before `Gift`. `src/index.ts` re-exports with `export *`, so no edit there.
+
+Note `Enquiry.assigned_at` / `assigned_by` already exist but are **merchant**-assignment fields
+written by `assign_enquiry_merchant`. They are not an agent-reassignment audit trail and must
+not be reused as one.
 
 ## Related fix: orphaned customers on agent delete
 
@@ -269,9 +281,17 @@ feature exists to prevent.
 | Code | Meaning |
 |---|---|
 | `42501` | Caller not authorized (not admin / not the owning agent) |
+| `22023` | NRIC normalizes to empty — refuse rather than match every blank-NRIC customer |
 | `P0011` | Target agent missing or not active |
 | `P0012` | Invalid, revoked, or non-matching customer token |
 | `P0013` | Cannot remove a vehicle that is renewed or lost |
+
+`P0010` is deliberately skipped: it is already taken by the checkout OTP flow
+(`20260313000001_shareable_links_redesign.sql:284`, "Invalid or expired OTP").
+
+**No P-code translation exists anywhere in the admin portal today** — every hook does
+`if (error) throw error` and the page toasts the raw Postgres message. These RPCs establish
+the first mapping; it lives in the calling hook.
 
 `P0009` (NRIC already registered this month) is unchanged and remains confined to
 `submit_enquiry`.

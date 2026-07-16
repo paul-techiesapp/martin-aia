@@ -151,24 +151,23 @@ Expected: success, no error.
 
 Run this as a single SQL script against staging. It builds an isolated fixture, calls the function body's logic directly (bypassing `is_admin()`, which is verified separately in Step 4), and asserts. It rolls back, leaving no data behind.
 
+**Do not invent agents.** `agents.user_id` has a FK to `auth.users`, so an agent row with a
+`gen_random_uuid()` user_id fails with `23503`. Use two real active agents from the target
+database. On staging today: `196c0a83-38bd-4d0b-a8a4-613c450422a1` (Nicole, "old") and
+`30f883e9-bcfb-40b3-af95-2914061361bb` (Test, "new"). Re-query if these have changed:
+`SELECT id, name FROM agents WHERE status = 'active' LIMIT 3;`
+
 ```sql
 BEGIN;
 
--- Fixture: two agents, one customer NRIC with two enquiries —
--- one with an open car, one fully renewed.
-INSERT INTO agents (id, user_id, name, email, phone, nric, agent_code, unit_name, status)
-VALUES
-  ('aaaaaaaa-0000-0000-0000-000000000001', gen_random_uuid(), 'Old Agent',
-   'old-reassign-test@example.com', '+60100000001', 'RTEST001', 'RTESTOLD', 'Unit R', 'active'),
-  ('aaaaaaaa-0000-0000-0000-000000000002', gen_random_uuid(), 'New Agent',
-   'new-reassign-test@example.com', '+60100000002', 'RTEST002', 'RTESTNEW', 'Unit R', 'active');
-
+-- One customer NRIC, two enquiries: one with an open car, one fully renewed.
+-- S9999999Z is not present in staging data; everything rolls back regardless.
 INSERT INTO enquiries (id, agent_id, customer_name, customer_nric, customer_nric_normalized,
                        customer_phone, customer_phone_normalized, status)
 VALUES
-  ('bbbbbbbb-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001',
+  ('bbbbbbbb-0000-0000-0000-000000000001', '196c0a83-38bd-4d0b-a8a4-613c450422a1',
    'Reassign Test', 'S9999999Z', 'S9999999Z', '+60100000009', '60100000009', 'open'),
-  ('bbbbbbbb-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000001',
+  ('bbbbbbbb-0000-0000-0000-000000000002', '196c0a83-38bd-4d0b-a8a4-613c450422a1',
    'Reassign Test', 'S9999999Z', 'S9999999Z', '+60100000009', '60100000009', 'closed');
 
 INSERT INTO enquiry_vehicles (enquiry_id, car_plate, car_plate_normalized,
@@ -179,46 +178,73 @@ VALUES
 
 -- The UPDATE the RPC performs.
 UPDATE enquiries e
-SET agent_id = 'aaaaaaaa-0000-0000-0000-000000000002'
+SET agent_id = '30f883e9-bcfb-40b3-af95-2914061361bb'
 WHERE e.customer_nric_normalized = 'S9999999Z'
   AND EXISTS (
     SELECT 1 FROM enquiry_vehicles v
     WHERE v.enquiry_id = e.id AND v.status IN ('submitted', 'quoted')
   );
 
--- Assert: the open enquiry moved, the renewed one did not.
-DO $$
-DECLARE v_open uuid; v_closed uuid;
-BEGIN
-  SELECT agent_id INTO v_open   FROM enquiries WHERE id = 'bbbbbbbb-0000-0000-0000-000000000001';
-  SELECT agent_id INTO v_closed FROM enquiries WHERE id = 'bbbbbbbb-0000-0000-0000-000000000002';
-  IF v_open <> 'aaaaaaaa-0000-0000-0000-000000000002' THEN
-    RAISE EXCEPTION 'FAIL: open enquiry did not move (agent_id=%)', v_open;
-  END IF;
-  IF v_closed <> 'aaaaaaaa-0000-0000-0000-000000000001' THEN
-    RAISE EXCEPTION 'FAIL: renewed enquiry moved but should not have (agent_id=%)', v_closed;
-  END IF;
-  RAISE NOTICE 'PASS: open moved, renewed stayed';
-END $$;
+-- Assert by RETURNING a verdict, not RAISE NOTICE: the Supabase MCP execute_sql
+-- surfaces result sets but not NOTICEs, so a NOTICE-only assertion gives you an
+-- empty result and no evidence either way.
+SELECT
+  CASE WHEN id = 'bbbbbbbb-0000-0000-0000-000000000001' THEN 'open-enquiry(submitted car)'
+       ELSE 'closed-enquiry(renewed car)' END          AS fixture,
+  (SELECT name FROM agents a WHERE a.id = e.agent_id)  AS now_owned_by,
+  CASE
+    WHEN id = 'bbbbbbbb-0000-0000-0000-000000000001'
+         AND agent_id = '30f883e9-bcfb-40b3-af95-2914061361bb' THEN 'PASS moved'
+    WHEN id = 'bbbbbbbb-0000-0000-0000-000000000002'
+         AND agent_id = '196c0a83-38bd-4d0b-a8a4-613c450422a1' THEN 'PASS stayed'
+    ELSE 'FAIL'
+  END                                                   AS verdict
+FROM enquiries e
+WHERE customer_nric_normalized = 'S9999999Z'
+ORDER BY id;
 
 ROLLBACK;
 ```
 
-Expected: `NOTICE: PASS: open moved, renewed stayed`, then `ROLLBACK`.
-If either assertion raises, the predicate is wrong — fix the migration and re-apply before continuing.
+Expected: two rows, `PASS moved` for the open enquiry and `PASS stayed` for the renewed one.
+Any `FAIL` means the predicate is wrong — fix the migration and re-apply before continuing.
 
 - [ ] **Step 4: Verify the guards reject bad input**
 
+`execute_sql` carries no JWT, so `auth.uid()` is NULL and `is_admin()` is false by default — that exercises the authz guard for free:
+
 ```sql
 -- Expect: ERROR 42501 "Only admins can reassign a customer"
--- (run while authenticated as a NON-admin, e.g. via the agent@test.com token)
-SELECT reassign_customer_agent('S9999999Z', 'aaaaaaaa-0000-0000-0000-000000000002');
+SELECT reassign_customer_agent('S9999999Z', '30f883e9-bcfb-40b3-af95-2914061361bb');
+```
 
--- Expect: ERROR 22023 "Customer NRIC is required"  (run as admin)
+To reach the admin path, impersonate an admin JWT inside a transaction. `is_admin()` reads
+`auth.users.raw_app_meta_data` for `auth.uid()`, and `auth.uid()` reads `request.jwt.claims`,
+so setting that config is sufficient. Find the admin with
+`SELECT id FROM auth.users WHERE raw_app_meta_data->>'role' = 'admin';` — on staging today it
+is `8d6df332-6a10-43a2-8100-68d1cc1a7385` (admin@test.com).
+
+```sql
+-- Confirm impersonation works BEFORE trusting any guard result below.
+BEGIN;
+SELECT set_config('request.jwt.claims',
+  '{"sub":"8d6df332-6a10-43a2-8100-68d1cc1a7385","role":"authenticated"}', true);
+SELECT is_admin() AS impersonating_admin;   -- must be true
+ROLLBACK;
+
+-- Expect: ERROR 22023 "Customer NRIC is required"
+BEGIN;
+SELECT set_config('request.jwt.claims',
+  '{"sub":"8d6df332-6a10-43a2-8100-68d1cc1a7385","role":"authenticated"}', true);
 SELECT reassign_customer_agent('   ', '00000000-0000-0000-0000-000000000000');
+ROLLBACK;
 
--- Expect: ERROR P0011 "Target agent not found or not active"  (run as admin)
+-- Expect: ERROR P0011 "Target agent not found or not active"
+BEGIN;
+SELECT set_config('request.jwt.claims',
+  '{"sub":"8d6df332-6a10-43a2-8100-68d1cc1a7385","role":"authenticated"}', true);
 SELECT reassign_customer_agent('S9999999Z', '00000000-0000-0000-0000-000000000000');
+ROLLBACK;
 ```
 
 Expected: each raises the stated error code. The `22023` check must fire before `P0011`, so the blank-NRIC call reports the NRIC problem rather than the bogus agent.
@@ -227,14 +253,14 @@ Expected: each raises the stated error code. The `22023` check must fire before 
 
 Spec requirement 5: a customer whose agent was already hard-deleted has `agent_id = NULL` and must still be recoverable. Because the predicate keys on NRIC and never mentions the old agent, this should work — confirm it rather than assume.
 
+This calls the **real RPC** (not the bare UPDATE), so it also exercises the return count, the audit row, and server-side NRIC normalization in one pass. Note the NRIC is passed dashed and lowercase on purpose.
+
 ```sql
 BEGIN;
+SELECT set_config('request.jwt.claims',
+  '{"sub":"8d6df332-6a10-43a2-8100-68d1cc1a7385","role":"authenticated"}', true);
 
-INSERT INTO agents (id, user_id, name, email, phone, nric, agent_code, unit_name, status)
-VALUES ('aaaaaaaa-0000-0000-0000-000000000003', gen_random_uuid(), 'Rescue Agent',
-        'rescue-reassign-test@example.com', '+60100000003', 'RTEST003', 'RTESTNEW', 'Unit R', 'active');
-
--- An orphaned customer: agent_id NULL, one open car.
+-- An orphaned customer: agent_id NULL (what a hard-deleted agent leaves behind), one open car.
 INSERT INTO enquiries (id, agent_id, customer_name, customer_nric, customer_nric_normalized,
                        customer_phone, customer_phone_normalized, status)
 VALUES ('bbbbbbbb-0000-0000-0000-000000000003', NULL, 'Orphan Test', 'S8888888Y', 'S8888888Y',
@@ -244,28 +270,32 @@ INSERT INTO enquiry_vehicles (enquiry_id, car_plate, car_plate_normalized,
                               insurance_expiry_date, status)
 VALUES ('bbbbbbbb-0000-0000-0000-000000000003', 'RTEST 3', 'RTEST3', '2027-01-01', 'submitted');
 
-UPDATE enquiries e
-SET agent_id = 'aaaaaaaa-0000-0000-0000-000000000003'
-WHERE e.customer_nric_normalized = 'S8888888Y'
-  AND EXISTS (
-    SELECT 1 FROM enquiry_vehicles v
-    WHERE v.enquiry_id = e.id AND v.status IN ('submitted', 'quoted')
-  );
+SELECT reassign_customer_agent('s8888888-y', '30f883e9-bcfb-40b3-af95-2914061361bb');
 
-DO $$
-DECLARE v_agent uuid;
-BEGIN
-  SELECT agent_id INTO v_agent FROM enquiries WHERE id = 'bbbbbbbb-0000-0000-0000-000000000003';
-  IF v_agent IS DISTINCT FROM 'aaaaaaaa-0000-0000-0000-000000000003' THEN
-    RAISE EXCEPTION 'FAIL: orphaned customer was not rescued (agent_id=%)', v_agent;
-  END IF;
-  RAISE NOTICE 'PASS: orphaned customer reassigned';
-END $$;
-
+SELECT
+  coalesce((SELECT name FROM agents a WHERE a.id = e.agent_id), '<still orphaned>') AS rescued_to,
+  CASE WHEN e.agent_id = '30f883e9-bcfb-40b3-af95-2914061361bb'
+       THEN 'PASS orphan rescued' ELSE 'FAIL orphan not rescued' END AS verdict
+FROM enquiries e WHERE e.id = 'bbbbbbbb-0000-0000-0000-000000000003';
 ROLLBACK;
 ```
 
-Expected: `NOTICE: PASS: orphaned customer reassigned`, then `ROLLBACK`.
+Expected: one row, `rescued_to = Test`, `verdict = PASS orphan rescued`.
+
+Then confirm the audit row in the same transaction shape (the MCP returns only the LAST result set, so query it separately):
+`SELECT nric_normalized, from_agent_id, enquiry_count FROM customer_agent_reassignments WHERE nric_normalized = 'S8888888Y';`
+Expected: `nric_normalized = S8888888Y` (proving `'s8888888-y'` was normalized server-side), `from_agent_id = null` (correct for an orphan), `enquiry_count = 1`.
+
+Finally confirm nothing leaked:
+
+```sql
+SELECT
+  (SELECT count(*) FROM enquiries
+    WHERE customer_nric_normalized IN ('S9999999Z','S8888888Y')) AS leftover_test_enquiries,
+  (SELECT count(*) FROM customer_agent_reassignments)            AS audit_rows;
+```
+
+Expected: both `0` on staging (all fixtures rolled back).
 
 - [ ] **Step 6: Commit**
 

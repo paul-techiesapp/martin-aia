@@ -22,10 +22,22 @@ import {
   SelectValue,
   Label,
   buildEnquiriesWorkbook,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  useToast,
 } from '@agent-system/shared-ui';
 import { Download } from 'lucide-react';
 import { EnquiryStatus, VehicleStatus } from '@agent-system/shared-types';
-import { useEnquiries, type EnquiryListRow } from '../../hooks/useEnquiries';
+import {
+  useEnquiries,
+  useReassignCustomerAgent,
+  type EnquiryListRow,
+} from '../../hooks/useEnquiries';
+import { useAllAgents } from '../../hooks/useAllAgents';
 import { compareEnquiries, toEnquiryExportRows } from './enquirySort';
 
 function fmtDate(value: string): string {
@@ -65,6 +77,55 @@ export function EnquiryList() {
         .sort(compareEnquiries),
     [enquiries, statusFilter, unitFilter, agentFilter, partnerFilter]
   );
+
+  const { toast } = useToast();
+  const { data: allAgents } = useAllAgents();
+  const reassign = useReassignCustomerAgent();
+
+  // Reassign dialog: holds the clicked row (null = closed).
+  const [reassignTarget, setReassignTarget] = useState<EnquiryListRow | null>(null);
+  const [reassignAgentId, setReassignAgentId] = useState('');
+
+  // How many of this customer's enquiries will actually move: same IC, and at
+  // least one car still submitted/quoted. Shown before confirming, because the
+  // admin clicked ONE row but is about to change several.
+  const reassignImpact = useMemo(() => {
+    if (!reassignTarget) return 0;
+    const norm = (s: string) => s.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    const targetNric = norm(reassignTarget.customer_nric);
+    return (enquiries ?? []).filter(
+      (e) =>
+        norm(e.customer_nric) === targetNric &&
+        (e.vehicles ?? []).some(
+          (v) => v.status === VehicleStatus.SUBMITTED || v.status === VehicleStatus.QUOTED,
+        ),
+    ).length;
+  }, [enquiries, reassignTarget]);
+
+  const submitReassign = async () => {
+    if (!reassignTarget) return;
+    if (!reassignAgentId) {
+      toast({ title: 'Select an agent', variant: 'error' });
+      return;
+    }
+    try {
+      const moved = await reassign.mutateAsync({
+        customerNric: reassignTarget.customer_nric,
+        newAgentId: reassignAgentId,
+      });
+      toast({
+        title: moved > 0 ? `Reassigned ${moved} enquiry(s)` : 'Nothing to reassign',
+        description:
+          moved > 0
+            ? 'Completed enquiries stay with the original agent.'
+            : 'This customer has no open enquiries.',
+      });
+      setReassignTarget(null);
+      setReassignAgentId('');
+    } catch (err: any) {
+      toast({ title: 'Failed to reassign', description: err.message, variant: 'error' });
+    }
+  };
 
   const handleDownload = () => {
     void buildEnquiriesWorkbook(toEnquiryExportRows(filtered), {
@@ -163,7 +224,7 @@ export function EnquiryList() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <TableSkeleton rows={6} columns={6} />
+            <TableSkeleton rows={6} columns={7} />
           ) : (
             <div className="overflow-auto rounded-md border">
               <Table>
@@ -175,12 +236,13 @@ export function EnquiryList() {
                     <TableHead>Cars</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Received</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filtered.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground py-6">
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-6">
                         No enquiries match the current filter.
                       </TableCell>
                     </TableRow>
@@ -220,6 +282,18 @@ export function EnquiryList() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-muted-foreground">{fmtDate(e.created_at)}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setReassignTarget(e);
+                              setReassignAgentId(e.agent_id ?? '');
+                            }}
+                          >
+                            Reassign agent
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
@@ -229,6 +303,51 @@ export function EnquiryList() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog
+        open={!!reassignTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReassignTarget(null);
+            setReassignAgentId('');
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reassign customer to another agent</DialogTitle>
+            <DialogDescription>
+              This moves <strong>every open enquiry</strong> for{' '}
+              {reassignTarget?.customer_name} (IC {reassignTarget?.customer_nric}) — not just
+              this row. {reassignImpact} enquiry(s) will move. Enquiries whose cars are all
+              renewed or lost stay with the original agent.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>New agent</Label>
+            <Select value={reassignAgentId} onValueChange={setReassignAgentId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select an agent" />
+              </SelectTrigger>
+              <SelectContent>
+                {(allAgents ?? []).map((a) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    {a.name} — {a.unit_name} ({a.agent_code})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReassignTarget(null)}>
+              Cancel
+            </Button>
+            <Button onClick={submitReassign} disabled={reassign.isPending}>
+              {reassign.isPending ? 'Reassigning...' : 'Reassign'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

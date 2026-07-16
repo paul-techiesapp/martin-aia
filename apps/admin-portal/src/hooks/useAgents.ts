@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { readEdgeFunctionError } from '@agent-system/shared-ui';
 import { supabase } from '../lib/supabase';
 import type { Agent, AgentWithTier } from '@agent-system/shared-types';
 
@@ -73,11 +74,17 @@ export function useCreateAgent() {
         body: input,
       });
 
+      // On a non-2xx, invoke() leaves data null and the function's `{ error, field }`
+      // body unread on the error — readEdgeFunctionError is what surfaces it.
+      if (response.error) {
+        const { message, field } = await readEdgeFunctionError(
+          response.error,
+          'Failed to create unit',
+        );
+        throw new CreateAgentError(message, field as keyof CreateAgentInput | undefined);
+      }
       if (response.data?.error) {
         throw new CreateAgentError(response.data.error, response.data.field);
-      }
-      if (response.error) {
-        throw new CreateAgentError(response.error.message || 'Failed to create agent');
       }
       return response.data.agent as Agent;
     },
@@ -121,11 +128,12 @@ export function useDeleteAgent() {
         body: { agent_id: id },
       });
 
+      if (response.error) {
+        const { message } = await readEdgeFunctionError(response.error, 'Failed to delete unit');
+        throw new Error(message);
+      }
       if (response.data?.error) {
         throw new Error(response.data.error);
-      }
-      if (response.error) {
-        throw new Error(response.error.message || 'Failed to delete agent');
       }
     },
     onSuccess: () => {

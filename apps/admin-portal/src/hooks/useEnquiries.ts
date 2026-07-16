@@ -192,3 +192,50 @@ export function useConfirmVehicleRenewal() {
     },
   });
 }
+
+/**
+ * Postgres error codes raised by reassign_customer_agent, mapped to text an
+ * admin can act on. Without this the raw plpgsql message reaches the toast —
+ * the existing behavior everywhere else in this portal.
+ */
+function reassignErrorMessage(error: { code?: string; message: string }): string {
+  switch (error.code) {
+    case '42501':
+      return 'Only admins can reassign a customer.';
+    case '22023':
+      return 'This customer has no IC on record, so they cannot be reassigned.';
+    case 'P0011':
+      return 'That agent is not active any more. Pick a different agent.';
+    default:
+      return error.message;
+  }
+}
+
+/**
+ * Moves every OPEN enquiry belonging to this customer's IC to another agent.
+ * Enquiries whose cars are all renewed/lost stay with the original agent, so
+ * past renewal credit is not rewritten. Resolves to the number moved; 0 means
+ * the customer had no open work and is not an error.
+ */
+export function useReassignCustomerAgent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      customerNric,
+      newAgentId,
+    }: {
+      customerNric: string;
+      newAgentId: string;
+    }) => {
+      const { data, error } = await supabase.rpc('reassign_customer_agent', {
+        p_customer_nric: customerNric,
+        p_new_agent_id: newAgentId,
+      });
+      if (error) throw new Error(reassignErrorMessage(error));
+      return (data ?? 0) as number;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['enquiries'] });
+    },
+  });
+}

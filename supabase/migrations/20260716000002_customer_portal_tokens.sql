@@ -69,11 +69,18 @@ BEGIN
     RAISE EXCEPTION 'This customer has no IC on record' USING ERRCODE = '22023';
   END IF;
 
-  IF NOT (
-    is_admin()
-    OR (v_agent_id IS NOT NULL AND v_agent_id = get_agent_id())
-    OR (v_agent_id IS NOT NULL AND v_agent_id IN (SELECT unit_member_ids()))
-  ) THEN
+  -- COALESCE is load-bearing: get_agent_id() returns NULL for a caller with no
+  -- agents row (e.g. a merchant portal login), which makes
+  -- `v_agent_id = get_agent_id()` NULL rather than false. The whole OR chain
+  -- then evaluates to NULL, and PL/pgSQL treats `IF NULL THEN` as false — so
+  -- without COALESCE the RAISE below is silently skipped and authorization is
+  -- bypassed entirely.
+  IF NOT COALESCE(
+       is_admin()
+       OR (v_agent_id IS NOT NULL AND v_agent_id = get_agent_id())
+       OR (v_agent_id IS NOT NULL AND v_agent_id IN (SELECT unit_member_ids())),
+       false
+     ) THEN
     RAISE EXCEPTION 'Not allowed to issue this customer link' USING ERRCODE = '42501';
   END IF;
 

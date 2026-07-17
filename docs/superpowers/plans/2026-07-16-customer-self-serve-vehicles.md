@@ -219,6 +219,45 @@ ROLLBACK;
 
 Expected: first call raises `42501`; the admin block returns two IDENTICAL 32-char hex strings. If they differ, the get-or-create is broken and would mint a new link on every button press.
 
+**Do not count rows in the same statement that calls the function.** A
+`(SELECT count(*) FROM customer_portal_tokens)` in the same SELECT list reads the
+statement-start snapshot and returns 0 even when the INSERT succeeded — it reads
+as a failure when nothing is wrong. Count in a **separate statement**:
+
+```sql
+BEGIN;
+SELECT set_config('request.jwt.claims',
+  '{"sub":"8d6df332-6a10-43a2-8100-68d1cc1a7385","role":"authenticated"}', true);
+SELECT ensure_customer_portal_token((SELECT id FROM enquiries ORDER BY created_at LIMIT 1));
+SELECT ensure_customer_portal_token((SELECT id FROM enquiries ORDER BY created_at LIMIT 1));
+SELECT ensure_customer_portal_token((SELECT id FROM enquiries ORDER BY created_at LIMIT 1));
+SELECT count(*) AS rows_after_3_calls FROM customer_portal_tokens;  -- must be 1
+ROLLBACK;
+```
+
+**Also verify the merchant-escalation path explicitly** — this is the case the
+COALESCE exists for, and it is the one a code read will not catch:
+
+```sql
+BEGIN;
+-- A REAL merchant portal login: authenticated, but no agents row.
+SELECT set_config('request.jwt.claims',
+  '{"sub":"826a674f-2238-45b7-8eb2-3d59eb564fff","role":"authenticated"}', true);
+SELECT is_admin() AS is_admin, get_agent_id() AS agent_id;  -- expect false, NULL
+-- Must raise 42501. If it returns a token, authorization is bypassed.
+SELECT ensure_customer_portal_token(
+  (SELECT id FROM enquiries WHERE agent_id IS NOT NULL LIMIT 1));
+ROLLBACK;
+```
+
+Find a merchant uid with:
+`SELECT u.id FROM merchants m JOIN auth.users u ON u.id = m.user_id WHERE m.user_id IS NOT NULL LIMIT 1;`
+
+**Beware rolled-back cleanup.** If you `DELETE` test rows in the same batch as a
+statement that then RAISEs, the implicit transaction rolls the DELETE back too —
+the rows survive and the next test reads them as pre-existing state. Clean up in
+its own statement and re-check.
+
 - [ ] **Step 5: Commit**
 
 ```bash

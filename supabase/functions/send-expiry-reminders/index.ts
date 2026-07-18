@@ -172,6 +172,7 @@ Deno.serve(async (req) => {
           insurance_expiry_date,
           status,
           reminder_sent_at,
+          removed_at,
           insurance_product:insurance_products(name),
           enquiry:enquiries(
             customer_name,
@@ -189,6 +190,13 @@ Deno.serve(async (req) => {
 
       if (vErr || !vehicle) {
         console.error(`Vehicle ${vehicleId} not found:`, vErr);
+        skipped++;
+        continue;
+      }
+
+      // Defence in depth: enqueue_expiry_reminders already filters removed_at IS
+      // NULL, but never email a customer about a car they removed themselves.
+      if (vehicle.removed_at) {
         skipped++;
         continue;
       }

@@ -200,7 +200,7 @@ export function MyCars() {
           )}
 
           <div className="space-y-3">
-            <FormLabel className="text-foreground">Your Cars</FormLabel>
+            <p className="text-sm font-medium text-foreground">Your Cars</p>
             {vehicles.length === 0 ? (
               <p className="text-sm text-muted-foreground">You have no cars listed yet.</p>
             ) : (
@@ -241,7 +241,7 @@ export function MyCars() {
           </div>
 
           <div className="border-t pt-4 mt-2">
-            <FormLabel className="text-foreground">Add a Car</FormLabel>
+            <p className="text-sm font-medium text-foreground">Add a Car</p>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onAdd)} className="space-y-4 mt-2">
                 <FormField

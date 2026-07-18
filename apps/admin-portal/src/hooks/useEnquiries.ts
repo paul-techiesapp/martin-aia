@@ -15,6 +15,8 @@ export interface EnquiryVehicleRow {
   renewed_at: string | null;
   lost_at: string | null;
   lost_reason: string | null;
+  removed_at: string | null;
+  removed_by_customer: boolean;
   product: { id: string; name: string } | null;
 }
 
@@ -24,6 +26,8 @@ export interface EnquiryListVehicle {
   car_plate: string;
   insurance_expiry_date: string;
   road_tax_renewal: boolean;
+  removed_at: string | null;
+  removed_by_customer: boolean;
   merchant: { name: string } | null;
 }
 
@@ -77,7 +81,7 @@ export function useEnquiries() {
           id, customer_name, customer_phone, customer_email, customer_nric, staff_id, status, created_at, agent_id,
           merchant_id, merchant:merchants(id, name),
           agent:agents(id, name, agent_code, unit_name, parent_agent_id),
-          vehicles:enquiry_vehicles(id, status, car_plate, insurance_expiry_date, road_tax_renewal, merchant:merchants(name))
+          vehicles:enquiry_vehicles(id, status, car_plate, insurance_expiry_date, road_tax_renewal, removed_at, removed_by_customer, merchant:merchants(name))
         `)
         .order('created_at', { ascending: false });
 
@@ -101,6 +105,7 @@ export function useEnquiry(id: string) {
             id, car_plate, insurance_expiry_date, status, merchant_id, renewal_premium_amount,
             road_tax_renewal, external_quotation_ref,
             quoted_at, renewed_at, lost_at, lost_reason,
+            removed_at, removed_by_customer,
             product:insurance_products(id, name)
           )
         `)

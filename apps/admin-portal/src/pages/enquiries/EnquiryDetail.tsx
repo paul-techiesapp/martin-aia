@@ -20,6 +20,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
   Input,
   Label,
   Select,
@@ -30,7 +38,7 @@ import {
   TableSkeleton,
   useToast,
 } from '@agent-system/shared-ui';
-import { ArrowLeft, FileText, CheckCircle2, XCircle } from 'lucide-react';
+import { ArrowLeft, FileText, CheckCircle2, XCircle, Copy, Check, Link2Off } from 'lucide-react';
 import { VehicleStatus, MerchantStatus } from '@agent-system/shared-types';
 import {
   useEnquiry,
@@ -42,6 +50,7 @@ import {
 import { useMerchants } from '../../hooks/useMerchants';
 import { useSystemSettings } from '../../hooks/useSystemSettings';
 import { useEnquiryAttachments, useViewAttachment } from '../../hooks/useEnquiryAttachments';
+import { supabase } from '../../lib/supabase';
 
 function fmtDate(value: string | null): string {
   if (!value) return '—';
@@ -86,6 +95,54 @@ export function EnquiryDetail() {
 
   const { data: attachments = [] } = useEnquiryAttachments(enquiryId);
   const viewAttachment = useViewAttachment();
+
+  // Customer my-cars link: copy (get-or-create) + revoke, confirmed via AlertDialog.
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [copyLinkPending, setCopyLinkPending] = useState(false);
+  const [revokeConfirmOpen, setRevokeConfirmOpen] = useState(false);
+  const [revokeLinkPending, setRevokeLinkPending] = useState(false);
+
+  const handleCopyMyCarsLink = async () => {
+    setCopyLinkPending(true);
+    try {
+      const { data, error } = await supabase.rpc('ensure_customer_portal_token', {
+        p_enquiry_id: enquiryId,
+      });
+      if (error || !data) {
+        toast({ title: 'Could not create the link', description: error?.message, variant: 'error' });
+        return;
+      }
+      const publicPagesUrl = import.meta.env.VITE_PUBLIC_PAGES_URL || window.location.origin;
+      await navigator.clipboard.writeText(`${publicPagesUrl}/public/my-cars/${data}`);
+      setLinkCopied(true);
+      toast({ title: 'Link copied!', description: 'Share this with the customer to manage their cars.' });
+      setTimeout(() => setLinkCopied(false), 2000);
+    } finally {
+      setCopyLinkPending(false);
+    }
+  };
+
+  const confirmRevokeLink = async () => {
+    setRevokeLinkPending(true);
+    try {
+      const { data: token, error: tokenError } = await supabase.rpc('ensure_customer_portal_token', {
+        p_enquiry_id: enquiryId,
+      });
+      if (tokenError || !token) {
+        toast({ title: 'Could not find the link to revoke', description: tokenError?.message, variant: 'error' });
+        return;
+      }
+      const { error } = await supabase.rpc('revoke_customer_portal_token', { p_token: token });
+      if (error) {
+        toast({ title: 'Failed to revoke link', description: error.message, variant: 'error' });
+        return;
+      }
+      toast({ title: 'Link revoked', description: 'The customer can no longer use this link to manage their cars.' });
+      setRevokeConfirmOpen(false);
+    } finally {
+      setRevokeLinkPending(false);
+    }
+  };
 
   const pending = recordQuotation.isPending || confirmRenewal.isPending || markLost.isPending;
 
@@ -178,12 +235,35 @@ export function EnquiryDetail() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>{enquiry?.customer_name ?? 'Enquiry'}</CardTitle>
-          <CardDescription>
-            {enquiry?.customer_phone} · {enquiry?.customer_nric}
-            {enquiry?.customer_email ? ` · ${enquiry.customer_email}` : ''}
-          </CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+          <div>
+            <CardTitle>{enquiry?.customer_name ?? 'Enquiry'}</CardTitle>
+            <CardDescription>
+              {enquiry?.customer_phone} · {enquiry?.customer_nric}
+              {enquiry?.customer_email ? ` · ${enquiry.customer_email}` : ''}
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCopyMyCarsLink}
+              disabled={copyLinkPending}
+            >
+              {linkCopied ? <Check className="size-4 mr-1.5" /> : <Copy className="size-4 mr-1.5" />}
+              {linkCopied ? 'Copied!' : 'Copy my-cars link'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={() => setRevokeConfirmOpen(true)}
+              disabled={revokeLinkPending}
+            >
+              <Link2Off className="size-4 mr-1.5" />
+              Revoke link
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-1">
           <div>
@@ -229,9 +309,10 @@ export function EnquiryDetail() {
                 <TableBody>
                   {(enquiry?.vehicles ?? []).map((v) => {
                     const badge = vehicleBadge(v.status);
-                    const canQuote = v.status === VehicleStatus.SUBMITTED || v.status === VehicleStatus.QUOTED;
-                    const canRenew = v.status === VehicleStatus.SUBMITTED || v.status === VehicleStatus.QUOTED;
-                    const canLose = v.status === VehicleStatus.SUBMITTED || v.status === VehicleStatus.QUOTED;
+                    const isRemoved = v.removed_at !== null;
+                    const canQuote = !isRemoved && (v.status === VehicleStatus.SUBMITTED || v.status === VehicleStatus.QUOTED);
+                    const canRenew = !isRemoved && (v.status === VehicleStatus.SUBMITTED || v.status === VehicleStatus.QUOTED);
+                    const canLose = !isRemoved && (v.status === VehicleStatus.SUBMITTED || v.status === VehicleStatus.QUOTED);
                     const vehicleAttachments = attachments.filter(a => a.enquiry_vehicle_id === v.id);
                     return (
                       <Fragment key={v.id}>
@@ -241,6 +322,9 @@ export function EnquiryDetail() {
                           <TableCell className="text-muted-foreground">{fmtDate(v.insurance_expiry_date)}</TableCell>
                           <TableCell>
                             <Badge variant={badge.variant}>{badge.label}</Badge>
+                            {isRemoved && (
+                              <Badge variant="neutral" className="ml-1 text-[10px]">Removed by customer</Badge>
+                            )}
                             {v.status === VehicleStatus.QUOTED && v.external_quotation_ref && (
                               <div className="text-xs text-muted-foreground mt-1">Ref: {v.external_quotation_ref}</div>
                             )}
@@ -442,6 +526,30 @@ export function EnquiryDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Revoke customer link — confirm before disabling the my-cars link */}
+      <AlertDialog open={revokeConfirmOpen} onOpenChange={(open) => !revokeLinkPending && setRevokeConfirmOpen(open)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revoke customer link</AlertDialogTitle>
+            <AlertDialogDescription>
+              This immediately disables the my-cars link shared with {enquiry?.customer_name}. They
+              will no longer be able to view or remove their cars through it. A new link can be
+              issued later, but this one cannot be reactivated.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={revokeLinkPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmRevokeLink}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={revokeLinkPending}
+            >
+              {revokeLinkPending ? 'Revoking...' : 'Revoke'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

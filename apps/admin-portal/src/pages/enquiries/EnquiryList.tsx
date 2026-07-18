@@ -97,7 +97,9 @@ export function EnquiryList() {
       (e) =>
         norm(e.customer_nric) === targetNric &&
         (e.vehicles ?? []).some(
-          (v) => v.status === VehicleStatus.SUBMITTED || v.status === VehicleStatus.QUOTED,
+          (v) =>
+            v.removed_at === null &&
+            (v.status === VehicleStatus.SUBMITTED || v.status === VehicleStatus.QUOTED),
         ),
     ).length;
   }, [enquiries, reassignTarget]);
@@ -134,8 +136,9 @@ export function EnquiryList() {
   };
 
   const vehicleSummary = (e: EnquiryListRow) => {
-    const total = e.vehicles?.length ?? 0;
-    const open = (e.vehicles ?? []).filter(
+    const live = (e.vehicles ?? []).filter((v) => v.removed_at === null);
+    const total = live.length;
+    const open = live.filter(
       (v) => v.status === VehicleStatus.SUBMITTED || v.status === VehicleStatus.QUOTED
     ).length;
     return `${total} car${total === 1 ? '' : 's'}${open > 0 ? ` · ${open} open` : ''}`;

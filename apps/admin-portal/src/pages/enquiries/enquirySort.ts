@@ -45,11 +45,15 @@ export function toEnquiryExportRows(rows: EnquiryListRow[]): EnquiryExportRow[] 
       enquiryStatus: e.status,
       received: fmt(e.created_at),
     };
-    if (!e.vehicles?.length) {
+    // Exclude customer-removed cars so the export matches the on-screen car
+    // count (which also filters removed_at); otherwise a card reading "2 cars"
+    // exports 3 rows.
+    const liveVehicles = (e.vehicles ?? []).filter((v) => v.removed_at === null);
+    if (!liveVehicles.length) {
       out.push({ ...base, carPlate: '', insuranceExpiry: '', roadTax: '', vehicleStatus: '' });
       continue;
     }
-    for (const v of e.vehicles) {
+    for (const v of liveVehicles) {
       out.push({
         ...base,
         // per-car partner is authoritative once confirmed; fall back to the

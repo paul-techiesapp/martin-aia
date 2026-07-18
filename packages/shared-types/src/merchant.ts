@@ -124,6 +124,26 @@ export interface EnquiryVehicle {
   reminder_sent_at: string | null;
   created_at: string;
   updated_at: string;
+  /** Set when the customer removed this car from their self-serve list. Soft
+   *  delete: renewed cars have a gift voucher and a settlement attached, and
+   *  agents still need to see that the lead existed. Every count of vehicles
+   *  must filter on this being null. */
+  removed_at: string | null;
+  removed_by_customer: boolean;
+}
+
+/**
+ * The permanent unauthenticated link a customer uses to manage their own cars.
+ * Keyed on the normalized NRIC, not on an enquiry: a customer with two
+ * enquiries must get ONE link covering all their cars.
+ */
+export interface CustomerPortalToken {
+  /** 32 lowercase hex chars, minted server-side. Same shape as agents.enquiry_link_code. */
+  token: string;
+  nric_normalized: string;
+  created_at: string;
+  /** Admin kill switch. A revoked token resolves to nothing and is never silently reissued. */
+  revoked_at: string | null;
 }
 
 /**

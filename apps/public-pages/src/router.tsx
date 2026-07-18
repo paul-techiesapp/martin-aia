@@ -8,6 +8,7 @@ import { Register } from './pages/Register';
 import { Enquiry } from './pages/Enquiry';
 import { CheckOut } from './pages/CheckOut';
 import { Display } from './pages/Display';
+import { MyCars } from './pages/MyCars';
 
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
@@ -52,12 +53,19 @@ const displayRoute = createRoute({
   component: Display,
 });
 
+const myCarsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/public/my-cars/$token',
+  component: MyCars,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   registerRoute,
   enquiryRoute,
   checkoutRoute,
   displayRoute,
+  myCarsRoute,
 ]);
 
 export const router = createRouter({ routeTree });

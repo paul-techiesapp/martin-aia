@@ -36,6 +36,7 @@ export function useMyEnquiries(agentId: string | undefined, unitWide = false) {
           branch:merchant_branches(name, merchant:merchants(name)),
           vehicles:enquiry_vehicles(*, product:insurance_products(name), merchant:merchants(id, name))
         `)
+        .is('vehicles.removed_at', null)
         .order('created_at', { ascending: false });
 
       if (!unitWide) query = query.eq('agent_id', agentId!);

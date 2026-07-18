@@ -34,7 +34,8 @@ import {
   type EnquiryExportRow,
 } from '@agent-system/shared-ui';
 import { format, parseISO } from 'date-fns';
-import { FileText, Store, Download, Plus, Paperclip, X } from 'lucide-react';
+import { FileText, Store, Download, Plus, Paperclip, X, Copy, Check } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { useMyEnquiries, type EnquiryWithDetails } from '../hooks/useMyEnquiries';
 import { useAssignVehicleMerchant } from '../hooks/useAssignVehicleMerchant';
@@ -85,6 +86,22 @@ function EnquiryCard({ enq, activeMerchants, agentId, showAgent, readOnly }: Enq
   const [uploadingVehicles, setUploadingVehicles] = useState<Record<string, boolean>>({});
   const [deleteTarget, setDeleteTarget] = useState<AttachmentRow | null>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleCopyMyCars = async (enquiryId: string) => {
+    const { data, error } = await supabase.rpc('ensure_customer_portal_token', {
+      p_enquiry_id: enquiryId,
+    });
+    if (error || !data) {
+      toast({ title: 'Could not create the link', description: error?.message, variant: 'error' });
+      return;
+    }
+    const publicPagesUrl = import.meta.env.VITE_PUBLIC_PAGES_URL || window.location.origin;
+    await navigator.clipboard.writeText(`${publicPagesUrl}/public/my-cars/${data}`);
+    setCopiedId(enquiryId);
+    toast({ title: 'Link copied!', description: "Share this with the customer to manage their cars." });
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   const handleAssignVehicle = async (vehicleId: string) => {
     const merchantId = vehicleMerchant[vehicleId];
@@ -185,9 +202,18 @@ function EnquiryCard({ enq, activeMerchants, agentId, showAgent, readOnly }: Enq
             <p className="text-xs text-muted-foreground">Agent: {enq.agent.name} ({enq.agent.agent_code})</p>
           )}
         </div>
-        <Badge variant={getStatusVariant(enq.status)} className="capitalize">
-          {enq.status}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => handleCopyMyCars(enq.id)}>
+            {copiedId === enq.id ? (
+              <><Check className="size-4 mr-1 text-emerald-600" /> Copied!</>
+            ) : (
+              <><Copy className="size-4 mr-1" /> Copy my-cars link</>
+            )}
+          </Button>
+          <Badge variant={getStatusVariant(enq.status)} className="capitalize">
+            {enq.status}
+          </Badge>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Vehicle table — partner is assigned per car */}

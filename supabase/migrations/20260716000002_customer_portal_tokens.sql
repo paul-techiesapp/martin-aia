@@ -90,8 +90,18 @@ BEGIN
   IF v_token IS NULL THEN
     -- Same shape as ensure_my_enquiry_link(): 32 lowercase hex chars.
     v_token := replace(gen_random_uuid()::text, '-', '');
+    -- ON CONFLICT guards the get-or-create race: two concurrent first-time
+    -- calls for the same NRIC would otherwise both INSERT and the second would
+    -- raise a raw unique_violation. If the conflict fires, our INSERT wrote
+    -- nothing, so re-read the token the other caller committed.
     INSERT INTO customer_portal_tokens (token, nric_normalized)
-    VALUES (v_token, v_nric_norm);
+    VALUES (v_token, v_nric_norm)
+    ON CONFLICT (nric_normalized) DO NOTHING;
+
+    IF NOT FOUND THEN
+      SELECT t.token INTO v_token
+      FROM customer_portal_tokens t WHERE t.nric_normalized = v_nric_norm;
+    END IF;
   END IF;
 
   -- A revoked token is returned as-is rather than silently reissued: reissuing

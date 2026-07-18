@@ -21,7 +21,13 @@ AS $$
   SELECT t.nric_normalized FROM customer_portal_tokens t
   WHERE t.token = p_token AND t.revoked_at IS NULL;
 $$;
--- Deliberately NOT granted to anon: an internal helper for the functions below.
+-- Internal helper for the functions below. It returns the FULL unmasked NRIC,
+-- which get_customer_cars deliberately masks — so anon must never reach it.
+-- Postgres grants EXECUTE to PUBLIC by default, and anon inherits PUBLIC — so
+-- the absence of a GRANT is NOT enough to keep anon out. Revoke explicitly:
+-- this helper returns the FULL unmasked NRIC, which get_customer_cars masks.
+REVOKE EXECUTE ON FUNCTION customer_token_nric(text) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION customer_token_nric(text) FROM anon;
 
 CREATE OR REPLACE FUNCTION get_customer_cars(p_token text)
 RETURNS TABLE (customer_name text, nric_masked text, vehicles jsonb)

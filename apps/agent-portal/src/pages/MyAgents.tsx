@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import {
   Card,
   CardContent,
@@ -40,7 +41,7 @@ import {
   useToast,
   Switch,
 } from '@agent-system/shared-ui';
-import { Users, UserCheck, Clock, UserPlus, Trash2, Tag, Mail, Pencil } from 'lucide-react';
+import { Users, UserCheck, Clock, UserPlus, Trash2, Tag, Mail, Pencil, Image, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import {
@@ -51,6 +52,8 @@ import {
   useUpdateSubAgent,
   useDeleteUnitAgent,
   useAvailableTiers,
+  useUnitFooterImage,
+  useSetUnitFooter,
 } from '../hooks/useSubAgents';
 import { TierRequestStatus } from '@agent-system/shared-types';
 import type { AgentWithTier } from '@agent-system/shared-types';
@@ -80,6 +83,10 @@ export function MyAgents() {
   const requestTier = useRequestTier();
   const updateSubAgent = useUpdateSubAgent();
   const deleteUnitAgent = useDeleteUnitAgent();
+  const { data: footerImageUrl } = useUnitFooterImage(isUnitViewer ? unitRootId : undefined);
+  const setUnitFooter = useSetUnitFooter();
+  const [isUploadingFooter, setIsUploadingFooter] = useState(false);
+  const footerFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Only the unit root (agent_admin) may see/change the Unit Admin flag —
   // mirrors the update-sub-agent / delete-agent edge function matrix.
@@ -228,6 +235,57 @@ export function MyAgents() {
       setEditTarget(null);
     } catch (err: any) {
       toast({ title: 'Failed to update agent', description: err.message, variant: 'error' });
+    }
+  };
+
+  const handleFooterFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting the same file after an error
+    if (!file || !unitRootId) return;
+
+    const allowedTypes = ['image/png', 'image/jpeg'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please upload a PNG or JPEG image.',
+        variant: 'error',
+      });
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: 'Image must be under 2MB.',
+        variant: 'error',
+      });
+      return;
+    }
+
+    setIsUploadingFooter(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const fileName = `form-images/unit-${unitRootId}-footer-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('company-assets')
+        .upload(fileName, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from('company-assets').getPublicUrl(fileName);
+      await setUnitFooter.mutateAsync(urlData.publicUrl);
+      toast({ title: 'Footer image updated' });
+    } catch (err: any) {
+      toast({ title: 'Failed to upload footer image', description: err.message, variant: 'error' });
+    } finally {
+      setIsUploadingFooter(false);
+    }
+  };
+
+  const handleRemoveFooter = async () => {
+    try {
+      await setUnitFooter.mutateAsync('');
+      toast({ title: 'Footer image removed' });
+    } catch (err: any) {
+      toast({ title: 'Failed to remove footer image', description: err.message, variant: 'error' });
     }
   };
 
@@ -394,7 +452,13 @@ export function MyAgents() {
                   {rosterAgents?.map((a) => (
                     <TableRow key={a.id}>
                       <TableCell className="font-medium">
-                        {a.name}
+                        <Link
+                          to="/my-agents/$agentId/enquiries"
+                          params={{ agentId: a.id }}
+                          className="hover:underline"
+                        >
+                          {a.name}
+                        </Link>
                         {a.is_unit_manager && (
                           <Badge variant="info" size="sm" className="ml-2">Unit Admin</Badge>
                         )}
@@ -446,6 +510,60 @@ export function MyAgents() {
           )}
         </CardContent>
       </Card>
+
+      {/* Enquiry Form Footer (round 6, item 6) — unit-wide, unit viewers only */}
+      {isUnitViewer && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Image className="size-5 text-muted-foreground" />
+              Enquiry Form Footer
+            </CardTitle>
+            <CardDescription>
+              Recommended 1600×200 (8:1). Overrides the RACC footer on your unit's enquiry
+              forms; a partner-specific footer still wins.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {footerImageUrl ? (
+              <div className="flex items-center gap-3">
+                <img
+                  src={footerImageUrl}
+                  alt="Unit enquiry form footer"
+                  className="h-16 max-w-full rounded border object-contain bg-muted/30"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRemoveFooter}
+                  disabled={setUnitFooter.isPending}
+                >
+                  <X className="size-4 mr-1.5" />
+                  Remove
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No footer image set.</p>
+            )}
+            <input
+              ref={footerFileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFooterFileSelected}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className="self-start"
+              disabled={isUploadingFooter}
+              onClick={() => footerFileInputRef.current?.click()}
+            >
+              {isUploadingFooter ? 'Uploading...' : footerImageUrl ? 'Replace Image' : 'Upload Image'}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Add Agent Dialog */}
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>

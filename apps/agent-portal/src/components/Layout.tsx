@@ -12,7 +12,10 @@ type NavGroup = { label?: string; items: NavItem[] };
 // MANAGEMENT (My Agents, Event Partners) and unit-wide VIEW pages (Team
 // Report) are shown to anyone who is a unit viewer (isUnitViewer): the unit
 // admin (agent_admin) plus deputies flagged is_unit_manager.
-function buildAgentGroups(isUnitViewer: boolean): NavGroup[] {
+// isRoot: the unit root (agent_admin/Unit Manager) has no personal enquiry
+// link (round 6, item 5) — the "My Link" item is dropped for them; their
+// unit's agents each have their own link instead.
+function buildAgentGroups(isUnitViewer: boolean, isRoot: boolean): NavGroup[] {
   const eventsItems: NavItem[] = [
     { name: 'Events', href: '/campaigns', icon: CalendarDays },
     { name: 'My Links', href: '/my-links', icon: Link2 },
@@ -31,17 +34,19 @@ function buildAgentGroups(isUnitViewer: boolean): NavGroup[] {
     eventsItems.push({ name: 'Event Partners', href: '/partners', icon: Users });
   }
 
+  const partnershipItems: NavItem[] = [];
+  if (!isRoot) {
+    partnershipItems.push({ name: 'My Link', href: '/my-link', icon: QrCode });
+  }
+  partnershipItems.push(
+    { name: 'My Enquiries', href: '/my-enquiries', icon: Inbox },
+    { name: 'My Partners', href: '/my-partners', icon: Store },
+  );
+
   return [
     { items: [{ name: 'Dashboard', href: '/', icon: LayoutDashboard }] },
     { label: 'Events', items: eventsItems },
-    {
-      label: 'Partnership',
-      items: [
-        { name: 'My Link', href: '/my-link', icon: QrCode },
-        { name: 'My Enquiries', href: '/my-enquiries', icon: Inbox },
-        { name: 'My Partners', href: '/my-partners', icon: Store },
-      ],
-    },
+    { label: 'Partnership', items: partnershipItems },
     { items: [{ name: 'Account', href: '/account', icon: KeyRound }] },
   ];
 }
@@ -98,8 +103,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
     : role === 'merchant'
       ? merchantGroups
       : role === 'agent_admin' || role === 'agent'
-        ? buildAgentGroups(isUnitViewer)
-        : buildAgentGroups(false);
+        ? buildAgentGroups(isUnitViewer, role === 'agent_admin')
+        : buildAgentGroups(false, false);
 
   const displayName = role === 'partner' ? partner?.name : role === 'merchant' ? merchant?.name : agent?.name;
   const subtitle = role === 'partner'

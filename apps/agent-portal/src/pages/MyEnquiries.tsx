@@ -67,7 +67,7 @@ import {
   type AttachmentRow,
 } from '../hooks/useEnquiryAttachments';
 
-interface EnquiryCardProps {
+export interface EnquiryCardProps {
   enq: EnquiryWithDetails;
   activeMerchants: MerchantWithBranches[];
   agentId: string | undefined;
@@ -85,7 +85,7 @@ interface EnquiryCardProps {
   unitRoster?: { id: string; name: string }[];
 }
 
-function EnquiryCard({
+export function EnquiryCard({
   enq,
   activeMerchants,
   agentId,

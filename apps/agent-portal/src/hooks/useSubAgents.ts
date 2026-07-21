@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { readEdgeFunctionError } from '@agent-system/shared-ui';
-import type { Agent, AgentWithTier, TierRequest } from '@agent-system/shared-types';
+import type { Agent, AgentWithTier, TierRequest, UnitFormSettings } from '@agent-system/shared-types';
 
 export function useMySubAgents(agentId: string | undefined) {
   return useQuery({
@@ -39,6 +39,48 @@ export function useUnitRoster(unitRootId: string | undefined) {
       return data as { id: string; name: string }[];
     },
     enabled: !!unitRootId,
+  });
+}
+
+/**
+ * Reads the unit root's enquiry-form footer image (round 6, item 6). Always
+ * fetches the ROOT row by id — works for both a Unit Admin (root = own id)
+ * and a Unit Manager deputy (root = parent id, a different row than their own).
+ */
+export function useUnitFooterImage(unitRootId: string | undefined) {
+  return useQuery({
+    queryKey: ['unit-footer-image', unitRootId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('agents')
+        .select('form_settings')
+        .eq('id', unitRootId!)
+        .single();
+      if (error) throw error;
+      const settings = data?.form_settings as UnitFormSettings | null;
+      return settings?.footer_image_url ?? null;
+    },
+    enabled: !!unitRootId,
+  });
+}
+
+/**
+ * Sets (or clears, with '') the unit root's enquiry-form footer image via the
+ * set_unit_footer_image SECURITY DEFINER RPC — unit callers have no RLS
+ * UPDATE grant on `agents`, so this can't go through a direct table write.
+ */
+export function useSetUnitFooter() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (url: string) => {
+      const { error } = await supabase.rpc('set_unit_footer_image', { p_url: url });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-sub-agents'] });
+      queryClient.invalidateQueries({ queryKey: ['unit-footer-image'] });
+    },
   });
 }
 

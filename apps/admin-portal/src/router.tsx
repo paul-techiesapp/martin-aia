@@ -146,10 +146,15 @@ const merchantDetailRoute = createRoute({
   component: MerchantDetail,
 });
 
+// `agent` search param drives EnquiryList's Agent filter (e.g. from
+// AgentList's "View enquiries" action, or a clicked agent name in the table).
 const enquiriesRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
   path: '/enquiries',
   component: EnquiryList,
+  validateSearch: (search: Record<string, unknown>): { agent?: string } => ({
+    agent: typeof search.agent === 'string' ? search.agent : undefined,
+  }),
 });
 
 const enquiryDetailRoute = createRoute({

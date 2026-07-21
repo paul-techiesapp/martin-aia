@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Link } from '@tanstack/react-router';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from '@tanstack/react-router';
 import {
   Table,
   TableBody,
@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
   Label,
+  Input,
   buildEnquiriesWorkbook,
   Dialog,
   DialogContent,
@@ -46,36 +47,74 @@ function fmtDate(value: string): string {
 
 const ALL = 'all';
 
+// Read the `agent` search param once on mount (set by AgentList's "View
+// enquiries" action, or by clicking an agent's name in this table on a
+// previous visit). Keying the filter by agent ID rather than name means this
+// doesn't need to wait for `enquiries` to load — it works immediately even
+// though the visible admin agent list only covers roots+deputies.
+function initialAgentFilterFromUrl(): string {
+  if (typeof window === 'undefined') return ALL;
+  return new URLSearchParams(window.location.search).get('agent') || ALL;
+}
+
 export function EnquiryList() {
+  const navigate = useNavigate();
   const { data: enquiries, isLoading, error } = useEnquiries();
   const [statusFilter, setStatusFilter] = useState<string>(ALL);
   const [unitFilter, setUnitFilter] = useState<string>(ALL);
-  const [agentFilter, setAgentFilter] = useState<string>(ALL);
+  const [agentFilter, setAgentFilter] = useState<string>(initialAgentFilterFromUrl);
   const [partnerFilter, setPartnerFilter] = useState<string>(ALL);
+  const [search, setSearch] = useState('');
+
+  // Keep ?agent= in sync so reload/share reflects the current filter. The
+  // initial state above already reads the URL synchronously, so the first
+  // run of this effect just writes back the same value.
+  useEffect(() => {
+    navigate({ to: '/enquiries', search: agentFilter === ALL ? {} : { agent: agentFilter }, replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agentFilter]);
 
   const unitOptions = useMemo(
     () => Array.from(new Set((enquiries ?? []).map((e) => e.agent?.unit_name).filter(Boolean))).sort() as string[],
     [enquiries]
   );
-  const agentOptions = useMemo(
-    () => Array.from(new Set((enquiries ?? []).map((e) => e.agent?.name).filter(Boolean))).sort() as string[],
-    [enquiries]
-  );
+  // Keyed by agent ID (not name) so the filter is unambiguous and can be
+  // pre-selected via URL before names are known.
+  const agentOptions = useMemo(() => {
+    const byId = new Map<string, string>();
+    for (const e of enquiries ?? []) {
+      if (e.agent) byId.set(e.agent.id, e.agent.name);
+    }
+    return Array.from(byId, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [enquiries]);
   const partnerOptions = useMemo(
     () => Array.from(new Set((enquiries ?? []).map((e) => e.merchant?.name).filter(Boolean))).sort() as string[],
     [enquiries]
   );
+
+  // Free-text search across name, NRIC, phone, and plate — same predicate
+  // shape as the agent portal's MyEnquiries search.
+  const q = search.trim().toLowerCase();
+  const digits = search.replace(/\D/g, '');
+  const matchesSearch = (e: EnquiryListRow): boolean =>
+    !q ||
+    e.customer_name.toLowerCase().includes(q) ||
+    (e.customer_nric ?? '').toLowerCase().replace(/[\s-]/g, '').includes(q.replace(/[\s-]/g, '')) ||
+    (digits.length >= 3 && (e.customer_phone ?? '').replace(/\D/g, '').includes(digits)) ||
+    (e.vehicles ?? []).some((v) => v.car_plate.toLowerCase().replace(/\s/g, '').includes(q.replace(/\s/g, '')));
 
   const filtered = useMemo(
     () =>
       (enquiries ?? [])
         .filter((e) => statusFilter === ALL || e.status === statusFilter)
         .filter((e) => unitFilter === ALL || e.agent?.unit_name === unitFilter)
-        .filter((e) => agentFilter === ALL || e.agent?.name === agentFilter)
+        .filter((e) => agentFilter === ALL || e.agent?.id === agentFilter)
         .filter((e) => partnerFilter === ALL || e.merchant?.name === partnerFilter)
+        .filter(matchesSearch)
         .slice()
         .sort(compareEnquiries),
-    [enquiries, statusFilter, unitFilter, agentFilter, partnerFilter]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [enquiries, statusFilter, unitFilter, agentFilter, partnerFilter, q, digits]
   );
 
   const { toast } = useToast();
@@ -169,7 +208,16 @@ export function EnquiryList() {
             Download report
           </Button>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div>
+            <Label className="text-xs font-medium text-muted-foreground">Search</Label>
+            <Input
+              className="mt-1"
+              placeholder="Name, NRIC, phone, plate…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
           <div>
             <Label className="text-xs font-medium text-muted-foreground">Unit</Label>
             <Select value={unitFilter} onValueChange={setUnitFilter}>
@@ -189,7 +237,7 @@ export function EnquiryList() {
               <SelectContent>
                 <SelectItem value={ALL}>All agents</SelectItem>
                 {agentOptions.map((a) => (
-                  <SelectItem key={a} value={a}>{a}</SelectItem>
+                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -271,7 +319,14 @@ export function EnquiryList() {
                         <TableCell className="text-muted-foreground">
                           {e.agent ? (
                             <>
-                              <div className="text-foreground">{e.agent.name}</div>
+                              <button
+                                type="button"
+                                className="text-foreground hover:underline"
+                                title="Filter enquiries by this agent"
+                                onClick={() => setAgentFilter(e.agent!.id)}
+                              >
+                                {e.agent.name}
+                              </button>
                               <div className="text-xs">{e.agent.unit_name}</div>
                             </>
                           ) : (

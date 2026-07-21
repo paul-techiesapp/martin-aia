@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -51,18 +51,23 @@ import {
   useReportStats,
   useFunnelData,
   useTopUnits,
+  type AttendeeRow,
 } from '../hooks/useReports';
 import { useRenewalReport } from '../hooks/useRenewalReport';
 import { useSystemSettings } from '../hooks/useSystemSettings';
 
 function fmtDate(value: string | null): string {
   if (!value) return '—';
-  return new Date(value).toLocaleDateString('en-SG', { dateStyle: 'medium' });
+  return new Date(value).toLocaleDateString('en-SG', { dateStyle: 'medium', timeZone: 'Asia/Singapore' });
 }
 
 function fmtTime(value: string | null): string {
   if (!value) return '—';
-  return new Date(value).toLocaleString('en-SG', { dateStyle: 'medium', timeStyle: 'short' });
+  return new Date(value).toLocaleString('en-SG', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Singapore',
+  });
 }
 
 function downloadCsv(filename: string, rows: (string | number)[][]) {
@@ -95,6 +100,20 @@ export function Reports() {
   // Per-attendee report (#2) and team performance (#3), scoped to the selected event
   const { data: attendees, isLoading: attendeesLoading } = useEventAttendees(selectedCampaignId);
   const { data: teams, isLoading: teamsLoading } = useTeamPerformance(selectedCampaignId);
+
+  // Attendees tab: optional check-in date range filter, applied to both the
+  // on-screen table and the CSV export.
+  const [attFrom, setAttFrom] = useState('');
+  const [attTo, setAttTo] = useState('');
+  const attendeesInRange = useMemo(() => {
+    const inRange = (a: AttendeeRow) => {
+      if (!a.checkinTime) return !attFrom && !attTo; // never checked in: only when unfiltered
+      // Check-ins are compared on their Singapore calendar day, matching the rendered times.
+      const d = new Date(a.checkinTime).toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' });
+      return (!attFrom || d >= attFrom) && (!attTo || d <= attTo);
+    };
+    return (attendees ?? []).filter(inRange);
+  }, [attendees, attFrom, attTo]);
 
   // Attendance breakdown for pie chart
   const attendanceData = [
@@ -399,17 +418,17 @@ export function Reports() {
                 <CardTitle>Event Attendee Report</CardTitle>
                 <CardDescription>
                   Registrants {selectedCampaignId === 'all' ? 'across all events' : 'for the selected event'} ·{' '}
-                  {attendees?.length ?? 0} total
+                  {attendeesInRange.length} total
                 </CardDescription>
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                disabled={!attendees?.length}
+                disabled={!attendeesInRange.length}
                 onClick={() =>
                   downloadCsv('attendees', [
                     ['Name', 'NRIC', 'Phone', 'Agent', 'Unit', 'Status', 'Registered', 'Check-in', 'Check-out'],
-                    ...(attendees ?? []).map((a) => [
+                    ...attendeesInRange.map((a) => [
                       a.name ?? '',
                       a.nric ?? '',
                       a.phone ?? '',
@@ -427,7 +446,19 @@ export function Reports() {
                 Export
               </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col gap-3">
+              <div className="grid grid-cols-2 gap-3 sm:max-w-md">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Check-in from</Label>
+                  <input type="date" value={attFrom} onChange={(e) => setAttFrom(e.target.value)}
+                    className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Check-in to</Label>
+                  <input type="date" value={attTo} onChange={(e) => setAttTo(e.target.value)}
+                    className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm" />
+                </div>
+              </div>
               {attendeesLoading ? (
                 <p className="text-muted-foreground text-center py-6">Loading attendees…</p>
               ) : (
@@ -443,14 +474,14 @@ export function Reports() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(attendees ?? []).length === 0 ? (
+                      {attendeesInRange.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
                             No registrations found for this selection.
                           </TableCell>
                         </TableRow>
                       ) : (
-                        attendees!.map((a) => (
+                        attendeesInRange.map((a) => (
                           <TableRow key={a.id}>
                             <TableCell className="font-medium">{a.name ?? '—'}</TableCell>
                             <TableCell className="text-muted-foreground">{a.nric ?? '—'}</TableCell>

@@ -1,6 +1,9 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-import type { RegistrationStatus } from '@agent-system/shared-types';
+import { VehicleStatus, type RegistrationStatus } from '@agent-system/shared-types';
+import { useEnquiries } from './useEnquiries';
+import { useSystemSettings } from './useSystemSettings';
 
 /** Resolve the slot ids that belong to a campaign (for server-side filtering). */
 async function slotIdsForCampaign(campaignId: string): Promise<string[]> {
@@ -405,4 +408,84 @@ export function useTopUnits(campaignId: string, dateRange: string) {
         .slice(0, 5);
     },
   });
+}
+
+export interface PartnerPerformance {
+  merchantId: string;
+  merchantName: string;
+  totalVehicles: number;
+  submitted: number;
+  quoted: number;
+  renewed: number;
+  lost: number;
+  renewalPremiumTotal: number;
+  giftTotal: number;
+}
+
+/**
+ * Partner (merchant) performance summary, derived from the existing admin
+ * enquiries list — no new query. Groups every live (non-removed) car by its
+ * per-car merchant, counting by status and summing renewal premiums; cars
+ * with no merchant assigned yet are bucketed under "No partner". `fromISO`/
+ * `toISO` are plain YYYY-MM-DD day strings (matching the Attendees tab's date
+ * inputs) compared against the parent enquiry's `created_at` on its Asia/
+ * Singapore calendar day.
+ */
+export function usePartnerPerformance(fromISO?: string, toISO?: string): PartnerPerformance[] {
+  const { data: enquiries } = useEnquiries();
+  const { data: settings } = useSystemSettings();
+  const giftRatePct = settings?.customer_gift_rate_pct ?? 10;
+
+  return useMemo(() => {
+    const inRange = (createdAt: string) => {
+      const d = new Date(createdAt).toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' });
+      return (!fromISO || d >= fromISO) && (!toISO || d <= toISO);
+    };
+
+    const byMerchant = new Map<string, PartnerPerformance>();
+    for (const e of enquiries ?? []) {
+      if (!inRange(e.created_at)) continue;
+      for (const v of e.vehicles ?? []) {
+        if (v.removed_at) continue;
+        const merchantId = v.merchant?.id ?? 'unassigned';
+        let entry = byMerchant.get(merchantId);
+        if (!entry) {
+          entry = {
+            merchantId,
+            merchantName: v.merchant?.name ?? 'No partner',
+            totalVehicles: 0,
+            submitted: 0,
+            quoted: 0,
+            renewed: 0,
+            lost: 0,
+            renewalPremiumTotal: 0,
+            giftTotal: 0,
+          };
+          byMerchant.set(merchantId, entry);
+        }
+        entry.totalVehicles += 1;
+        switch (v.status) {
+          case VehicleStatus.SUBMITTED:
+            entry.submitted += 1;
+            break;
+          case VehicleStatus.QUOTED:
+            entry.quoted += 1;
+            break;
+          case VehicleStatus.RENEWED:
+            entry.renewed += 1;
+            entry.renewalPremiumTotal += v.renewal_premium_amount ?? 0;
+            break;
+          case VehicleStatus.LOST:
+            entry.lost += 1;
+            break;
+        }
+      }
+    }
+
+    for (const entry of byMerchant.values()) {
+      entry.giftTotal = Math.round(entry.renewalPremiumTotal * giftRatePct) / 100;
+    }
+
+    return Array.from(byMerchant.values()).sort((a, b) => b.totalVehicles - a.totalVehicles);
+  }, [enquiries, fromISO, toISO, giftRatePct]);
 }

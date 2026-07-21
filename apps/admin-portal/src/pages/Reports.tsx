@@ -51,9 +51,11 @@ import {
   useReportStats,
   useFunnelData,
   useTopUnits,
+  usePartnerPerformance,
   type AttendeeRow,
 } from '../hooks/useReports';
 import { useRenewalReport } from '../hooks/useRenewalReport';
+import { useEnquiries } from '../hooks/useEnquiries';
 import { useSystemSettings } from '../hooks/useSystemSettings';
 
 function fmtDate(value: string | null): string {
@@ -196,6 +198,7 @@ export function Reports() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="attendees">Attendees</TabsTrigger>
           <TabsTrigger value="teams">Team Performance</TabsTrigger>
+          <TabsTrigger value="partners">Partners</TabsTrigger>
           <TabsTrigger value="renewals">Renewals</TabsTrigger>
         </TabsList>
 
@@ -622,11 +625,116 @@ export function Reports() {
           </div>
         </TabsContent>
 
+        {/* Partners tab (#13): enquiring cars grouped by merchant partner */}
+        <TabsContent value="partners" className="mt-4">
+          <PartnersReportTab />
+        </TabsContent>
+
         <TabsContent value="renewals" className="flex flex-col gap-3 mt-4">
           <RenewalsReportTab />
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function PartnersReportTab() {
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const { isLoading } = useEnquiries();
+  const rows = usePartnerPerformance(from || undefined, to || undefined);
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1.5">
+          <CardTitle>Partner Performance</CardTitle>
+          <CardDescription>
+            Enquiring cars grouped by partner · {rows.length} partner{rows.length === 1 ? '' : 's'}
+          </CardDescription>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!rows.length}
+          onClick={() =>
+            downloadCsv('partner-performance', [
+              ['Partner', 'Cars', 'Submitted', 'Quoted', 'Renewed', 'Lost', 'Renewal premium (RM)', 'Est. gifts (RM)'],
+              ...rows.map((r) => [
+                r.merchantName,
+                r.totalVehicles,
+                r.submitted,
+                r.quoted,
+                r.renewed,
+                r.lost,
+                r.renewalPremiumTotal.toFixed(2),
+                r.giftTotal.toFixed(2),
+              ]),
+            ])
+          }
+        >
+          <Download className="size-4 mr-1.5" />
+          Export
+        </Button>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:max-w-md">
+          <div>
+            <Label className="text-xs text-muted-foreground">From</Label>
+            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)}
+              className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm" />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">To</Label>
+            <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
+              className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm" />
+          </div>
+        </div>
+
+        {isLoading ? (
+          <p className="text-muted-foreground text-center py-6">Loading partners…</p>
+        ) : (
+          <div className="overflow-auto rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Partner</TableHead>
+                  <TableHead className="text-right">Cars</TableHead>
+                  <TableHead className="text-right">Submitted</TableHead>
+                  <TableHead className="text-right">Quoted</TableHead>
+                  <TableHead className="text-right">Renewed</TableHead>
+                  <TableHead className="text-right">Lost</TableHead>
+                  <TableHead className="text-right">Renewal premium (RM)</TableHead>
+                  <TableHead className="text-right">Est. gifts (RM)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-6">
+                      No partner activity found for this selection.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  rows.map((r) => (
+                    <TableRow key={r.merchantId}>
+                      <TableCell className="font-medium">{r.merchantName}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{r.totalVehicles}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{r.submitted}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{r.quoted}</TableCell>
+                      <TableCell className="text-right font-medium text-emerald-600">{r.renewed}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{r.lost}</TableCell>
+                      <TableCell className="text-right">{r.renewalPremiumTotal.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">{r.giftTotal.toFixed(2)}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

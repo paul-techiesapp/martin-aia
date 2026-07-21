@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { readEdgeFunctionError } from '@agent-system/shared-ui';
 import type { Agent, AgentWithTier, TierRequest } from '@agent-system/shared-types';
 
 export function useMySubAgents(agentId: string | undefined) {
@@ -111,19 +112,58 @@ export function useRequestTier() {
   });
 }
 
-export function useDeactivateSubAgent() {
+export function useUpdateSubAgent() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (agentId: string) => {
+    mutationFn: async (input: {
+      agent_id: string;
+      name?: string;
+      email?: string;
+      phone?: string;
+      nric?: string;
+      agent_code?: string;
+      tier_id?: string | null;
+      status?: 'active' | 'inactive';
+      is_unit_manager?: boolean;
+      password?: string;
+    }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const response = await supabase.functions.invoke('deactivate-sub-agent', {
-        body: { agent_id: agentId },
+      const response = await supabase.functions.invoke('update-sub-agent', {
+        body: input,
       });
 
-      if (response.error) throw new Error(response.error.message || 'Failed to deactivate sub-agent');
+      if (response.error) {
+        const { message } = await readEdgeFunctionError(response.error, 'Failed to update agent');
+        throw new Error(message);
+      }
+      if (response.data?.error) throw new Error(response.data.error);
+      return response.data.agent as Agent;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-sub-agents'] });
+    },
+  });
+}
+
+export function useDeleteUnitAgent() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: { agent_id: string }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await supabase.functions.invoke('delete-agent', {
+        body: input,
+      });
+
+      if (response.error) {
+        const { message } = await readEdgeFunctionError(response.error, 'Failed to delete agent');
+        throw new Error(message);
+      }
       if (response.data?.error) throw new Error(response.data.error);
       return response.data;
     },

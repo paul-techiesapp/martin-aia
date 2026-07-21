@@ -14,6 +14,7 @@ import {
   Badge,
   Button,
   Input,
+  Label,
   Select,
   SelectContent,
   SelectItem,
@@ -29,17 +30,30 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  Combobox,
   useToast,
   buildEnquiriesWorkbook,
   type EnquiryExportRow,
 } from '@agent-system/shared-ui';
-import { format, parseISO } from 'date-fns';
-import { FileText, Store, Download, Plus, Paperclip, X, Copy, Check } from 'lucide-react';
+import { format, parseISO, addYears } from 'date-fns';
+import { FileText, Store, Download, Plus, Paperclip, X, Copy, Check, ArrowRightLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { useMyEnquiries, type EnquiryWithDetails } from '../hooks/useMyEnquiries';
+import {
+  useMyEnquiries,
+  useMarkVehicleRenewed,
+  useReassignEnquiryAgent,
+  type EnquiryWithDetails,
+} from '../hooks/useMyEnquiries';
 import { useAssignVehicleMerchant } from '../hooks/useAssignVehicleMerchant';
 import { useAgentMerchants, useMyLinkedMerchantIds, type MerchantWithBranches } from '../hooks/useAgentMerchants';
+import { useUnitRoster } from '../hooks/useSubAgents';
 import { isMerchantAvailableToAgent } from '../lib/partnerScope';
 import { useRequestQuote } from '../hooks/useRequestQuote';
 import { ProposePartnerDialog } from '../components/ProposePartnerDialog';
@@ -65,17 +79,36 @@ interface EnquiryCardProps {
    * render branches are retained for future per-row gating.
    */
   readOnly?: boolean;
+  /** Unit viewer (Unit Manager / Unit Admin) — gates the Reassign control. */
+  isUnitView?: boolean;
+  /** Full unit roster, for the reassign target picker. */
+  unitRoster?: { id: string; name: string }[];
 }
 
-function EnquiryCard({ enq, activeMerchants, agentId, showAgent, readOnly }: EnquiryCardProps) {
+function EnquiryCard({
+  enq,
+  activeMerchants,
+  agentId,
+  showAgent,
+  readOnly,
+  isUnitView,
+  unitRoster,
+}: EnquiryCardProps) {
   const { toast } = useToast();
   const assignVehicleMerchant = useAssignVehicleMerchant(agentId);
   const requestQuote = useRequestQuote(agentId);
+  const markVehicleRenewed = useMarkVehicleRenewed(agentId);
+  const reassignEnquiryAgent = useReassignEnquiryAgent();
   // Per-vehicle partner selection, keyed by vehicle id (a multi-car enquiry can
   // send each car to a different partner).
   const [vehicleMerchant, setVehicleMerchant] = useState<Record<string, string>>({});
   const [assigningVehicleId, setAssigningVehicleId] = useState<string | null>(null);
   const [quotingVehicleId, setQuotingVehicleId] = useState<string | null>(null);
+  const [renewingVehicleId, setRenewingVehicleId] = useState<string | null>(null);
+  // Vehicle awaiting mark-renewed confirmation (null = dialog closed).
+  const [renewTarget, setRenewTarget] = useState<EnquiryWithDetails['vehicles'][number] | null>(null);
+  const [reassignOpen, setReassignOpen] = useState(false);
+  const [reassignAgentId, setReassignAgentId] = useState<string | null>(null);
   const { data: attachments = [] } = useEnquiryAttachments(enq.id);
   const viewAttachment = useViewAttachment();
   const uploadAttachment = useUploadAttachment(enq.id);
@@ -186,6 +219,45 @@ function EnquiryCard({ enq, activeMerchants, agentId, showAgent, readOnly }: Enq
     }
   };
 
+  const handleConfirmRenew = async () => {
+    const vehicle = renewTarget;
+    if (!vehicle || markVehicleRenewed.isPending) return;
+    setRenewingVehicleId(vehicle.id);
+    try {
+      const newExpiry = await markVehicleRenewed.mutateAsync(vehicle.id);
+      toast({
+        title: 'Marked as renewed',
+        description: `New expiry: ${format(parseISO(newExpiry), 'd MMM yyyy')}`,
+      });
+    } catch (err: unknown) {
+      toast({ title: 'Failed to mark renewed', description: (err as Error)?.message, variant: 'error' });
+    } finally {
+      setRenewingVehicleId(null);
+      setRenewTarget(null);
+    }
+  };
+
+  const handleConfirmReassign = async () => {
+    if (!reassignAgentId || reassignEnquiryAgent.isPending) return;
+    try {
+      const moved = await reassignEnquiryAgent.mutateAsync({
+        customerNric: enq.customer_nric,
+        newAgentId: reassignAgentId,
+      });
+      toast({ title: `${moved} enquiry(ies) reassigned` });
+      setReassignOpen(false);
+      setReassignAgentId(null);
+    } catch (err: unknown) {
+      toast({ title: 'Failed to reassign', description: (err as Error)?.message, variant: 'error' });
+    }
+  };
+
+  // Unit roster minus the customer's current agent — reassigning to the same
+  // agent would be a no-op the RPC still charges an audit row for.
+  const reassignOptions = (unitRoster ?? [])
+    .filter((a) => a.id !== enq.agent?.id)
+    .map((a) => ({ value: a.id, label: a.name }));
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-2">
@@ -210,6 +282,11 @@ function EnquiryCard({ enq, activeMerchants, agentId, showAgent, readOnly }: Enq
               <><Copy className="size-4 mr-1" /> Copy my-cars link</>
             )}
           </Button>
+          {isUnitView && (
+            <Button variant="outline" size="sm" onClick={() => setReassignOpen(true)}>
+              <ArrowRightLeft className="size-4 mr-1" /> Reassign
+            </Button>
+          )}
           <Badge variant={getStatusVariant(enq.status)} className="capitalize">
             {enq.status}
           </Badge>
@@ -295,26 +372,44 @@ function EnquiryCard({ enq, activeMerchants, agentId, showAgent, readOnly }: Enq
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        {v.quote_requested_at ? (
-                          <span className="text-xs text-muted-foreground">
-                            Quote requested {format(parseISO(v.quote_requested_at), 'd MMM yyyy')}
-                          </span>
-                        ) : readOnly ? (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        ) : v.status === VehicleStatus.SUBMITTED ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={requestQuote.isPending && quotingVehicleId === v.id}
-                            onClick={() => handleGetQuote(v.id)}
-                          >
-                            {requestQuote.isPending && quotingVehicleId === v.id
-                              ? 'Requesting…'
-                              : 'Get Quote'}
-                          </Button>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
+                        <div className="flex flex-col items-end gap-1">
+                          {v.quote_requested_at ? (
+                            <span className="text-xs text-muted-foreground">
+                              Quote requested {format(parseISO(v.quote_requested_at), 'd MMM yyyy')}
+                            </span>
+                          ) : readOnly ? (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          ) : v.status === VehicleStatus.SUBMITTED ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={requestQuote.isPending && quotingVehicleId === v.id}
+                              onClick={() => handleGetQuote(v.id)}
+                            >
+                              {requestQuote.isPending && quotingVehicleId === v.id
+                                ? 'Requesting…'
+                                : 'Get Quote'}
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                          {!readOnly &&
+                            (v.status === VehicleStatus.SUBMITTED || v.status === VehicleStatus.QUOTED) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={markVehicleRenewed.isPending && renewingVehicleId === v.id}
+                                onClick={() => setRenewTarget(v)}
+                              >
+                                Mark renewed
+                              </Button>
+                            )}
+                          {v.marked_renewed_at && (
+                            <span className="text-xs text-muted-foreground">
+                              Renewed {format(parseISO(v.marked_renewed_at), 'd MMM yyyy')}
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                     {(vehicleAttachments.length > 0 || !readOnly) && (
@@ -406,6 +501,69 @@ function EnquiryCard({ enq, activeMerchants, agentId, showAgent, readOnly }: Enq
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Mark-renewed confirmation */}
+      <AlertDialog open={!!renewTarget} onOpenChange={(open) => !open && setRenewTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mark {renewTarget?.car_plate} as renewed?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The expiry moves to{' '}
+              {renewTarget
+                ? format(addYears(parseISO(renewTarget.insurance_expiry_date), 1), 'd MMM yyyy')
+                : ''}{' '}
+              and next year's reminder is re-armed. This does not issue the gold gift — the
+              partner confirms that separately.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmRenew} disabled={markVehicleRenewed.isPending}>
+              {markVehicleRenewed.isPending ? 'Marking...' : 'Mark renewed'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reassign to another agent in the unit */}
+      <Dialog
+        open={reassignOpen}
+        onOpenChange={(open) => {
+          setReassignOpen(open);
+          if (!open) setReassignAgentId(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reassign {enq.customer_name}</DialogTitle>
+            <DialogDescription>
+              All of this customer's open enquiries move to the selected agent.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>New agent</Label>
+            <Combobox
+              options={reassignOptions}
+              value={reassignAgentId}
+              onValueChange={setReassignAgentId}
+              placeholder="Select an agent"
+              searchPlaceholder="Search agents…"
+              emptyText="No other agents in your unit"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReassignOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmReassign}
+              disabled={!reassignAgentId || reassignEnquiryAgent.isPending}
+            >
+              {reassignEnquiryAgent.isPending ? 'Reassigning...' : 'Reassign'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
@@ -461,11 +619,16 @@ export function MyEnquiries() {
   const { data: enquiries, isLoading, isError, error } = useMyEnquiries(agent?.id, isUnitViewer);
   const { data: merchants } = useAgentMerchants();
   const { data: linkedMerchantIds } = useMyLinkedMerchantIds(agent?.id);
+  // Unit root: the unit admin's own id, or the parent id for a deputy unit
+  // manager — same derivation as TeamReport.tsx.
+  const unitRootId = agent?.parent_agent_id ?? agent?.id;
+  const { data: unitRoster } = useUnitRoster(isUnitViewer ? unitRootId : undefined);
 
   const [proposeOpen, setProposeOpen] = useState(false);
   const [agentFilter, setAgentFilter] = useState<string>('all');
   const [sortKey, setSortKey] = useState<EnquirySortKey>('default');
   const [partnerFilter, setPartnerFilter] = useState<string>('all');
+  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -520,12 +683,26 @@ export function MyEnquiries() {
     (!dateFrom || e.created_at.slice(0, 10) >= dateFrom) &&
     (!dateTo || e.created_at.slice(0, 10) <= dateTo);
 
+  // Round 6 item 9: free-text search across name, NRIC, phone, and plate.
+  // NRIC/plate compare with whitespace/dashes stripped so formatting doesn't
+  // block a match; phone only matches once at least 3 digits are typed, so a
+  // single stray digit in the query doesn't match every row.
+  const q = search.trim().toLowerCase();
+  const digits = search.replace(/\D/g, '');
+  const matchesSearch = (e: EnquiryWithDetails): boolean =>
+    !q ||
+    e.customer_name.toLowerCase().includes(q) ||
+    (e.customer_nric ?? '').toLowerCase().replace(/[\s-]/g, '').includes(q.replace(/[\s-]/g, '')) ||
+    (digits.length >= 3 && (e.customer_phone ?? '').replace(/\D/g, '').includes(digits)) ||
+    e.vehicles.some((v) => v.car_plate.toLowerCase().replace(/\s/g, '').includes(q.replace(/\s/g, '')));
+
   const visibleEnquiries = sortedEnquiries.filter(
     (e) =>
       (agentFilter === 'all' || e.agent?.id === agentFilter) &&
       matchesPartner(e) &&
       matchesStatus(e) &&
-      matchesDate(e)
+      matchesDate(e) &&
+      matchesSearch(e)
   );
 
   const handleDownload = async () => {
@@ -551,6 +728,12 @@ export function MyEnquiries() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Input
+            placeholder="Search name, car plate, IC or phone…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-56 h-9 text-sm"
+          />
           {isUnitViewer && (
             <Button variant="outline" size="sm" onClick={() => setProposeOpen(true)}>
               <Plus className="size-4 mr-2" />
@@ -664,6 +847,8 @@ export function MyEnquiries() {
             agentId={agent?.id}
             showAgent={isUnitViewer}
             readOnly={false}
+            isUnitView={isUnitViewer}
+            unitRoster={unitRoster ?? []}
           />
         ))
       )}

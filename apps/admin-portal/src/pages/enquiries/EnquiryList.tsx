@@ -20,6 +20,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Combobox,
   Label,
   Input,
   buildEnquiriesWorkbook,
@@ -383,18 +384,16 @@ export function EnquiryList() {
           </DialogHeader>
           <div className="space-y-2">
             <Label>New agent</Label>
-            <Select value={reassignAgentId} onValueChange={setReassignAgentId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select an agent" />
-              </SelectTrigger>
-              <SelectContent>
-                {(allAgents ?? []).map((a) => (
-                  <SelectItem key={a.id} value={a.id}>
-                    {a.name} — {a.unit_name} ({a.agent_code})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Combobox
+              value={reassignAgentId || null}
+              onValueChange={setReassignAgentId}
+              placeholder="Select an agent"
+              searchPlaceholder="Search agents..."
+              options={(allAgents ?? []).map((a) => ({
+                value: a.id,
+                label: `${a.name} — ${a.unit_name} (${a.agent_code})`,
+              }))}
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setReassignTarget(null)}>

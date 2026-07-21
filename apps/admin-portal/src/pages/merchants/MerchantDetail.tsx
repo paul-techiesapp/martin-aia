@@ -32,11 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   TableSkeleton,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Combobox,
   Switch,
   useToast,
 } from '@agent-system/shared-ui';
@@ -120,19 +116,22 @@ function BranchLinksDialog({
         <div className="space-y-3">
           <div>
             <Label>Tie to agent (optional)</Label>
-            <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="House — no agent" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={HOUSE_VALUE}>House — no agent</SelectItem>
-                {agents?.map((agent) => (
-                  <SelectItem key={agent.id} value={agent.id}>
-                    {agent.name} ({agent.agent_code})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Combobox
+              className="mt-1"
+              value={selectedAgentId}
+              onValueChange={setSelectedAgentId}
+              placeholder="House — no agent"
+              searchPlaceholder="Search agents..."
+              options={[
+                { value: HOUSE_VALUE, label: 'House — no agent' },
+                ...(agents ?? [])
+                  .filter((agent) => agent.parent_agent_id !== null)
+                  .map((agent) => ({
+                    value: agent.id,
+                    label: `${agent.name} (${agent.agent_code})`,
+                  })),
+              ]}
+            />
           </div>
           <div className="flex justify-end">
             <Button onClick={handleGenerate} disabled={createLink.isPending}>

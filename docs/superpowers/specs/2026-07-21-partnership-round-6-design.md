@@ -123,7 +123,23 @@ After submission the thank-you screen shows **agent name + contact number**:
 - Copy: "Thank you. Your agent **[Name]** will be in touch with your
   quotation soon — you can also reach them at **[phone]**."
 
-### 6. Verification item (no build unless broken)
+### 6. Enquiry form — unit-level footer image
+
+The enquiry-form footer image is currently admin-only
+(`system_settings.enquiry_form.footer_image_url`, with round-5 per-partner
+design overrides). Units get their own:
+
+- Unit viewers (Unit Manager + Unit Admins) can upload/clear a footer image
+  from the unit dashboard (same size guidance as admin: 1600x200, 8:1;
+  stored in the existing assets bucket).
+- Stored as a form-override JSON on the **unit root** agent row (absent keys
+  fall back), mirroring the round-5 partner-override pattern.
+- Resolution precedence on the public form: **Partner > Unit > Admin** —
+  most-specific wins; the unit is resolved from the link's agent (agent
+  links) or the branch's tied agent (branch links). Resolved in the same
+  merge helper the form already uses, so events forms are unaffected.
+
+### 7. Verification item (no build unless broken)
 
 Client question: "if a partner is assigned to a unit agent, when anyone
 registers, is the enquiry directly assigned under that agent?" Verify on

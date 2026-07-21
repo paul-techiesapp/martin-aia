@@ -32,12 +32,18 @@ BEGIN
 
   SELECT agent_id INTO v_enquiry_agent FROM enquiries WHERE id = v_vehicle.enquiry_id;
 
-  IF NOT (
+  -- Non-agent authenticated callers (merchant/partner logins) have no business
+  -- here; also guards the OR-chain below against NULL from get_agent_id().
+  IF NOT is_admin() AND get_agent_id() IS NULL THEN
+    RAISE EXCEPTION 'Not allowed to mark this vehicle renewed' USING ERRCODE = '42501';
+  END IF;
+
+  IF NOT COALESCE((
     is_admin()
     OR (v_enquiry_agent IS NOT NULL AND v_enquiry_agent = get_agent_id())
     OR (v_enquiry_agent IS NOT NULL AND is_unit_viewer()
         AND v_enquiry_agent IN (SELECT unit_member_ids()))
-  ) THEN
+  ), false) THEN
     RAISE EXCEPTION 'Not allowed to mark this vehicle renewed' USING ERRCODE = '42501';
   END IF;
 

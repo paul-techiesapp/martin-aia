@@ -23,6 +23,7 @@ GRANT EXECUTE ON FUNCTION set_unit_footer_image(text) TO authenticated;
 -- Unit viewers upload their unit's enquiry-form footer image. Path-scoped to
 -- their own unit root id, so no cross-unit writes; reads stay public (bucket
 -- is public), all other writes remain admin-only.
+DROP POLICY IF EXISTS "Unit viewers upload unit footer images" ON storage.objects;
 CREATE POLICY "Unit viewers upload unit footer images"
   ON storage.objects FOR INSERT TO authenticated
   WITH CHECK (

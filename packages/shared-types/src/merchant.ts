@@ -13,6 +13,8 @@ export interface MerchantFormSettings {
   header_title?: string;
   header_subtitle?: string;
   footer_text?: string;
+  /** Partner-level footer image override (Round 6 item 6; highest precedence: partner > unit > admin). */
+  footer_image_url?: string;
 }
 
 /** Per-unit agent form settings (Round 6). */

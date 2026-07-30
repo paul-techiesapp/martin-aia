@@ -25,6 +25,7 @@ import { Users, UserCheck, ClipboardList } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useUnitRoster } from '../hooks/useSubAgents';
 import { useUnitTeamReport } from '../hooks/useTeamReport';
+import { useUnitEnquirySummary } from '../hooks/useEnquirySummary';
 
 function fmtDate(value: string | null): string {
   if (!value) return '—';
@@ -54,6 +55,7 @@ export function TeamReport() {
   // Unit admins and unit managers both get the unit-wide view.
   const enabled = isUnitViewer && !!agent?.id;
   const { performance, campaignOptions, isLoading } = useUnitTeamReport(roster, enabled, campaignId);
+  const { data: enquirySummary, isLoading: enquiryLoading } = useUnitEnquirySummary(unitRoot, enabled);
 
   const totals = useMemo(() => {
     const rows = performance ?? [];
@@ -234,6 +236,53 @@ export function TeamReport() {
               </CardContent>
             </Card>
           ))}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Car Enquiries by Agent</CardTitle>
+          <CardDescription>
+            Enquiry forms customers submitted through each agent's link ·{' '}
+            {(enquirySummary ?? []).reduce((n, r) => n + r.forms_submitted, 0)} total
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {enquiryLoading ? (
+            <TableSkeleton rows={4} columns={6} />
+          ) : (enquirySummary ?? []).length === 0 ? (
+            <p className="text-muted-foreground text-center py-6">No enquiries yet for this unit.</p>
+          ) : (
+            <div className="overflow-auto rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead>Agent</TableHead>
+                    <TableHead className="text-right">Forms</TableHead>
+                    <TableHead className="text-right">Customers</TableHead>
+                    <TableHead className="text-right">Cars</TableHead>
+                    <TableHead className="text-right">Open</TableHead>
+                    <TableHead className="text-right">Renewed</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(enquirySummary ?? []).map((r) => (
+                    <TableRow key={r.agent_id}>
+                      <TableCell className="font-medium">
+                        {r.agent_name}
+                        <div className="text-xs text-muted-foreground">{r.agent_code}</div>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">{r.forms_submitted}</TableCell>
+                      <TableCell className="text-right">{r.customers}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{r.cars}</TableCell>
+                      <TableCell className="text-right text-amber-600">{r.cars_open}</TableCell>
+                      <TableCell className="text-right text-emerald-600">{r.cars_renewed}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

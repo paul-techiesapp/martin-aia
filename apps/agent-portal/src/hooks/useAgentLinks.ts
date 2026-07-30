@@ -185,6 +185,7 @@ export function usePartnerLinks(partnerId: string | undefined, includeInactive =
               .from('registrations')
               .select('agent_link_id')
               .in('agent_link_id', linkIds)
+              .order('id', { ascending: true })
               .range(from, to) as unknown as PromiseLike<{
               data: { agent_link_id: string | null }[] | null;
               error: { message: string } | null;

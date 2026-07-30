@@ -14,6 +14,7 @@
 
 - **Branch:** `feat/partnership-round-7` (already created, cut from `feat/partnership-round-6`). Verify with `git rev-parse --abbrev-ref HEAD` before EVERY commit — this repo has concurrent workflows sharing one working tree and a commit has previously landed on the wrong branch.
 - **No test runner exists.** There is no vitest/jest and eslint is not installed. Do NOT add one — `pnpm add <anything>` re-trips a known dual-zod tsc failure. Verification gates are `pnpm -r typecheck`, `pnpm build`, and the explicit SQL assertions written into each task.
+- **`pnpm -r typecheck` does NOT cover the apps.** Only `packages/shared-ui` and `packages/shared-types` define a `typecheck` script; `apps/*` define only `dev`/`build`/`preview`/`lint`. A change under `apps/` that breaks types passes `pnpm -r typecheck` silently. For any task touching an app, the real gate is `npx tsc --noEmit` run inside that app's directory, or `pnpm build` (whose script is `tsc && vite build`). Discovered during Task 2.
 - **Never run `supabase db push` against production.** Production migrations are applied with the Supabase MCP `apply_migration` tool only.
 - **Production project:** `mjtdsevynrtcmafsnxsj` (BOP Website). **Staging project:** `lyjdlietzmmejrxjvwgp`.
 - **Date semantics:** every date-range filter compares the Asia/Singapore calendar day, matching `usePartnerPerformance` (`apps/admin-portal/src/hooks/useReports.ts:434`). SQL uses `(created_at at time zone 'Asia/Singapore')::date`; TypeScript uses `toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' })`.

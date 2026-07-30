@@ -1,4 +1,6 @@
 export { cn } from './lib/utils';
+export { fetchAllRows } from './lib/fetchAllRows';
+export type { PageBuilder, FetchAllOptions } from './lib/fetchAllRows';
 export { Button, buttonVariants } from './components/ui/button';
 export { Input } from './components/ui/input';
 export { Label } from './components/ui/label';

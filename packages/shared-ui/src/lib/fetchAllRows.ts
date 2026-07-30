@@ -5,7 +5,12 @@
  * 2026-07-30 the admin portal received 1000 of 1507 enquiries, which is why
  * admin, unit and agent views disagreed on the same agent's customer count.
  *
- * This helper pages through the full result set instead.
+ * This helper pages through the full result set instead. If it hits the
+ * `maxRows` safety ceiling it throws rather than returning what it has so
+ * far — a partial result silently swallowed by the caller would reproduce
+ * the exact truncation bug this helper exists to eliminate, just moved two
+ * orders of magnitude up. Callers that expect to approach the ceiling should
+ * aggregate the query server-side (e.g. a Postgres RPC) instead of paging.
  *
  * The caller supplies a BUILDER rather than a query, because PostgREST query
  * builders are single-use — each page needs a freshly constructed query.
@@ -19,6 +24,13 @@
  *       .order('created_at', { ascending: false })
  *       .order('id', { ascending: false })
  *       .range(from, to))
+ *
+ * Note the tiebreaker only resolves ties among rows that existed when the
+ * sweep began — it does not make LIMIT/OFFSET paging immune to concurrent
+ * writes. A row inserted between two page fetches shifts the rank of every
+ * row after it, which can cause a row to be duplicated (or, less often,
+ * skipped) at a page boundary. Closing that gap would require keyset
+ * (cursor-based) pagination instead of LIMIT/OFFSET.
  */
 export type PageBuilder<T> = (
   from: number,
@@ -30,7 +42,7 @@ export interface FetchAllOptions {
   pageSize?: number;
   /** Safety ceiling. A query that reaches it should be aggregated server-side. */
   maxRows?: number;
-  /** Query name used in the ceiling warning. */
+  /** Query name included in the ceiling error message. */
   label?: string;
 }
 
@@ -51,9 +63,8 @@ export async function fetchAllRows<T>(
     if (page.length < pageSize) return rows;
   }
 
-  console.warn(
+  throw new Error(
     `[fetchAllRows] hit the ${maxRows}-row ceiling${opts.label ? ` for ${opts.label}` : ''}; ` +
-      'results are truncated. This query should be aggregated server-side.',
+      'refusing to return a silently truncated result. This query should be aggregated server-side.',
   );
-  return rows;
 }

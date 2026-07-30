@@ -677,11 +677,16 @@ export function MyEnquiries() {
     return statusFilter === 'open' ? e.status === EnquiryStatus.OPEN : e.status === EnquiryStatus.CLOSED;
   };
 
-  // Round 5 item 8.1: filter by submission date (yyyy-mm-dd prefix of the ISO
-  // timestamp); empty bounds are unbounded.
-  const matchesDate = (e: EnquiryWithDetails): boolean =>
-    (!dateFrom || e.created_at.slice(0, 10) >= dateFrom) &&
-    (!dateTo || e.created_at.slice(0, 10) <= dateTo);
+  // Round 5 item 8.1: filter by submission date. Compared on the Asia/
+  // Singapore calendar day (matching the enquiry_unit_summary /
+  // enquiry_agent_summary RPCs and usePartnerPerformance) rather than the
+  // UTC calendar day — otherwise the same From/To can disagree with the
+  // admin report by a day for enquiries created near midnight SGT. Empty
+  // bounds are unbounded.
+  const matchesDate = (e: EnquiryWithDetails): boolean => {
+    const d = new Date(e.created_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' });
+    return (!dateFrom || d >= dateFrom) && (!dateTo || d <= dateTo);
+  };
 
   // Round 6 item 9: free-text search across name, NRIC, phone, and plate.
   // NRIC/plate compare with whitespace/dashes stripped so formatting doesn't

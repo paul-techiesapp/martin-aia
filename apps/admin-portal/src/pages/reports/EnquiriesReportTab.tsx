@@ -10,12 +10,20 @@ import {
   useEnquiryAgentSummary,
   type EnquiryUnitSummaryRow,
 } from '../../hooks/useEnquirySummary';
-import { downloadCsv } from '../Reports';
+import { downloadCsv } from '../../lib/downloadCsv';
 
 function UnitBreakdown({ unit, from, to }: { unit: EnquiryUnitSummaryRow; from: string; to: string }) {
   const { data: agents, isLoading } = useEnquiryAgentSummary(from || undefined, to || undefined, unit.unit_root_id);
   if (isLoading) return <p className="text-muted-foreground py-3 px-4 text-sm">Loading agents…</p>;
-  if (!agents?.length) return <p className="text-muted-foreground py-3 px-4 text-sm">No agent activity in this range.</p>;
+  if (!agents?.length) {
+    return (
+      <p className="text-muted-foreground py-3 px-4 text-sm">
+        {unit.unit_root_id === null
+          ? 'These enquiries have no assigned agent.'
+          : 'No agent activity in this range.'}
+      </p>
+    );
+  }
   return (
     <div className="overflow-auto rounded-md border">
       <Table>
@@ -65,6 +73,18 @@ export function EnquiriesReportTab() {
     }),
     { forms: 0, customers: 0, cars: 0, open: 0, renewed: 0 },
   );
+
+  // Two different unit roots can share the same display name (e.g. a unit
+  // renamed/recreated in production). The RPC groups by (unit_name,
+  // unit_root_id) so the numbers stay correct, but rendering two identically
+  // titled rows reads as the reporting bug this feature exists to fix — so
+  // disambiguate any name that occurs more than once with its root id.
+  const unitNameCounts = (units ?? []).reduce<Record<string, number>>((acc, u) => {
+    acc[u.unit_name] = (acc[u.unit_name] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  const expandedUnit = (units ?? []).find((u) => (u.unit_root_id ?? u.unit_name) === expanded);
 
   return (
     <div className="flex flex-col gap-3">
@@ -148,6 +168,9 @@ export function EnquiriesReportTab() {
                                 : <ChevronRight className="size-4" />}
                               {u.unit_name}
                             </button>
+                            {unitNameCounts[u.unit_name] > 1 && u.unit_root_id && (
+                              <div className="text-xs text-muted-foreground">{u.unit_root_id.slice(0, 8)}</div>
+                            )}
                           </TableCell>
                           <TableCell className="text-right font-medium">{u.forms_submitted}</TableCell>
                           <TableCell className="text-right">{u.customers}</TableCell>
@@ -175,16 +198,16 @@ export function EnquiriesReportTab() {
         </CardContent>
       </Card>
 
-      {expanded && (
+      {expandedUnit && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
-              {(units ?? []).find((u) => (u.unit_root_id ?? u.unit_name) === expanded)?.unit_name} — by agent
+              {expandedUnit.unit_name} — by agent
             </CardTitle>
           </CardHeader>
           <CardContent>
             <UnitBreakdown
-              unit={(units ?? []).find((u) => (u.unit_root_id ?? u.unit_name) === expanded)!}
+              unit={expandedUnit}
               from={from}
               to={to}
             />

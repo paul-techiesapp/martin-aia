@@ -51,15 +51,18 @@ export function BranchPerformance() {
   const [dateTo, setDateTo] = useState('');
   const [sortKey, setSortKey] = useState<'newest' | 'oldest' | 'staff' | 'branch'>('newest');
   const branchNames = Array.from(new Set((leads ?? []).map((l) => l.branch_name)));
-  // Date range compares the yyyy-mm-dd prefix of the ISO timestamp; empty
-  // bounds are unbounded. From > To simply matches nothing.
+  // Date range compares the Asia/Singapore calendar day (matching the
+  // enquiry_unit_summary / enquiry_agent_summary RPCs and
+  // usePartnerPerformance), not the UTC calendar day — otherwise the same
+  // From/To can disagree with the admin report by a day. Empty bounds are
+  // unbounded. From > To simply matches nothing.
   const visibleLeads = (leads ?? [])
     .filter(
       (l) =>
         (branchFilter === 'all' || l.branch_name === branchFilter) &&
         (statusFilter === 'all' || l.vehicle_status === statusFilter) &&
-        (!dateFrom || l.lead_created_at.slice(0, 10) >= dateFrom) &&
-        (!dateTo || l.lead_created_at.slice(0, 10) <= dateTo),
+        (!dateFrom || new Date(l.lead_created_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' }) >= dateFrom) &&
+        (!dateTo || new Date(l.lead_created_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' }) <= dateTo),
     )
     .sort((a, b) => {
       switch (sortKey) {

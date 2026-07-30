@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { fetchAllRows } from '@agent-system/shared-ui';
 import { supabase } from '../lib/supabase';
 
 interface EmbeddedAmount {
@@ -46,25 +47,38 @@ export function useRenewalReport(filters: RenewalReportFilters) {
   return useQuery({
     queryKey: ['renewal-report', filters],
     queryFn: async () => {
-      let q = supabase
-        .from('enquiry_vehicles')
-        .select(`
-          id, car_plate, renewed_at, renewal_premium_amount, merchant_id,
-          merchant:merchants(name),
-          enquiry:enquiries(customer_name, agent:agents(name, agent_code, unit_name)),
-          gifts(value_amount),
-          merchant_settlements(amount)
-        `)
-        .eq('status', 'renewed');
+      // Paged: enquiry_vehicles already exceeds PostgREST's 1000-row page cap
+      // (1832 rows), and `.eq('status', 'renewed')` alone doesn't narrow it
+      // enough to stay under the cap. `id` is a tiebreaker for deterministic pages.
+      const data = await fetchAllRows<any>(
+        (from, to) => {
+          let q = supabase
+            .from('enquiry_vehicles')
+            .select(`
+              id, car_plate, renewed_at, renewal_premium_amount, merchant_id,
+              merchant:merchants(name),
+              enquiry:enquiries(customer_name, agent:agents(name, agent_code, unit_name)),
+              gifts(value_amount),
+              merchant_settlements(amount)
+            `)
+            .eq('status', 'renewed');
 
-      // Bound the inclusive day range in Singapore local time (renewed_at is UTC).
-      if (filters.from) q = q.gte('renewed_at', `${filters.from}T00:00:00+08:00`);
-      if (filters.to) q = q.lte('renewed_at', `${filters.to}T23:59:59.999+08:00`);
+          // Bound the inclusive day range in Singapore local time (renewed_at is UTC).
+          if (filters.from) q = q.gte('renewed_at', `${filters.from}T00:00:00+08:00`);
+          if (filters.to) q = q.lte('renewed_at', `${filters.to}T23:59:59.999+08:00`);
 
-      const { data, error } = await q.order('renewed_at', { ascending: false });
-      if (error) throw error;
+          return q
+            .order('renewed_at', { ascending: false })
+            .order('id', { ascending: false })
+            .range(from, to) as unknown as PromiseLike<{
+            data: any[] | null;
+            error: { message: string } | null;
+          }>;
+        },
+        { label: 'admin renewal-report' },
+      );
 
-      return (data ?? []).map((r: any) => ({
+      return data.map((r: any) => ({
         id: r.id,
         car_plate: r.car_plate,
         renewed_at: r.renewed_at,

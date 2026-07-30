@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchAllRows } from '@agent-system/shared-ui';
 import { supabase } from '../lib/supabase';
 import { RewardStatus } from '@agent-system/shared-types';
 import type { CapacityType } from '@agent-system/shared-types';
@@ -33,25 +34,33 @@ export function useRewards() {
   return useQuery({
     queryKey: ['admin-rewards'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('rewards')
-        .select(`
-          id, amount, status, issued_at, failure_reason, capacity_type, created_at,
-          agent:agents(name, unit_name, agent_code),
-          attendance:attendance(
-            checkin_time, checkout_time,
-            registration:registrations(
-              invitee_name, invitee_phone, invitee_nric,
-              slot:slots(start_at, campaign:campaigns(id, name))
-            )
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      // PostgREST returns to-one embeds as objects; the generated types widen them
-      // to arrays, so cast through unknown to our explicit row shape.
-      return (data ?? []) as unknown as AdminRewardRow[];
+      // Paged: rewards is a table that grows per transaction and this read is
+      // fully unfiltered. `id` is a tiebreaker for deterministic page boundaries.
+      return fetchAllRows<AdminRewardRow>(
+        (from, to) =>
+          supabase
+            .from('rewards')
+            .select(`
+              id, amount, status, issued_at, failure_reason, capacity_type, created_at,
+              agent:agents(name, unit_name, agent_code),
+              attendance:attendance(
+                checkin_time, checkout_time,
+                registration:registrations(
+                  invitee_name, invitee_phone, invitee_nric,
+                  slot:slots(start_at, campaign:campaigns(id, name))
+                )
+              )
+            `)
+            .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
+            // PostgREST returns to-one embeds as objects; the generated types widen
+            // them to arrays, so cast through unknown to our explicit row shape.
+            .range(from, to) as unknown as PromiseLike<{
+            data: AdminRewardRow[] | null;
+            error: { message: string } | null;
+          }>,
+        { label: 'admin rewards' },
+      );
     },
   });
 }

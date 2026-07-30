@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchAllRows } from '@agent-system/shared-ui';
 import { supabase } from '../lib/supabase';
 import { RewardStatus } from '@agent-system/shared-types';
 
@@ -21,20 +22,29 @@ export function useMerchantCommissions() {
   return useQuery({
     queryKey: ['merchant-commissions'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('merchant_commissions')
-        .select(`
-          id, amount, status, paid_at, failure_reason, created_at,
-          agent:agents(id, name, agent_code, unit_name),
-          vehicle:enquiry_vehicles(
-            id, car_plate,
-            enquiry:enquiries(customer_name, customer_phone)
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return (data ?? []) as unknown as AdminCommissionRow[];
+      // Paged: merchant_commissions is a table that grows per transaction and
+      // this read is fully unfiltered. `id` is a tiebreaker for deterministic
+      // page boundaries.
+      return fetchAllRows<AdminCommissionRow>(
+        (from, to) =>
+          supabase
+            .from('merchant_commissions')
+            .select(`
+              id, amount, status, paid_at, failure_reason, created_at,
+              agent:agents(id, name, agent_code, unit_name),
+              vehicle:enquiry_vehicles(
+                id, car_plate,
+                enquiry:enquiries(customer_name, customer_phone)
+              )
+            `)
+            .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
+            .range(from, to) as unknown as PromiseLike<{
+            data: AdminCommissionRow[] | null;
+            error: { message: string } | null;
+          }>,
+        { label: 'admin merchant-commissions' },
+      );
     },
   });
 }

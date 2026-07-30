@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { fetchAllRows } from '@agent-system/shared-ui';
 import { supabase } from '../lib/supabase';
 import { VehicleStatus, type RegistrationStatus } from '@agent-system/shared-types';
 import { useEnquiries } from './useEnquiries';
@@ -86,33 +87,45 @@ async function fetchRegistrations(
   campaignId: string,
   fromISO?: string | null,
 ): Promise<RawRegistration[]> {
-  let query = supabase
-    .from('registrations')
-    .select(`
-      id, invitee_name, invitee_nric, invitee_phone, status, created_at, registered_at, agent_id,
-      agent:agents(name, unit_name, parent_agent_id),
-      attendance:attendance(checkin_time, checkout_time, is_full_attendance, reward:rewards(amount, status)),
-      slot:slots(start_at, campaign:campaigns(id, name))
-    `)
-    .order('created_at', { ascending: false });
-
+  let slotIds: string[] | null = null;
   if (campaignId !== 'all') {
-    const slotIds = await slotIdsForCampaign(campaignId);
+    slotIds = await slotIdsForCampaign(campaignId);
     if (slotIds.length === 0) return [];
-    query = query.in('slot_id', slotIds);
   }
 
-  if (fromISO) {
-    query = query.gte('created_at', fromISO);
-  }
+  // Paged: registrations is a table that grows per transaction (already 729 rows
+  // and climbing) and, when campaignId is 'all', this is a fully unscoped read —
+  // exactly the shape that silently dropped rows past PostgREST's 1000-row cap
+  // in the enquiries hook. `id` is a tiebreaker for deterministic page boundaries.
+  const data = await fetchAllRows<any>(
+    (from, to) => {
+      let query = supabase
+        .from('registrations')
+        .select(`
+          id, invitee_name, invitee_nric, invitee_phone, status, created_at, registered_at, agent_id,
+          agent:agents(name, unit_name, parent_agent_id),
+          attendance:attendance(checkin_time, checkout_time, is_full_attendance, reward:rewards(amount, status)),
+          slot:slots(start_at, campaign:campaigns(id, name))
+        `)
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false });
 
-  const { data, error } = await query;
-  if (error) throw error;
+      if (slotIds) query = query.in('slot_id', slotIds);
+      if (fromISO) query = query.gte('created_at', fromISO);
+
+      return query.range(from, to) as unknown as PromiseLike<{
+        data: any[] | null;
+        error: { message: string } | null;
+      }>;
+    },
+    { label: 'admin registrations (report)' },
+  );
+
   // attendance is embedded across a reverse FK (attendance.registration_id), so
   // PostgREST may return it as a one-element array OR a single object depending
   // on its one-to-one detection. Normalize to a single object | null — and do the
   // same for the reward embedded one level deeper under attendance.
-  return (data ?? []).map((r: any) => {
+  return data.map((r: any) => {
     const attendance = Array.isArray(r.attendance) ? r.attendance[0] ?? null : r.attendance ?? null;
     const reward = attendance
       ? Array.isArray(attendance.reward)
@@ -180,10 +193,25 @@ export function useTeamPerformance(campaignId: string) {
     queryKey: ['team-performance', campaignId],
     queryFn: async (): Promise<TeamPerformance[]> => {
       // Team map: every agent → its team root + the root's unit name.
-      const { data: agents, error: agentsError } = await supabase
-        .from('agents')
-        .select('id, name, unit_name, parent_agent_id');
-      if (agentsError) throw agentsError;
+      // Paged: agents grows per transaction and this read is fully unfiltered.
+      interface TeamAgentRow {
+        id: string;
+        name: string;
+        unit_name: string;
+        parent_agent_id: string | null;
+      }
+      const agents = await fetchAllRows<TeamAgentRow>(
+        (from, to) =>
+          supabase
+            .from('agents')
+            .select('id, name, unit_name, parent_agent_id')
+            .order('id', { ascending: true })
+            .range(from, to) as unknown as PromiseLike<{
+            data: TeamAgentRow[] | null;
+            error: { message: string } | null;
+          }>,
+        { label: 'admin agents (team-performance)' },
+      );
 
       const agentById = new Map<string, { name: string; unit_name: string; parent_agent_id: string | null }>();
       for (const a of agents ?? []) {

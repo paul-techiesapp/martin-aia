@@ -1,4 +1,4 @@
-import { useState, useRef, Fragment } from 'react';
+import { useState, useRef, useMemo, Fragment } from 'react';
 import {
   Card,
   CardContent,
@@ -705,6 +705,34 @@ export function MyEnquiries() {
       matchesSearch(e)
   );
 
+  // Totals for the rows currently on screen, so the strip always agrees with the
+  // list below it (and with the unit/admin summaries, which count the same way:
+  // customers dedupe by normalised IC, removed cars are excluded). The
+  // useMyEnquiries query already filters removed vehicles out of e.vehicles at
+  // the PostgREST level (`.is('vehicles.removed_at', null)`), so the
+  // `v.removed_at` guard below is redundant but kept to mirror the RPCs'
+  // FILTER (WHERE v.removed_at IS NULL) semantics.
+  const totals = useMemo(() => {
+    const norm = (s: string | null) => (s ?? '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    const ics = new Set<string>();
+    let icLess = 0;
+    let cars = 0;
+    let open = 0;
+    let renewed = 0;
+    for (const e of visibleEnquiries) {
+      const ic = norm(e.customer_nric);
+      if (ic) ics.add(ic);
+      else icLess += 1;
+      for (const v of e.vehicles ?? []) {
+        if (v.removed_at) continue;
+        cars += 1;
+        if (v.status === VehicleStatus.SUBMITTED || v.status === VehicleStatus.QUOTED) open += 1;
+        if (v.status === VehicleStatus.RENEWED) renewed += 1;
+      }
+    }
+    return { forms: visibleEnquiries.length, customers: ics.size + icLess, cars, open, renewed };
+  }, [visibleEnquiries]);
+
   const handleDownload = async () => {
     try {
       const rows = toEnquiryExportRows(visibleEnquiries, agent);
@@ -839,18 +867,27 @@ export function MyEnquiries() {
           </CardContent>
         </Card>
       ) : (
-        visibleEnquiries.map((enq) => (
-          <EnquiryCard
-            key={enq.id}
-            enq={enq}
-            activeMerchants={activeMerchants}
-            agentId={agent?.id}
-            showAgent={isUnitViewer}
-            readOnly={false}
-            isUnitView={isUnitViewer}
-            unitRoster={unitRoster ?? []}
-          />
-        ))
+        <>
+          <div className="flex flex-wrap gap-x-6 gap-y-1 rounded-md border bg-muted/40 px-4 py-2 text-sm">
+            <span><strong>{totals.forms}</strong> form{totals.forms === 1 ? '' : 's'}</span>
+            <span><strong>{totals.customers}</strong> customer{totals.customers === 1 ? '' : 's'}</span>
+            <span><strong>{totals.cars}</strong> car{totals.cars === 1 ? '' : 's'}</span>
+            <span className="text-amber-600"><strong>{totals.open}</strong> open</span>
+            <span className="text-emerald-600"><strong>{totals.renewed}</strong> renewed</span>
+          </div>
+          {visibleEnquiries.map((enq) => (
+            <EnquiryCard
+              key={enq.id}
+              enq={enq}
+              activeMerchants={activeMerchants}
+              agentId={agent?.id}
+              showAgent={isUnitViewer}
+              readOnly={false}
+              isUnitView={isUnitViewer}
+              unitRoster={unitRoster ?? []}
+            />
+          ))}
+        </>
       )}
     </div>
   );

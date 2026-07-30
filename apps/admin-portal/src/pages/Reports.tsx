@@ -57,6 +57,7 @@ import {
 import { useRenewalReport } from '../hooks/useRenewalReport';
 import { useEnquiries } from '../hooks/useEnquiries';
 import { useSystemSettings } from '../hooks/useSystemSettings';
+import { EnquiriesReportTab } from './reports/EnquiriesReportTab';
 
 function fmtDate(value: string | null): string {
   if (!value) return '—';
@@ -72,7 +73,7 @@ function fmtTime(value: string | null): string {
   });
 }
 
-function downloadCsv(filename: string, rows: (string | number)[][]) {
+export function downloadCsv(filename: string, rows: (string | number)[][]) {
   const csv = rows
     .map((row) => row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))
     .join('\n');
@@ -198,6 +199,7 @@ export function Reports() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="attendees">Attendees</TabsTrigger>
           <TabsTrigger value="teams">Team Performance</TabsTrigger>
+          <TabsTrigger value="unit-enquiries">Enquiries</TabsTrigger>
           <TabsTrigger value="partners">Partners</TabsTrigger>
           <TabsTrigger value="renewals">Renewals</TabsTrigger>
         </TabsList>
@@ -623,6 +625,10 @@ export function Reports() {
                 </Card>
               ))}
           </div>
+        </TabsContent>
+
+        <TabsContent value="unit-enquiries" className="mt-4">
+          <EnquiriesReportTab />
         </TabsContent>
 
         {/* Partners tab (#13): enquiring cars grouped by merchant partner */}

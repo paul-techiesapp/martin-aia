@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { fetchAllRows } from '@agent-system/shared-ui';
 import { RegistrationStatus } from '@agent-system/shared-types';
 import type { Registration } from '@agent-system/shared-types';
 
@@ -86,17 +87,27 @@ export function useRegistrationStats(agentId: string | undefined) {
   });
 }
 
+// Paged: both queries aggregate across every agent tied to this partner (not
+// one agent's own rows), the same unbounded-aggregation shape as
+// usePartnerLinks in useAgentLinks.ts.
 export function usePartnerRegistrationStats(partnerId: string | undefined) {
   return useQuery({
     queryKey: ['partner-registration-stats', partnerId],
     queryFn: async () => {
       // First get partner's link IDs
-      const { data: links, error: linksError } = await supabase
-        .from('agent_links')
-        .select('id')
-        .eq('partner_id', partnerId!);
-
-      if (linksError) throw linksError;
+      const links = await fetchAllRows<{ id: string }>(
+        (from, to) =>
+          supabase
+            .from('agent_links')
+            .select('id')
+            .eq('partner_id', partnerId!)
+            .order('id', { ascending: true })
+            .range(from, to) as unknown as PromiseLike<{
+            data: { id: string }[] | null;
+            error: { message: string } | null;
+          }>,
+        { label: 'agent partner-registration-stats links' },
+      );
 
       const stats: RegistrationStats = {
         registered: 0,
@@ -105,18 +116,25 @@ export function usePartnerRegistrationStats(partnerId: string | undefined) {
         total: 0,
       };
 
-      if (!links || links.length === 0) return stats;
+      if (links.length === 0) return stats;
 
       const linkIds = links.map((l) => l.id);
-      const { data: registrations, error: regError } = await supabase
-        .from('registrations')
-        .select('status')
-        .in('agent_link_id', linkIds);
+      const registrations = await fetchAllRows<{ status: RegistrationStatus }>(
+        (from, to) =>
+          supabase
+            .from('registrations')
+            .select('status')
+            .in('agent_link_id', linkIds)
+            .order('id', { ascending: true })
+            .range(from, to) as unknown as PromiseLike<{
+            data: { status: RegistrationStatus }[] | null;
+            error: { message: string } | null;
+          }>,
+        { label: 'agent partner-registration-stats registrations' },
+      );
 
-      if (regError) throw regError;
-
-      stats.total = registrations?.length ?? 0;
-      registrations?.forEach((r) => {
+      stats.total = registrations.length;
+      registrations.forEach((r) => {
         switch (r.status) {
           case RegistrationStatus.REGISTERED:
             stats.registered++;
@@ -144,6 +162,8 @@ export function useUnitRegistrationStats(unitAgentId: string | undefined) {
   return useQuery({
     queryKey: ['unit-registration-stats', unitAgentId],
     queryFn: async () => {
+      // Not paged: a unit's sub-agent roster is an org-hierarchy list, not a
+      // customer-transaction table — realistically far below 1000 rows.
       const { data: subs, error: subsError } = await supabase
         .from('agents')
         .select('id')
@@ -153,21 +173,31 @@ export function useUnitRegistrationStats(unitAgentId: string | undefined) {
 
       const agentIds = [unitAgentId!, ...(subs?.map((s) => s.id) ?? [])];
 
-      const { data, error } = await supabase
-        .from('registrations')
-        .select('status')
-        .in('agent_id', agentIds);
-
-      if (error) throw error;
+      // Paged: this is the same unit-wide aggregation shape flagged for
+      // useMyEnquiries(unitWide=true) — a large unit's registrations are not
+      // bounded below 1000 the way one agent's own rows are.
+      const data = await fetchAllRows<{ status: RegistrationStatus }>(
+        (from, to) =>
+          supabase
+            .from('registrations')
+            .select('status')
+            .in('agent_id', agentIds)
+            .order('id', { ascending: true })
+            .range(from, to) as unknown as PromiseLike<{
+            data: { status: RegistrationStatus }[] | null;
+            error: { message: string } | null;
+          }>,
+        { label: 'agent unit-registration-stats' },
+      );
 
       const stats: RegistrationStats = {
         registered: 0,
         attended: 0,
         completed: 0,
-        total: data?.length ?? 0,
+        total: data.length,
       };
 
-      data?.forEach((r) => {
+      data.forEach((r) => {
         switch (r.status) {
           case RegistrationStatus.REGISTERED:
             stats.registered++;

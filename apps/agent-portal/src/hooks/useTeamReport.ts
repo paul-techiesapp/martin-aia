@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { fetchAllRows } from '@agent-system/shared-ui';
 
 export interface UnitAttendee {
   registrationId: string;
@@ -77,17 +78,27 @@ export function useUnitTeamReport(
   const query = useQuery({
     queryKey: ['unit-team-report', rosterKey],
     queryFn: async (): Promise<NormalizedRegistrationRow[]> => {
-      const { data, error } = await supabase
-        .from('registrations')
-        .select(`
-          id, invitee_name, invitee_phone, status, created_at, registered_at, agent_id,
-          attendance:attendance(checkin_time, checkout_time),
-          slot:slots(campaign_id, campaign:campaigns(name))
-        `)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-
-      const allRows = (data ?? []) as any[];
+      // Paged: unfiltered (RLS scopes to the unit admin's own + sub-agents'
+      // rows), the same unbounded unit-wide shape flagged for
+      // useMyEnquiries(unitWide=true) — a large unit will cross PostgREST's
+      // 1000-row page cap.
+      const allRows = await fetchAllRows<any>(
+        (from, to) =>
+          supabase
+            .from('registrations')
+            .select(`
+              id, invitee_name, invitee_phone, status, created_at, registered_at, agent_id,
+              attendance:attendance(checkin_time, checkout_time),
+              slot:slots(campaign_id, campaign:campaigns(name))
+            `)
+            .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
+            .range(from, to) as unknown as PromiseLike<{
+            data: any[] | null;
+            error: { message: string } | null;
+          }>,
+        { label: 'agent unit-team-report' },
+      );
 
       // slot/campaign are embedded via forward FKs so they arrive as single
       // objects, but normalize defensively in case Supabase returns an array

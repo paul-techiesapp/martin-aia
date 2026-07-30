@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { fetchAllRows } from '@agent-system/shared-ui';
 import type { Enquiry, EnquiryVehicle } from '@agent-system/shared-types';
 
 export interface EnquiryVehicleWithProduct extends EnquiryVehicle {
@@ -23,28 +24,36 @@ export interface EnquiryWithDetails extends Enquiry {
 // product, for follow-up and partnership assignment. Unit viewers (Unit
 // Manager / Unit Admin) fetch WITHOUT the agent filter — RLS scopes rows to
 // their unit.
+// Paged: even the single-agent case is cheap to page (the helper stops after
+// one short request), and the unit-wide case is NOT bounded — a unit viewer
+// in a large unit (e.g. J771) already reads hundreds of rows and will cross
+// PostgREST's 1000-row page cap as the unit grows.
 export function useMyEnquiries(agentId: string | undefined, unitWide = false) {
   return useQuery({
     queryKey: ['my-enquiries', agentId, unitWide],
     queryFn: async () => {
-      let query = supabase
-        .from('enquiries')
-        .select(`
-          *,
-          agent:agents(id, name, agent_code),
-          merchant:merchants(id, name),
-          branch:merchant_branches(name, merchant:merchants(name)),
-          vehicles:enquiry_vehicles(*, product:insurance_products(name), merchant:merchants(id, name))
-        `)
-        .is('vehicles.removed_at', null)
-        .order('created_at', { ascending: false });
-
-      if (!unitWide) query = query.eq('agent_id', agentId!);
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return (data ?? []) as EnquiryWithDetails[];
+      return fetchAllRows<EnquiryWithDetails>(
+        (from, to) => {
+          let q = supabase
+            .from('enquiries')
+            .select(`
+              *,
+              agent:agents(id, name, agent_code),
+              merchant:merchants(id, name),
+              branch:merchant_branches(name, merchant:merchants(name)),
+              vehicles:enquiry_vehicles(*, product:insurance_products(name), merchant:merchants(id, name))
+            `)
+            .is('vehicles.removed_at', null)
+            .order('created_at', { ascending: false })
+            .order('id', { ascending: false });
+          if (!unitWide) q = q.eq('agent_id', agentId!);
+          return q.range(from, to) as unknown as PromiseLike<{
+            data: EnquiryWithDetails[] | null;
+            error: { message: string } | null;
+          }>;
+        },
+        { label: 'agent my-enquiries' },
+      );
     },
     enabled: !!agentId,
   });

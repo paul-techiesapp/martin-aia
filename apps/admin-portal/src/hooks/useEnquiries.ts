@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { fetchAllRows } from '@agent-system/shared-ui';
 import { VehicleStatus, EnquiryStatus } from '@agent-system/shared-types';
 
 export interface EnquiryVehicleRow {
@@ -76,18 +77,27 @@ export function useEnquiries() {
   return useQuery({
     queryKey: ['enquiries'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('enquiries')
-        .select(`
-          id, customer_name, customer_phone, customer_email, customer_nric, staff_id, status, created_at, agent_id,
-          merchant_id, merchant:merchants(id, name),
-          agent:agents(id, name, agent_code, unit_name, parent_agent_id),
-          vehicles:enquiry_vehicles(id, status, car_plate, insurance_expiry_date, road_tax_renewal, removed_at, removed_by_customer, renewal_premium_amount, merchant:merchants(id, name))
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return (data ?? []) as unknown as EnquiryListRow[];
+      // Paged: PostgREST caps a plain .select() at 1000 rows and returns 200 with
+      // a partial array, which silently hid 507 of 1507 enquiries from admin.
+      // `id` is a tiebreaker so page boundaries are deterministic.
+      return fetchAllRows<EnquiryListRow>(
+        (from, to) =>
+          supabase
+            .from('enquiries')
+            .select(`
+              id, customer_name, customer_phone, customer_email, customer_nric, staff_id, status, created_at, agent_id,
+              merchant_id, merchant:merchants(id, name),
+              agent:agents(id, name, agent_code, unit_name, parent_agent_id),
+              vehicles:enquiry_vehicles(id, status, car_plate, insurance_expiry_date, road_tax_renewal, removed_at, removed_by_customer, renewal_premium_amount, merchant:merchants(id, name))
+            `)
+            .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
+            .range(from, to) as unknown as PromiseLike<{
+            data: EnquiryListRow[] | null;
+            error: { message: string } | null;
+          }>,
+        { label: 'admin enquiries' },
+      );
     },
   });
 }

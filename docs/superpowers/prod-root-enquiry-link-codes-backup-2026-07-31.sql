@@ -9,10 +9,12 @@
 -- DR88-TRACY 3; BOS/V155/MN9441-NICOLE 1 each), so any customer holding one of
 -- these WhatsApp/SMS links would hit a dead form.
 --
--- That UPDATE was deliberately NOT run during the 2026-07-31 rollout; the rest
--- of the migration was applied. Run the statement above only after the client
--- confirms these links should die. If it is run and needs undoing, replay this
--- file to restore the exact codes.
+-- STATUS: the UPDATE was held back during the initial 2026-07-31 rollout, then
+-- RUN on 2026-07-31 after the client confirmed. All 10 root links are now NULL;
+-- 182 sub-agent links were unaffected and all 1608 enquiries kept their agent.
+--
+-- TO UNDO: replay the statements below to restore the exact original codes.
+-- Any link already re-shared with customers will start working again.
 
 UPDATE agents SET enquiry_link_code = '5c59f12559c342fea72b31abac3273cf' WHERE id = '742ce18c-00c3-40c3-b0c9-3e0fba0195b5'; -- BOS - BOSCO (BOS)
 UPDATE agents SET enquiry_link_code = 'c91549b00db34e23851c2fcdafca1018' WHERE id = 'e2c24e4a-6581-40a9-9c6a-b19760a37fe9'; -- DR88 - TRACY (DR88)

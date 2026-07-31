@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { readEdgeFunctionError } from '@agent-system/shared-ui';
+import { readEdgeFunctionError, fetchAllRows } from '@agent-system/shared-ui';
 import { supabase } from '../lib/supabase';
 import type { Agent, AgentWithTier } from '@agent-system/shared-types';
 
@@ -7,17 +7,26 @@ export function useAgents() {
   return useQuery({
     queryKey: ['agents'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('agents')
-        .select(`
-          *,
-          tier:tiers(*)
-        `)
-        .or('parent_agent_id.is.null,is_unit_manager.eq.true')
-        .order('name', { ascending: true });
-
-      if (error) throw error;
-      return data as AgentWithTier[];
+      // Paged: agents is a table that grows per transaction, and this list only
+      // narrows to top-level units + unit managers — not a bound that keeps it
+      // under PostgREST's 1000-row page cap as the roster scales.
+      return fetchAllRows<AgentWithTier>(
+        (from, to) =>
+          supabase
+            .from('agents')
+            .select(`
+              *,
+              tier:tiers(*)
+            `)
+            .or('parent_agent_id.is.null,is_unit_manager.eq.true')
+            .order('name', { ascending: true })
+            .order('id', { ascending: true })
+            .range(from, to) as unknown as PromiseLike<{
+            data: AgentWithTier[] | null;
+            error: { message: string } | null;
+          }>,
+        { label: 'admin agents' },
+      );
     },
   });
 }

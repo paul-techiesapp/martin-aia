@@ -19,6 +19,7 @@ import { MyPartners } from './pages/MyPartners';
 import { MyCommissions } from './pages/MyCommissions';
 import { PartnerLinks } from './pages/PartnerLinks';
 import { MyAgents } from './pages/MyAgents';
+import { AgentEnquiries } from './pages/AgentEnquiries';
 import { TeamReport } from './pages/TeamReport';
 import { BranchPerformance } from './pages/BranchPerformance';
 import { Account } from './pages/Account';
@@ -148,6 +149,12 @@ const myAgentsRoute = createRoute({
   component: MyAgents,
 });
 
+const agentEnquiriesRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/my-agents/$agentId/enquiries',
+  component: AgentEnquiries,
+});
+
 const teamReportRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/team-report',
@@ -185,6 +192,7 @@ const routeTree = rootRoute.addChildren([
     myCommissionsRoute,
     partnerLinksRoute,
     myAgentsRoute,
+    agentEnquiriesRoute,
     teamReportRoute,
     branchPerformanceRoute,
     accountRoute,

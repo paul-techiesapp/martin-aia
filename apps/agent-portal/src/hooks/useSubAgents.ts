@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-import type { Agent, AgentWithTier, TierRequest } from '@agent-system/shared-types';
+import { readEdgeFunctionError } from '@agent-system/shared-ui';
+import type { Agent, AgentWithTier, TierRequest, UnitFormSettings } from '@agent-system/shared-types';
 
 export function useMySubAgents(agentId: string | undefined) {
   return useQuery({
@@ -38,6 +39,48 @@ export function useUnitRoster(unitRootId: string | undefined) {
       return data as { id: string; name: string }[];
     },
     enabled: !!unitRootId,
+  });
+}
+
+/**
+ * Reads the unit root's enquiry-form footer image (round 6, item 6). Always
+ * fetches the ROOT row by id — works for both a Unit Admin (root = own id)
+ * and a Unit Manager deputy (root = parent id, a different row than their own).
+ */
+export function useUnitFooterImage(unitRootId: string | undefined) {
+  return useQuery({
+    queryKey: ['unit-footer-image', unitRootId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('agents')
+        .select('form_settings')
+        .eq('id', unitRootId!)
+        .single();
+      if (error) throw error;
+      const settings = data?.form_settings as UnitFormSettings | null;
+      return settings?.footer_image_url ?? null;
+    },
+    enabled: !!unitRootId,
+  });
+}
+
+/**
+ * Sets (or clears, with '') the unit root's enquiry-form footer image via the
+ * set_unit_footer_image SECURITY DEFINER RPC — unit callers have no RLS
+ * UPDATE grant on `agents`, so this can't go through a direct table write.
+ */
+export function useSetUnitFooter() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (url: string) => {
+      const { error } = await supabase.rpc('set_unit_footer_image', { p_url: url });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-sub-agents'] });
+      queryClient.invalidateQueries({ queryKey: ['unit-footer-image'] });
+    },
   });
 }
 
@@ -111,19 +154,58 @@ export function useRequestTier() {
   });
 }
 
-export function useDeactivateSubAgent() {
+export function useUpdateSubAgent() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (agentId: string) => {
+    mutationFn: async (input: {
+      agent_id: string;
+      name?: string;
+      email?: string;
+      phone?: string;
+      nric?: string;
+      agent_code?: string;
+      tier_id?: string | null;
+      status?: 'active' | 'inactive';
+      is_unit_manager?: boolean;
+      password?: string;
+    }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const response = await supabase.functions.invoke('deactivate-sub-agent', {
-        body: { agent_id: agentId },
+      const response = await supabase.functions.invoke('update-sub-agent', {
+        body: input,
       });
 
-      if (response.error) throw new Error(response.error.message || 'Failed to deactivate sub-agent');
+      if (response.error) {
+        const { message } = await readEdgeFunctionError(response.error, 'Failed to update agent');
+        throw new Error(message);
+      }
+      if (response.data?.error) throw new Error(response.data.error);
+      return response.data.agent as Agent;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-sub-agents'] });
+    },
+  });
+}
+
+export function useDeleteUnitAgent() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: { agent_id: string }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await supabase.functions.invoke('delete-agent', {
+        body: input,
+      });
+
+      if (response.error) {
+        const { message } = await readEdgeFunctionError(response.error, 'Failed to delete agent');
+        throw new Error(message);
+      }
       if (response.data?.error) throw new Error(response.data.error);
       return response.data;
     },

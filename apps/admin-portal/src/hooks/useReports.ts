@@ -1,6 +1,10 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { fetchAllRows } from '@agent-system/shared-ui';
 import { supabase } from '../lib/supabase';
-import type { RegistrationStatus } from '@agent-system/shared-types';
+import { VehicleStatus, type RegistrationStatus } from '@agent-system/shared-types';
+import { useEnquiries } from './useEnquiries';
+import { useSystemSettings } from './useSystemSettings';
 
 /** Resolve the slot ids that belong to a campaign (for server-side filtering). */
 async function slotIdsForCampaign(campaignId: string): Promise<string[]> {
@@ -83,33 +87,45 @@ async function fetchRegistrations(
   campaignId: string,
   fromISO?: string | null,
 ): Promise<RawRegistration[]> {
-  let query = supabase
-    .from('registrations')
-    .select(`
-      id, invitee_name, invitee_nric, invitee_phone, status, created_at, registered_at, agent_id,
-      agent:agents(name, unit_name, parent_agent_id),
-      attendance:attendance(checkin_time, checkout_time, is_full_attendance, reward:rewards(amount, status)),
-      slot:slots(start_at, campaign:campaigns(id, name))
-    `)
-    .order('created_at', { ascending: false });
-
+  let slotIds: string[] | null = null;
   if (campaignId !== 'all') {
-    const slotIds = await slotIdsForCampaign(campaignId);
+    slotIds = await slotIdsForCampaign(campaignId);
     if (slotIds.length === 0) return [];
-    query = query.in('slot_id', slotIds);
   }
 
-  if (fromISO) {
-    query = query.gte('created_at', fromISO);
-  }
+  // Paged: registrations is a table that grows per transaction (already 729 rows
+  // and climbing) and, when campaignId is 'all', this is a fully unscoped read —
+  // exactly the shape that silently dropped rows past PostgREST's 1000-row cap
+  // in the enquiries hook. `id` is a tiebreaker for deterministic page boundaries.
+  const data = await fetchAllRows<any>(
+    (from, to) => {
+      let query = supabase
+        .from('registrations')
+        .select(`
+          id, invitee_name, invitee_nric, invitee_phone, status, created_at, registered_at, agent_id,
+          agent:agents(name, unit_name, parent_agent_id),
+          attendance:attendance(checkin_time, checkout_time, is_full_attendance, reward:rewards(amount, status)),
+          slot:slots(start_at, campaign:campaigns(id, name))
+        `)
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false });
 
-  const { data, error } = await query;
-  if (error) throw error;
+      if (slotIds) query = query.in('slot_id', slotIds);
+      if (fromISO) query = query.gte('created_at', fromISO);
+
+      return query.range(from, to) as unknown as PromiseLike<{
+        data: any[] | null;
+        error: { message: string } | null;
+      }>;
+    },
+    { label: 'admin registrations (report)' },
+  );
+
   // attendance is embedded across a reverse FK (attendance.registration_id), so
   // PostgREST may return it as a one-element array OR a single object depending
   // on its one-to-one detection. Normalize to a single object | null — and do the
   // same for the reward embedded one level deeper under attendance.
-  return (data ?? []).map((r: any) => {
+  return data.map((r: any) => {
     const attendance = Array.isArray(r.attendance) ? r.attendance[0] ?? null : r.attendance ?? null;
     const reward = attendance
       ? Array.isArray(attendance.reward)
@@ -177,10 +193,25 @@ export function useTeamPerformance(campaignId: string) {
     queryKey: ['team-performance', campaignId],
     queryFn: async (): Promise<TeamPerformance[]> => {
       // Team map: every agent → its team root + the root's unit name.
-      const { data: agents, error: agentsError } = await supabase
-        .from('agents')
-        .select('id, name, unit_name, parent_agent_id');
-      if (agentsError) throw agentsError;
+      // Paged: agents grows per transaction and this read is fully unfiltered.
+      interface TeamAgentRow {
+        id: string;
+        name: string;
+        unit_name: string;
+        parent_agent_id: string | null;
+      }
+      const agents = await fetchAllRows<TeamAgentRow>(
+        (from, to) =>
+          supabase
+            .from('agents')
+            .select('id, name, unit_name, parent_agent_id')
+            .order('id', { ascending: true })
+            .range(from, to) as unknown as PromiseLike<{
+            data: TeamAgentRow[] | null;
+            error: { message: string } | null;
+          }>,
+        { label: 'admin agents (team-performance)' },
+      );
 
       const agentById = new Map<string, { name: string; unit_name: string; parent_agent_id: string | null }>();
       for (const a of agents ?? []) {
@@ -405,4 +436,84 @@ export function useTopUnits(campaignId: string, dateRange: string) {
         .slice(0, 5);
     },
   });
+}
+
+export interface PartnerPerformance {
+  merchantId: string;
+  merchantName: string;
+  totalVehicles: number;
+  submitted: number;
+  quoted: number;
+  renewed: number;
+  lost: number;
+  renewalPremiumTotal: number;
+  giftTotal: number;
+}
+
+/**
+ * Partner (merchant) performance summary, derived from the existing admin
+ * enquiries list — no new query. Groups every live (non-removed) car by its
+ * per-car merchant, counting by status and summing renewal premiums; cars
+ * with no merchant assigned yet are bucketed under "No partner". `fromISO`/
+ * `toISO` are plain YYYY-MM-DD day strings (matching the Attendees tab's date
+ * inputs) compared against the parent enquiry's `created_at` on its Asia/
+ * Singapore calendar day.
+ */
+export function usePartnerPerformance(fromISO?: string, toISO?: string): PartnerPerformance[] {
+  const { data: enquiries } = useEnquiries();
+  const { data: settings } = useSystemSettings();
+  const giftRatePct = settings?.customer_gift_rate_pct ?? 10;
+
+  return useMemo(() => {
+    const inRange = (createdAt: string) => {
+      const d = new Date(createdAt).toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' });
+      return (!fromISO || d >= fromISO) && (!toISO || d <= toISO);
+    };
+
+    const byMerchant = new Map<string, PartnerPerformance>();
+    for (const e of enquiries ?? []) {
+      if (!inRange(e.created_at)) continue;
+      for (const v of e.vehicles ?? []) {
+        if (v.removed_at) continue;
+        const merchantId = v.merchant?.id ?? 'unassigned';
+        let entry = byMerchant.get(merchantId);
+        if (!entry) {
+          entry = {
+            merchantId,
+            merchantName: v.merchant?.name ?? 'No partner',
+            totalVehicles: 0,
+            submitted: 0,
+            quoted: 0,
+            renewed: 0,
+            lost: 0,
+            renewalPremiumTotal: 0,
+            giftTotal: 0,
+          };
+          byMerchant.set(merchantId, entry);
+        }
+        entry.totalVehicles += 1;
+        switch (v.status) {
+          case VehicleStatus.SUBMITTED:
+            entry.submitted += 1;
+            break;
+          case VehicleStatus.QUOTED:
+            entry.quoted += 1;
+            break;
+          case VehicleStatus.RENEWED:
+            entry.renewed += 1;
+            entry.renewalPremiumTotal += v.renewal_premium_amount ?? 0;
+            break;
+          case VehicleStatus.LOST:
+            entry.lost += 1;
+            break;
+        }
+      }
+    }
+
+    for (const entry of byMerchant.values()) {
+      entry.giftTotal = Math.round(entry.renewalPremiumTotal * giftRatePct) / 100;
+    }
+
+    return Array.from(byMerchant.values()).sort((a, b) => b.totalVehicles - a.totalVehicles);
+  }, [enquiries, fromISO, toISO, giftRatePct]);
 }

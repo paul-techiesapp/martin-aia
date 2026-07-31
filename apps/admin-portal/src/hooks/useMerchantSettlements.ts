@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchAllRows } from '@agent-system/shared-ui';
 import { supabase } from '../lib/supabase';
 import { RewardStatus } from '@agent-system/shared-types';
 
@@ -21,20 +22,29 @@ export function useMerchantSettlements() {
   return useQuery({
     queryKey: ['merchant-settlements'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('merchant_settlements')
-        .select(`
-          id, amount, status, paid_at, failure_reason, created_at,
-          merchant:merchants(id, name),
-          vehicle:enquiry_vehicles(
-            id, car_plate,
-            enquiry:enquiries(customer_name, customer_phone)
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return (data ?? []) as unknown as AdminSettlementRow[];
+      // Paged: merchant_settlements is a table that grows per transaction and
+      // this read is fully unfiltered. `id` is a tiebreaker for deterministic
+      // page boundaries.
+      return fetchAllRows<AdminSettlementRow>(
+        (from, to) =>
+          supabase
+            .from('merchant_settlements')
+            .select(`
+              id, amount, status, paid_at, failure_reason, created_at,
+              merchant:merchants(id, name),
+              vehicle:enquiry_vehicles(
+                id, car_plate,
+                enquiry:enquiries(customer_name, customer_phone)
+              )
+            `)
+            .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
+            .range(from, to) as unknown as PromiseLike<{
+            data: AdminSettlementRow[] | null;
+            error: { message: string } | null;
+          }>,
+        { label: 'admin merchant-settlements' },
+      );
     },
   });
 }

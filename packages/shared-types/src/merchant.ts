@@ -13,6 +13,13 @@ export interface MerchantFormSettings {
   header_title?: string;
   header_subtitle?: string;
   footer_text?: string;
+  /** Partner-level footer image override (Round 6 item 6; highest precedence: partner > unit > admin). */
+  footer_image_url?: string;
+}
+
+/** Per-unit agent form settings (Round 6). */
+export interface UnitFormSettings {
+  footer_image_url?: string;
 }
 
 export interface Merchant {
@@ -119,6 +126,8 @@ export interface EnquiryVehicle {
   quoted_by: string | null;
   renewed_at: string | null;
   renewed_by: string | null;
+  marked_renewed_at: string | null;
+  marked_renewed_by: string | null;
   lost_at: string | null;
   lost_reason: string | null;
   reminder_sent_at: string | null;

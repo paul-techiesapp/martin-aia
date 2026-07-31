@@ -49,19 +49,46 @@ serve(async (req) => {
       supabaseAnonKey
     ).auth.getUser(token);
 
-    // Admin check uses app_metadata (set only by the service role), never the
-    // user-settable user_metadata, to prevent self-escalation via auth.updateUser.
-    if (authError || !caller || caller.app_metadata?.role !== "admin") {
+    if (authError || !caller) {
       return new Response(
         JSON.stringify({ error: "Only admins can delete agents" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    // Admin check uses app_metadata (set only by the service role), never the
+    // user-settable user_metadata, to prevent self-escalation via auth.updateUser.
+    // Non-admins may still delete agents if they are a unit root (Unit Manager)
+    // or a deputy (is_unit_manager) acting within their own unit; see the
+    // unit-scope check below, applied once the target agent is fetched.
+    const isAdmin = caller.app_metadata?.role === "admin";
+    let unitCaller: { id: string; parent_agent_id: string | null; is_unit_manager: boolean } | null = null;
+    if (!isAdmin) {
+      const { data: callerAgent } = await supabase
+        .from("agents")
+        .select("id, parent_agent_id, is_unit_manager")
+        .eq("user_id", caller.id)
+        .single();
+      const isRoot = callerAgent?.parent_agent_id === null;
+      if (!callerAgent || (!isRoot && callerAgent.is_unit_manager !== true)) {
+        return new Response(
+          JSON.stringify({ error: "Only admins or unit managers can delete agents" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      unitCaller = callerAgent;
+      if (force) {
+        return new Response(
+          JSON.stringify({ error: "Only admins can force-delete" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // Target agent (unit)
     const { data: target, error: targetError } = await supabase
       .from("agents")
-      .select("id, user_id")
+      .select("id, user_id, parent_agent_id, is_unit_manager")
       .eq("id", agent_id)
       .single();
 
@@ -70,6 +97,32 @@ serve(async (req) => {
         JSON.stringify({ error: "Agent not found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Unit-scope check: unit callers (root or deputy) may only delete agents
+    // within their own unit, never the unit root itself, and deputies may only
+    // delete plain Unit Agents (not other Unit Admins/deputies).
+    if (unitCaller) {
+      const unitRootId = unitCaller.parent_agent_id ?? unitCaller.id;
+      if (target.parent_agent_id === null) {
+        return new Response(
+          JSON.stringify({ error: "The Unit Manager can only be deleted by the master admin" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (target.parent_agent_id !== unitRootId) {
+        return new Response(
+          JSON.stringify({ error: "Agent is not in your unit" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const callerIsRoot = unitCaller.parent_agent_id === null;
+      if (!callerIsRoot && target.is_unit_manager === true) {
+        return new Response(
+          JSON.stringify({ error: "Only the Unit Manager can delete a Unit Admin" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // Sub-agents under this unit (agent hierarchy is a single level deep)

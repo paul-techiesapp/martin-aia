@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchAllRows } from '@agent-system/shared-ui';
 import { supabase } from '../lib/supabase';
 import { GiftStatus } from '@agent-system/shared-types';
 
@@ -23,20 +24,29 @@ export function useGifts() {
   return useQuery({
     queryKey: ['gifts'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('gifts')
-        .select(`
-          id, value_amount, voucher_code, status, issued_at, redeemed_at, expires_at, created_at,
-          merchant:merchants(id, name),
-          vehicle:enquiry_vehicles(
-            id, car_plate,
-            enquiry:enquiries(customer_name, customer_phone)
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return (data ?? []) as unknown as AdminGiftRow[];
+      // Paged: gifts is minted per renewal (same shape as rewards / merchant_
+      // commissions / merchant_settlements) and this read is fully unfiltered,
+      // so it grows per transaction just like its sibling ledger tables.
+      return fetchAllRows<AdminGiftRow>(
+        (from, to) =>
+          supabase
+            .from('gifts')
+            .select(`
+              id, value_amount, voucher_code, status, issued_at, redeemed_at, expires_at, created_at,
+              merchant:merchants(id, name),
+              vehicle:enquiry_vehicles(
+                id, car_plate,
+                enquiry:enquiries(customer_name, customer_phone)
+              )
+            `)
+            .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
+            .range(from, to) as unknown as PromiseLike<{
+            data: AdminGiftRow[] | null;
+            error: { message: string } | null;
+          }>,
+        { label: 'admin gifts' },
+      );
     },
   });
 }

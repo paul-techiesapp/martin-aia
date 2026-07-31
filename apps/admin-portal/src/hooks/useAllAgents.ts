@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { fetchAllRows } from '@agent-system/shared-ui';
 import { supabase } from '../lib/supabase';
 import type { AgentWithTier } from '@agent-system/shared-types';
 
@@ -12,17 +13,25 @@ export function useAllAgents() {
   return useQuery({
     queryKey: ['all-agents'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('agents')
-        .select(`
-          *,
-          tier:tiers(*)
-        `)
-        .eq('status', 'active')
-        .order('name', { ascending: true });
-
-      if (error) throw error;
-      return data as AgentWithTier[];
+      // Paged: a status filter alone doesn't bound this under 1000 rows as the
+      // active roster grows (agents is a table that grows per transaction).
+      return fetchAllRows<AgentWithTier>(
+        (from, to) =>
+          supabase
+            .from('agents')
+            .select(`
+              *,
+              tier:tiers(*)
+            `)
+            .eq('status', 'active')
+            .order('name', { ascending: true })
+            .order('id', { ascending: true })
+            .range(from, to) as unknown as PromiseLike<{
+            data: AgentWithTier[] | null;
+            error: { message: string } | null;
+          }>,
+        { label: 'admin all-agents' },
+      );
     },
   });
 }

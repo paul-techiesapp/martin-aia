@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -51,33 +51,27 @@ import {
   useReportStats,
   useFunnelData,
   useTopUnits,
+  usePartnerPerformance,
+  type AttendeeRow,
 } from '../hooks/useReports';
 import { useRenewalReport } from '../hooks/useRenewalReport';
+import { useEnquiries } from '../hooks/useEnquiries';
 import { useSystemSettings } from '../hooks/useSystemSettings';
+import { EnquiriesReportTab } from './reports/EnquiriesReportTab';
+import { downloadCsv } from '../lib/downloadCsv';
 
 function fmtDate(value: string | null): string {
   if (!value) return '—';
-  return new Date(value).toLocaleDateString('en-SG', { dateStyle: 'medium' });
+  return new Date(value).toLocaleDateString('en-SG', { dateStyle: 'medium', timeZone: 'Asia/Singapore' });
 }
 
 function fmtTime(value: string | null): string {
   if (!value) return '—';
-  return new Date(value).toLocaleString('en-SG', { dateStyle: 'medium', timeStyle: 'short' });
-}
-
-function downloadCsv(filename: string, rows: (string | number)[][]) {
-  const csv = rows
-    .map((row) => row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))
-    .join('\n');
-  // Prepend a UTF-8 BOM so Excel detects the encoding — without it, Excel reads
-  // the file as Windows-1252 and turns "—" and accented/CJK characters into mojibake.
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${filename}-${new Date().toISOString().split('T')[0]}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  return new Date(value).toLocaleString('en-SG', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Singapore',
+  });
 }
 
 export function Reports() {
@@ -95,6 +89,20 @@ export function Reports() {
   // Per-attendee report (#2) and team performance (#3), scoped to the selected event
   const { data: attendees, isLoading: attendeesLoading } = useEventAttendees(selectedCampaignId);
   const { data: teams, isLoading: teamsLoading } = useTeamPerformance(selectedCampaignId);
+
+  // Attendees tab: optional check-in date range filter, applied to both the
+  // on-screen table and the CSV export.
+  const [attFrom, setAttFrom] = useState('');
+  const [attTo, setAttTo] = useState('');
+  const attendeesInRange = useMemo(() => {
+    const inRange = (a: AttendeeRow) => {
+      if (!a.checkinTime) return !attFrom && !attTo; // never checked in: only when unfiltered
+      // Check-ins are compared on their Singapore calendar day, matching the rendered times.
+      const d = new Date(a.checkinTime).toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' });
+      return (!attFrom || d >= attFrom) && (!attTo || d <= attTo);
+    };
+    return (attendees ?? []).filter(inRange);
+  }, [attendees, attFrom, attTo]);
 
   // Attendance breakdown for pie chart
   const attendanceData = [
@@ -177,6 +185,8 @@ export function Reports() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="attendees">Attendees</TabsTrigger>
           <TabsTrigger value="teams">Team Performance</TabsTrigger>
+          <TabsTrigger value="unit-enquiries">Enquiries</TabsTrigger>
+          <TabsTrigger value="partners">Partners</TabsTrigger>
           <TabsTrigger value="renewals">Renewals</TabsTrigger>
         </TabsList>
 
@@ -399,17 +409,17 @@ export function Reports() {
                 <CardTitle>Event Attendee Report</CardTitle>
                 <CardDescription>
                   Registrants {selectedCampaignId === 'all' ? 'across all events' : 'for the selected event'} ·{' '}
-                  {attendees?.length ?? 0} total
+                  {attendeesInRange.length} total
                 </CardDescription>
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                disabled={!attendees?.length}
+                disabled={!attendeesInRange.length}
                 onClick={() =>
                   downloadCsv('attendees', [
                     ['Name', 'NRIC', 'Phone', 'Agent', 'Unit', 'Status', 'Registered', 'Check-in', 'Check-out'],
-                    ...(attendees ?? []).map((a) => [
+                    ...attendeesInRange.map((a) => [
                       a.name ?? '',
                       a.nric ?? '',
                       a.phone ?? '',
@@ -427,7 +437,19 @@ export function Reports() {
                 Export
               </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col gap-3">
+              <div className="grid grid-cols-2 gap-3 sm:max-w-md">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Check-in from</Label>
+                  <input type="date" value={attFrom} onChange={(e) => setAttFrom(e.target.value)}
+                    className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Check-in to</Label>
+                  <input type="date" value={attTo} onChange={(e) => setAttTo(e.target.value)}
+                    className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm" />
+                </div>
+              </div>
               {attendeesLoading ? (
                 <p className="text-muted-foreground text-center py-6">Loading attendees…</p>
               ) : (
@@ -443,14 +465,14 @@ export function Reports() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(attendees ?? []).length === 0 ? (
+                      {attendeesInRange.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
                             No registrations found for this selection.
                           </TableCell>
                         </TableRow>
                       ) : (
-                        attendees!.map((a) => (
+                        attendeesInRange.map((a) => (
                           <TableRow key={a.id}>
                             <TableCell className="font-medium">{a.name ?? '—'}</TableCell>
                             <TableCell className="text-muted-foreground">{a.nric ?? '—'}</TableCell>
@@ -591,11 +613,120 @@ export function Reports() {
           </div>
         </TabsContent>
 
+        <TabsContent value="unit-enquiries" className="mt-4">
+          <EnquiriesReportTab />
+        </TabsContent>
+
+        {/* Partners tab (#13): enquiring cars grouped by merchant partner */}
+        <TabsContent value="partners" className="mt-4">
+          <PartnersReportTab />
+        </TabsContent>
+
         <TabsContent value="renewals" className="flex flex-col gap-3 mt-4">
           <RenewalsReportTab />
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function PartnersReportTab() {
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const { isLoading } = useEnquiries();
+  const rows = usePartnerPerformance(from || undefined, to || undefined);
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1.5">
+          <CardTitle>Partner Performance</CardTitle>
+          <CardDescription>
+            Enquiring cars grouped by partner · {rows.length} partner{rows.length === 1 ? '' : 's'}
+          </CardDescription>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!rows.length}
+          onClick={() =>
+            downloadCsv('partner-performance', [
+              ['Partner', 'Cars', 'Submitted', 'Quoted', 'Renewed', 'Lost', 'Renewal premium (RM)', 'Est. gifts (RM)'],
+              ...rows.map((r) => [
+                r.merchantName,
+                r.totalVehicles,
+                r.submitted,
+                r.quoted,
+                r.renewed,
+                r.lost,
+                r.renewalPremiumTotal.toFixed(2),
+                r.giftTotal.toFixed(2),
+              ]),
+            ])
+          }
+        >
+          <Download className="size-4 mr-1.5" />
+          Export
+        </Button>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:max-w-md">
+          <div>
+            <Label className="text-xs text-muted-foreground">From</Label>
+            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)}
+              className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm" />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">To</Label>
+            <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
+              className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm" />
+          </div>
+        </div>
+
+        {isLoading ? (
+          <p className="text-muted-foreground text-center py-6">Loading partners…</p>
+        ) : (
+          <div className="overflow-auto rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Partner</TableHead>
+                  <TableHead className="text-right">Cars</TableHead>
+                  <TableHead className="text-right">Submitted</TableHead>
+                  <TableHead className="text-right">Quoted</TableHead>
+                  <TableHead className="text-right">Renewed</TableHead>
+                  <TableHead className="text-right">Lost</TableHead>
+                  <TableHead className="text-right">Renewal premium (RM)</TableHead>
+                  <TableHead className="text-right">Est. gifts (RM)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-6">
+                      No partner activity found for this selection.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  rows.map((r) => (
+                    <TableRow key={r.merchantId}>
+                      <TableCell className="font-medium">{r.merchantName}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{r.totalVehicles}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{r.submitted}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{r.quoted}</TableCell>
+                      <TableCell className="text-right font-medium text-emerald-600">{r.renewed}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{r.lost}</TableCell>
+                      <TableCell className="text-right">{r.renewalPremiumTotal.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">{r.giftTotal.toFixed(2)}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

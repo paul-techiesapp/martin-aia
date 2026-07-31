@@ -8,6 +8,7 @@ import {
   AgentStatus,
   RewardStatus,
 } from './enums';
+import { UnitFormSettings } from './merchant';
 
 export interface CheckoutConfig {
   fb_enabled: boolean;
@@ -212,6 +213,7 @@ export interface Agent {
   is_auto_invite: boolean;
   status: AgentStatus;
   photo_url: string | null;
+  form_settings: UnitFormSettings | null;
   created_at: string;
   updated_at: string;
 }

@@ -40,7 +40,7 @@ import {
   Label,
   useToast,
 } from '@agent-system/shared-ui';
-import { Plus, Pencil, Trash2, MoreHorizontal, Check, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, MoreHorizontal, Check, X, MessageSquareText } from 'lucide-react';
 import { useAgents, useDeleteAgent } from '../../hooks/useAgents';
 import {
   usePendingTierRequests,
@@ -257,6 +257,12 @@ export function AgentList() {
                             <Link to="/agents/$agentId/edit" params={{ agentId: agent.id }}>
                               <Pencil className="mr-2 size-4" />
                               Edit Unit
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link to="/enquiries" search={{ agent: agent.id }}>
+                              <MessageSquareText className="mr-2 size-4" />
+                              View enquiries
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />

@@ -1,4 +1,6 @@
 export { cn } from './lib/utils';
+export { fetchAllRows } from './lib/fetchAllRows';
+export type { PageBuilder, FetchAllOptions } from './lib/fetchAllRows';
 export { Button, buttonVariants } from './components/ui/button';
 export { Input } from './components/ui/input';
 export { Label } from './components/ui/label';
@@ -90,6 +92,7 @@ export type { SwitchProps } from './components/ui/switch';
 export { Tabs, TabsList, TabsTrigger, TabsContent } from './components/ui/tabs';
 export { Progress } from './components/ui/progress';
 export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor } from './components/ui/popover';
+export { Combobox, type ComboboxOption } from './components/ui/combobox';
 export { Calendar } from './components/ui/calendar';
 export type { CalendarProps } from './components/ui/calendar';
 export { DatePicker } from './components/ui/date-picker';

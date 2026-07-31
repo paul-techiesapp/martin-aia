@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { fetchAllRows } from '@agent-system/shared-ui';
 import type { AgentLink, CardTemplate } from '@agent-system/shared-types';
 
 interface AgentLinkWithSlotCampaign extends AgentLink {
@@ -137,56 +138,70 @@ export function useCreateLink() {
   });
 }
 
+// Paged: unlike useMyLinks (bounded to one agent's own agent_id-filtered
+// rows), this aggregates agent_links across every agent tied to the
+// partner — a widely-shared partner link can accumulate more than 1000 rows
+// as the agent network grows, so it is not narrowly bounded.
 export function usePartnerLinks(partnerId: string | undefined, includeInactive = false) {
   return useQuery({
     queryKey: ['partner-links', partnerId, includeInactive],
     queryFn: async () => {
-      let query = supabase
-        .from('agent_links')
-        .select(`
-          *,
-          slot:slots(
-            id,
-            start_at,
-            end_at,
-            campaign:campaigns(id, name, venue, card_template_overrides)
-          )
-        `)
-        .eq('partner_id', partnerId!);
-
-      if (!includeInactive) {
-        query = query.eq('is_active', true);
-      }
-
-      const { data, error } = await query.order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const data = await fetchAllRows<AgentLinkWithSlotCampaign>(
+        (from, to) => {
+          let q = supabase
+            .from('agent_links')
+            .select(`
+              *,
+              slot:slots(
+                id,
+                start_at,
+                end_at,
+                campaign:campaigns(id, name, venue, card_template_overrides)
+              )
+            `)
+            .eq('partner_id', partnerId!);
+          if (!includeInactive) q = q.eq('is_active', true);
+          return q
+            .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
+            .range(from, to) as unknown as PromiseLike<{
+            data: AgentLinkWithSlotCampaign[] | null;
+            error: { message: string } | null;
+          }>;
+        },
+        { label: 'agent partner-links' },
+      );
 
       // Drop links whose slot the client can't read (deactivated slot → slot=null)
       // so the non-null `slot` type holds and consumers don't crash on l.slot.*.
-      const links = ((data ?? []) as AgentLinkWithSlotCampaign[]).filter((l) => l.slot != null);
+      const links = data.filter((l) => l.slot != null);
       if (links.length > 0) {
         const linkIds = links.map((l) => l.id);
-        const { data: counts, error: countError } = await supabase
-          .from('registrations')
-          .select('agent_link_id')
-          .in('agent_link_id', linkIds);
+        // Paged for the same reason as above: registrations tied to a
+        // partner's whole agent network, not one agent's own rows.
+        const counts = await fetchAllRows<{ agent_link_id: string | null }>(
+          (from, to) =>
+            supabase
+              .from('registrations')
+              .select('agent_link_id')
+              .in('agent_link_id', linkIds)
+              .order('id', { ascending: true })
+              .range(from, to) as unknown as PromiseLike<{
+              data: { agent_link_id: string | null }[] | null;
+              error: { message: string } | null;
+            }>,
+          { label: 'agent partner-links registration-counts' },
+        );
 
-        if (!countError && counts) {
-          const countMap: Record<string, number> = {};
-          counts.forEach((r) => {
-            if (r.agent_link_id) {
-              countMap[r.agent_link_id] = (countMap[r.agent_link_id] || 0) + 1;
-            }
-          });
-          links.forEach((l) => {
-            l.registration_count = countMap[l.id] || 0;
-          });
-        } else {
-          links.forEach((l) => {
-            l.registration_count = 0;
-          });
-        }
+        const countMap: Record<string, number> = {};
+        counts.forEach((r) => {
+          if (r.agent_link_id) {
+            countMap[r.agent_link_id] = (countMap[r.agent_link_id] || 0) + 1;
+          }
+        });
+        links.forEach((l) => {
+          l.registration_count = countMap[l.id] || 0;
+        });
       }
 
       return links;

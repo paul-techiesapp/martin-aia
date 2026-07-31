@@ -22,7 +22,11 @@ import {
   Checkbox,
   Logo,
 } from '@agent-system/shared-ui';
-import { DEFAULT_ENQUIRY_FORM, type MerchantFormSettings } from '@agent-system/shared-types';
+import {
+  DEFAULT_ENQUIRY_FORM,
+  type MerchantFormSettings,
+  type UnitFormSettings,
+} from '@agent-system/shared-types';
 import { Car, Plus, Trash2, CheckCircle, Paperclip, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { toMalaysianE164 } from '../lib/phone';
@@ -66,10 +70,12 @@ const blankVehicle = (): EnquiryFormData['vehicles'][number] => ({
 interface EnquiryContext {
   kind: 'agent' | 'branch';
   agent_name: string | null;
+  agent_phone: string | null;
   merchant_name: string | null;
   merchant_logo_url: string | null;
   branch_name: string | null;
   merchant_form_settings: MerchantFormSettings | null;
+  unit_form_settings: UnitFormSettings | null;
 }
 
 type Attachment = {
@@ -310,8 +316,12 @@ export function Enquiry() {
   }
 
   if (isSuccess) {
-    const thankYouMsg =
-      context?.kind === 'branch'
+    const agentContact = context?.agent_name
+      ? { name: context.agent_name, phone: context.agent_phone }
+      : null;
+    const thankYouMsg = agentContact
+      ? `Thank you. Your agent ${agentContact.name} will be in touch with your car-insurance quotation soon.`
+      : context?.kind === 'branch'
         ? `Thank you. ${context.merchant_name ?? 'The merchant'}${context.branch_name ? ` (${context.branch_name})` : ''} will be in touch with your car-insurance quotation soon.`
         : 'Thank you. Your agent will be in touch with your car-insurance quotation soon.';
 
@@ -325,6 +335,12 @@ export function Enquiry() {
             <div>
               <h2 className="text-xl font-semibold text-foreground">Enquiry Received!</h2>
               <p className="text-muted-foreground">{thankYouMsg}</p>
+              {agentContact?.phone && (
+                <p className="mt-2 text-sm text-slate-600">
+                  You can also reach {agentContact.name} directly at{' '}
+                  <a href={`tel:${agentContact.phone}`} className="font-medium underline">{agentContact.phone}</a>.
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -361,6 +377,12 @@ export function Enquiry() {
         : '';
   const footerText =
     merchantForm?.footer_text || formBranding.footerText || formSettings?.footer_text || DEFAULT_ENQUIRY_FORM.footer_text;
+  // Footer image precedence: partner > unit > admin (Round 6 item 6).
+  const footerImageUrl =
+    merchantForm?.footer_image_url ||
+    context?.unit_form_settings?.footer_image_url ||
+    formSettings?.footer_image_url ||
+    null;
 
   // T&C body with the DPO contact appended (when not already present in the body).
   const tncBody = formSettings?.tnc_body ?? DEFAULT_ENQUIRY_FORM.tnc_body;
@@ -665,9 +687,9 @@ export function Enquiry() {
             </form>
           </Form>
 
-          {formSettings?.footer_image_url && (
+          {footerImageUrl && (
             <img
-              src={formSettings.footer_image_url}
+              src={footerImageUrl}
               alt=""
               className="w-full h-auto object-cover"
             />

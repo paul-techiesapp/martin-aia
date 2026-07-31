@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -15,11 +15,17 @@ import {
   StatCard,
   StatCardGrid,
   TableSkeleton,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@agent-system/shared-ui';
 import { Users, UserCheck, ClipboardList } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useUnitRoster } from '../hooks/useSubAgents';
 import { useUnitTeamReport } from '../hooks/useTeamReport';
+import { useUnitEnquirySummary } from '../hooks/useEnquirySummary';
 
 function fmtDate(value: string | null): string {
   if (!value) return '—';
@@ -44,9 +50,12 @@ export function TeamReport() {
     [unitAgents],
   );
 
+  const [campaignId, setCampaignId] = useState('all');
+
   // Unit admins and unit managers both get the unit-wide view.
   const enabled = isUnitViewer && !!agent?.id;
-  const { data: performance, isLoading } = useUnitTeamReport(roster, enabled);
+  const { performance, campaignOptions, isLoading } = useUnitTeamReport(roster, enabled, campaignId);
+  const { data: enquirySummary, isLoading: enquiryLoading } = useUnitEnquirySummary(unitRoot, enabled);
 
   const totals = useMemo(() => {
     const rows = performance ?? [];
@@ -68,11 +77,24 @@ export function TeamReport() {
 
   return (
     <div className="flex flex-col gap-4 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Team Report</h1>
-        <p className="text-sm text-muted-foreground">
-          Registration and attendance performance for every agent in your unit.
-        </p>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Team Report</h1>
+          <p className="text-sm text-muted-foreground">
+            Registration and attendance performance for every agent in your unit.
+          </p>
+        </div>
+        <Select value={campaignId} onValueChange={setCampaignId}>
+          <SelectTrigger className="w-48 h-9 text-sm">
+            <SelectValue placeholder="All events" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All events</SelectItem>
+            {campaignOptions.map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <StatCardGrid columns={3}>
@@ -214,6 +236,53 @@ export function TeamReport() {
               </CardContent>
             </Card>
           ))}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Car Enquiries by Agent</CardTitle>
+          <CardDescription>
+            Enquiry forms customers submitted through each agent's link ·{' '}
+            {(enquirySummary ?? []).reduce((n, r) => n + r.forms_submitted, 0)} total
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {enquiryLoading ? (
+            <TableSkeleton rows={4} columns={6} />
+          ) : (enquirySummary ?? []).length === 0 ? (
+            <p className="text-muted-foreground text-center py-6">No enquiries yet for this unit.</p>
+          ) : (
+            <div className="overflow-auto rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead>Agent</TableHead>
+                    <TableHead className="text-right">Forms</TableHead>
+                    <TableHead className="text-right">Customers</TableHead>
+                    <TableHead className="text-right">Cars</TableHead>
+                    <TableHead className="text-right">Open</TableHead>
+                    <TableHead className="text-right">Renewed</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(enquirySummary ?? []).map((r) => (
+                    <TableRow key={r.agent_id}>
+                      <TableCell className="font-medium">
+                        {r.agent_name}
+                        <div className="text-xs text-muted-foreground">{r.agent_code}</div>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">{r.forms_submitted}</TableCell>
+                      <TableCell className="text-right">{r.customers}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{r.cars}</TableCell>
+                      <TableCell className="text-right text-amber-600">{r.cars_open}</TableCell>
+                      <TableCell className="text-right text-emerald-600">{r.cars_renewed}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -3,9 +3,10 @@ import { supabase } from '../lib/supabase';
 
 /**
  * Fetches (or creates) the caller-agent's generic enquiry link code.
- * `enabled` defaults to true; pass false for unit roots (agent_admin), who
- * have no personal link — server-side ensure_my_enquiry_link raises P0016
- * for them, so callers should gate the query client-side too.
+ * Every active agent has one, Unit Managers (unit roots) included — they print
+ * theirs as a QR code for gold-scanning at fairs. Round 6 briefly excluded
+ * roots (server-side P0016 + a client-side gate); that was reverted on
+ * 2026-08-02 after printed QRs went dead mid-event. Do not re-add a root gate.
  */
 export function useMyEnquiryLink(enabled: boolean = true) {
   return useQuery({

@@ -10,11 +10,22 @@
 -- these WhatsApp/SMS links would hit a dead form.
 --
 -- STATUS: the UPDATE was held back during the initial 2026-07-31 rollout, then
--- RUN on 2026-07-31 after the client confirmed. All 10 root links are now NULL;
+-- RUN on 2026-07-31 after the client confirmed. All 10 root links went NULL;
 -- 182 sub-agent links were unaffected and all 1608 enquiries kept their agent.
 --
--- TO UNDO: replay the statements below to restore the exact original codes.
--- Any link already re-shared with customers will start working again.
+-- >>> RESTORED 2026-08-02. The clearing was reverted: agents print their
+-- personal link as a QR code for gold-scanning and were standing at a fair with
+-- dead printed QRs. 9 of the 10 codes below were restored verbatim by id and
+-- verified live via get_enquiry_context(). The 10th (dfea09b1, MN9441-NICOLE)
+-- was NOT restored: they had since become a sub-agent and self-generated a new
+-- code (7676686ecb374aa6bfa34211cd76104d). enquiry_link_code is UNIQUE, so
+-- restoring the old value would have destroyed the newer working link — if a
+-- QR printed from their OLD code surfaces, decide which of the two to keep.
+--
+-- The root-clearing is now permanently reverted in code:
+-- 20260721000003 line 44 is a documented no-op and
+-- 20260802000001_restore_unit_root_enquiry_links.sql drops the P0016 guard.
+-- This file is retained as the audit trail of the original values.
 
 UPDATE agents SET enquiry_link_code = '5c59f12559c342fea72b31abac3273cf' WHERE id = '742ce18c-00c3-40c3-b0c9-3e0fba0195b5'; -- BOS - BOSCO (BOS)
 UPDATE agents SET enquiry_link_code = 'c91549b00db34e23851c2fcdafca1018' WHERE id = 'e2c24e4a-6581-40a9-9c6a-b19760a37fe9'; -- DR88 - TRACY (DR88)

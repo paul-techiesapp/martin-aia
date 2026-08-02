@@ -13,37 +13,18 @@ import { QRCodeSVG } from 'qrcode.react';
 import QRCode from 'qrcode';
 import { Copy, Check, QrCode, Download } from 'lucide-react';
 import { useMyEnquiryLink } from '../hooks/useMyEnquiryLink';
-import { useAuth } from '../hooks/useAuth';
 
 const enquiryUrl = (code: string) =>
   `${import.meta.env.VITE_PUBLIC_PAGES_URL}/public/enquiry/${code}`;
 
 export function MyEnquiryLink() {
-  const { agent } = useAuth();
-  // Unit roots (agent_admin) have no personal enquiry link — their unit's
-  // agents each have their own. Belt-and-braces with the server's P0016.
-  const isRoot = !!agent && agent.parent_agent_id === null;
-  const { data: code, isLoading, isError, error } = useMyEnquiryLink(!isRoot);
+  // Every active agent holds a personal enquiry link, Unit Managers included —
+  // they print theirs as a QR code for gold-scanning at fairs. Round 6 hid this
+  // page from unit roots and nulled their codes, which killed already-printed
+  // QRs mid-event (2026-08-02); see 20260802_restore_unit_root_enquiry_links.
+  const { data: code, isLoading, isError, error } = useMyEnquiryLink();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
-
-  if (isRoot) {
-    return (
-      <div className="flex flex-col gap-4 animate-fade-in">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">My Enquiry Link</h1>
-        </div>
-        <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle>No personal enquiry link</CardTitle>
-            <CardDescription>
-              Unit Managers do not have a personal enquiry link. Your unit's agents each have their own.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
-    );
-  }
 
   const handleCopy = async () => {
     if (!code) return;

@@ -40,20 +40,25 @@ AS $$
 $$;
 GRANT EXECUTE ON FUNCTION get_enquiry_context(text) TO anon;
 
--- (c) Unit Managers (roots) carry no personal enquiry link (client decision).
-UPDATE agents SET enquiry_link_code = NULL WHERE parent_agent_id IS NULL;
+-- (c) REVERTED 2026-08-02 — deliberately left as a no-op, do not reinstate.
+-- This line was:
+--   UPDATE agents SET enquiry_link_code = NULL WHERE parent_agent_id IS NULL;
+-- Unit Managers DO use personal enquiry links: they print them as QR codes for
+-- gold-scanning at fairs. Running this on prod (2026-07-31) killed 10 live
+-- links, and agents discovered the dead QRs standing at an event. Note the
+-- predicate means "has no parent", not "is a Unit Manager" — it also catches
+-- any agent who simply has not been assigned to a unit yet.
+-- See 20260802000001_restore_unit_root_enquiry_links.sql.
 
--- (d) ensure_my_enquiry_link: refuse root agents (Unit Managers). Copied
---     verbatim from 20260629000010_enquiry_v2.sql; only the P0016 guard
---     (after the caller's agent id is resolved) is new.
+-- (d) ensure_my_enquiry_link: unchanged from 20260629000010_enquiry_v2.sql.
+--     The P0016 root guard that lived here was REVERTED 2026-08-02 — it left
+--     Unit Managers unable to regenerate the link this migration had just
+--     nulled, so a dead printed QR could not be recovered. See (c) above and
+--     20260802000001_restore_unit_root_enquiry_links.sql.
 CREATE OR REPLACE FUNCTION ensure_my_enquiry_link() RETURNS text AS $$
-DECLARE v_agent_id uuid := get_agent_id(); v_code text; v_parent_agent_id uuid;
+DECLARE v_agent_id uuid := get_agent_id(); v_code text;
 BEGIN
   IF v_agent_id IS NULL THEN RAISE EXCEPTION 'Not an agent' USING ERRCODE='42501'; END IF;
-  SELECT parent_agent_id INTO v_parent_agent_id FROM agents WHERE id = v_agent_id;
-  IF v_parent_agent_id IS NULL THEN
-    RAISE EXCEPTION 'unit managers do not have a personal enquiry link' USING ERRCODE = 'P0016';
-  END IF;
   SELECT enquiry_link_code INTO v_code FROM agents WHERE id = v_agent_id;
   IF v_code IS NULL THEN
     v_code := replace(gen_random_uuid()::text, '-', '');

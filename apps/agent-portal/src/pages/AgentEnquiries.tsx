@@ -16,7 +16,7 @@ import { EnquiryCard } from './MyEnquiries';
  */
 export function AgentEnquiries() {
   const { agentId } = useParams({ strict: false }) as { agentId: string };
-  const { agent, role, isUnitViewer } = useAuth();
+  const { role, isUnitViewer } = useAuth();
 
   // Only unit viewers (admin + unit managers) may drill into another agent's
   // enquiries — mirrors the guard in TeamReport.tsx.
@@ -28,8 +28,9 @@ export function AgentEnquiries() {
     );
   }
 
-  const unitRootId = agent?.parent_agent_id ?? agent?.id;
-  const { data: unitRoster } = useUnitRoster(unitRootId);
+  // Server-side unit roster (recursive) — empty for non unit-viewers, and the
+  // page is already guarded to viewers above.
+  const { data: unitRoster } = useUnitRoster(isUnitViewer);
   const targetAgent = unitRoster?.find((a) => a.id === agentId);
 
   const { data: enquiries, isLoading, isError, error } = useMyEnquiries(agentId, false);

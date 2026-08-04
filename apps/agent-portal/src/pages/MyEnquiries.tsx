@@ -619,10 +619,9 @@ export function MyEnquiries() {
   const { data: enquiries, isLoading, isError, error } = useMyEnquiries(agent?.id, isUnitViewer);
   const { data: merchants } = useAgentMerchants();
   const { data: linkedMerchantIds } = useMyLinkedMerchantIds(agent?.id);
-  // Unit root: the unit admin's own id, or the parent id for a deputy unit
-  // manager — same derivation as TeamReport.tsx.
-  const unitRootId = agent?.parent_agent_id ?? agent?.id;
-  const { data: unitRoster } = useUnitRoster(isUnitViewer ? unitRootId : undefined);
+  // Unit roster resolved server-side (recursive unit_member_ids()) — a manager
+  // linked under a root still gets their own team in the filter dropdown.
+  const { data: unitRoster } = useUnitRoster(isUnitViewer);
 
   const [proposeOpen, setProposeOpen] = useState(false);
   const [agentFilter, setAgentFilter] = useState<string>('all');

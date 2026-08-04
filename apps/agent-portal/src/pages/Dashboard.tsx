@@ -19,16 +19,13 @@ import { useMySubAgents } from '../hooks/useSubAgents';
 
 function AgentDashboard() {
   const { agent, isUnitViewer } = useAuth();
-  // Unit-wide rollups key off the unit ROOT: the boss's own id, or a deputy's
-  // parent (the unit tree is flat — every member hangs off the root).
-  const unitRootId = agent ? agent.parent_agent_id ?? agent.id : undefined;
   const { data: stats, isLoading: statsLoading } = useRegistrationStats(agent?.id);
-  // Unit viewers (boss + is_unit_manager deputies) roll up the whole unit's
-  // registrations (root's + all sub-agents').
-  const { data: unitStats, isLoading: unitStatsLoading } = useUnitRegistrationStats(isUnitViewer ? unitRootId : undefined);
+  // Unit viewers (boss + is_unit_manager deputies/managers) roll up the whole
+  // unit's registrations — membership resolved server-side (recursive subtree).
+  const { data: unitStats, isLoading: unitStatsLoading } = useUnitRegistrationStats(isUnitViewer);
   const { data: campaigns, isLoading: campaignsLoading } = useActiveCampaigns();
   const { data: partners, isLoading: partnersLoading } = useMyPartners(agent?.id);
-  const { data: subAgents, isLoading: subAgentsLoading } = useMySubAgents(isUnitViewer ? unitRootId : undefined);
+  const { data: subAgents, isLoading: subAgentsLoading } = useMySubAgents(isUnitViewer);
 
   const reportStats = isUnitViewer ? unitStats : stats;
   const activeCampaigns = campaigns?.length ?? 0;

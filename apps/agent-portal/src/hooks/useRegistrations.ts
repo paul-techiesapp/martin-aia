@@ -154,24 +154,21 @@ export function usePartnerRegistrationStats(partnerId: string | undefined) {
   });
 }
 
-// Unit Admins (parent agents) roll up reporting across their whole unit: their
-// own registrations plus every sub-agent's. The matching RLS policy
-// ("Unit admins read unit registrations") grants the parent SELECT on sub-agent
-// rows, so this .in(agent_id, [...]) query returns the full unit.
-export function useUnitRegistrationStats(unitAgentId: string | undefined) {
+// Unit viewers roll up reporting across their whole unit. Membership comes
+// from the recursive unit_member_ids() RPC (same helper the RLS policies use)
+// rather than a flat parent_agent_id filter, which missed the teams of
+// managers that are themselves linked under a root (multi-level units).
+export function useUnitRegistrationStats(enabled: boolean) {
   return useQuery({
-    queryKey: ['unit-registration-stats', unitAgentId],
+    queryKey: ['unit-registration-stats'],
     queryFn: async () => {
-      // Not paged: a unit's sub-agent roster is an org-hierarchy list, not a
-      // customer-transaction table — realistically far below 1000 rows.
-      const { data: subs, error: subsError } = await supabase
-        .from('agents')
-        .select('id')
-        .eq('parent_agent_id', unitAgentId!);
+      const { data: ids, error: idsError } = await supabase.rpc('unit_member_ids');
+      if (idsError) throw idsError;
 
-      if (subsError) throw subsError;
-
-      const agentIds = [unitAgentId!, ...(subs?.map((s) => s.id) ?? [])];
+      const agentIds = (ids as string[] | null) ?? [];
+      if (agentIds.length === 0) {
+        return { registered: 0, attended: 0, completed: 0, total: 0 } as RegistrationStats;
+      }
 
       // Paged: this is the same unit-wide aggregation shape flagged for
       // useMyEnquiries(unitWide=true) — a large unit's registrations are not
@@ -213,6 +210,6 @@ export function useUnitRegistrationStats(unitAgentId: string | undefined) {
 
       return stats;
     },
-    enabled: !!unitAgentId,
+    enabled,
   });
 }

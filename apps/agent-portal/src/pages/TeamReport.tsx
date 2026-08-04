@@ -23,7 +23,7 @@ import {
 } from '@agent-system/shared-ui';
 import { Users, UserCheck, ClipboardList } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { useUnitRoster } from '../hooks/useSubAgents';
+import { useUnitRoot, useUnitRoster } from '../hooks/useSubAgents';
 import { useUnitTeamReport } from '../hooks/useTeamReport';
 import { useUnitEnquirySummary } from '../hooks/useEnquirySummary';
 
@@ -39,11 +39,12 @@ function fmtTime(value: string | null): string {
 
 export function TeamReport() {
   const { agent, role, isUnitViewer } = useAuth();
-  // Unit root: own id for a Unit Admin, parent id for a Unit Manager. The roster
-  // is every agent in that unit, so agents with zero registrations still appear
+  // Unit root + roster both resolve SERVER-SIDE (recursive helpers), so a
+  // manager linked under a root still sees their own team. The roster is every
+  // agent in the unit, so agents with zero registrations still appear
   // (and rows always resolve to a real agent name rather than "Unknown agent").
-  const unitRoot = agent?.parent_agent_id ?? agent?.id;
-  const { data: unitAgents } = useUnitRoster(unitRoot);
+  const { data: unitRoot } = useUnitRoot(isUnitViewer);
+  const { data: unitAgents } = useUnitRoster(isUnitViewer);
 
   const roster = useMemo(
     () => (unitAgents ?? []).map((a) => ({ id: a.id, name: a.name })),
@@ -55,7 +56,7 @@ export function TeamReport() {
   // Unit admins and unit managers both get the unit-wide view.
   const enabled = isUnitViewer && !!agent?.id;
   const { performance, campaignOptions, isLoading } = useUnitTeamReport(roster, enabled, campaignId);
-  const { data: enquirySummary, isLoading: enquiryLoading } = useUnitEnquirySummary(unitRoot, enabled);
+  const { data: enquirySummary, isLoading: enquiryLoading } = useUnitEnquirySummary(unitRoot ?? undefined, enabled);
 
   const totals = useMemo(() => {
     const rows = performance ?? [];

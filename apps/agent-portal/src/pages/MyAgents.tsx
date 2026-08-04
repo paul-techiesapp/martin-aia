@@ -53,6 +53,7 @@ import {
   useDeleteUnitAgent,
   useAvailableTiers,
   useUnitFooterImage,
+  useUnitRoot,
   useSetUnitFooter,
 } from '../hooks/useSubAgents';
 import { TierRequestStatus } from '@agent-system/shared-types';
@@ -71,19 +72,19 @@ export function MyAgents() {
     );
   }
 
-  // Roster keys off the unit ROOT (the boss's own id, or a deputy's parent —
-  // the unit tree is flat, every member hangs off the root). The root itself
-  // never appears in the results (the hook filters parent_agent_id = root),
-  // so the boss's row is never rendered — and never deletable — here.
-  const unitRootId = agent ? agent.parent_agent_id ?? agent.id : undefined;
-  const { data: subAgents, isLoading } = useMySubAgents(unitRootId);
+  // The management list is the caller's whole unit resolved SERVER-SIDE
+  // (recursive unit_member_ids()), minus the unit root — so the boss's row is
+  // never rendered (and never deletable) here, while a manager linked under a
+  // root still sees their own team. unitRootId comes from get_unit_root().
+  const { data: unitRootId } = useUnitRoot(!!agent);
+  const { data: subAgents, isLoading } = useMySubAgents(!!agent);
   const { data: tierRequests } = useMyTierRequests(agent?.id);
   const { data: tiers } = useAvailableTiers();
   const createSubAgent = useCreateSubAgent();
   const requestTier = useRequestTier();
   const updateSubAgent = useUpdateSubAgent();
   const deleteUnitAgent = useDeleteUnitAgent();
-  const { data: footerImageUrl } = useUnitFooterImage(isUnitViewer ? unitRootId : undefined);
+  const { data: footerImageUrl } = useUnitFooterImage(isUnitViewer ? unitRootId ?? undefined : undefined);
   const setUnitFooter = useSetUnitFooter();
   const [isUploadingFooter, setIsUploadingFooter] = useState(false);
   const footerFileInputRef = useRef<HTMLInputElement | null>(null);

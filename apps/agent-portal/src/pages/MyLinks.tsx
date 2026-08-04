@@ -43,15 +43,13 @@ import type { Slot } from '@agent-system/shared-types';
 
 export function MyLinks() {
   const { agent, isUnitViewer } = useAuth();
-  // Unit-wide rollups key off the unit ROOT: the boss's own id, or a deputy's
-  // parent (the unit tree is flat — every member hangs off the root).
-  const unitRootId = agent ? agent.parent_agent_id ?? agent.id : undefined;
   const { data: campaigns, isLoading: campaignsLoading } = useActiveCampaigns();
   const { data: links, isLoading: linksLoading } = useMyLinks(agent?.id);
-  // Unit viewers (boss + is_unit_manager deputies) see their whole unit's
-  // totals; plain agents see only their own.
+  // Unit viewers (boss + is_unit_manager deputies/managers) see their whole
+  // unit's totals — membership resolved server-side (recursive subtree);
+  // plain agents see only their own.
   const { data: ownStats, isLoading: ownStatsLoading } = useRegistrationStats(agent?.id);
-  const { data: unitStats, isLoading: unitStatsLoading } = useUnitRegistrationStats(isUnitViewer ? unitRootId : undefined);
+  const { data: unitStats, isLoading: unitStatsLoading } = useUnitRegistrationStats(isUnitViewer);
   const stats = isUnitViewer ? unitStats : ownStats;
   const statsLoading = ownStatsLoading || unitStatsLoading;
   const createLink = useCreateLink();

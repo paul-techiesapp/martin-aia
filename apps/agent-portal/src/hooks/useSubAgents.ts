@@ -3,42 +3,88 @@ import { supabase } from '../lib/supabase';
 import { readEdgeFunctionError } from '@agent-system/shared-ui';
 import type { Agent, AgentWithTier, TierRequest, UnitFormSettings } from '@agent-system/shared-types';
 
-export function useMySubAgents(agentId: string | undefined) {
+/**
+ * The caller's unit root, resolved SERVER-SIDE by the recursive get_unit_root()
+ * RPC (top-most ancestor). The old client-side `parent_agent_id ?? id`
+ * derivation silently broke for multi-level units — a manager linked under a
+ * root computed the wrong "unit" for their own team. Do not reintroduce it.
+ */
+export function useUnitRoot(enabled = true) {
   return useQuery({
-    queryKey: ['my-sub-agents', agentId],
+    queryKey: ['unit-root'],
     queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_unit_root');
+      if (error) throw error;
+      return (data as string | null) ?? null;
+    },
+    enabled,
+  });
+}
+
+/**
+ * Fetches the caller's unit member ids via the recursive unit_member_ids()
+ * RPC — the same SECURITY DEFINER helper the RLS policies use, so the portal
+ * can never disagree with what RLS permits. Empty for non unit-viewers.
+ */
+async function fetchUnitMemberIds(): Promise<string[]> {
+  const { data, error } = await supabase.rpc('unit_member_ids');
+  if (error) throw error;
+  return (data as string[] | null) ?? [];
+}
+
+/**
+ * Every agent in the caller's unit EXCEPT the unit root, with tier — the
+ * management list for MyAgents/Dashboard. For a Unit Admin that's everyone
+ * under them (incl. sub-unit teams); for a manager/deputy it's the whole unit
+ * minus the boss's own row (never rendered, never deletable here).
+ */
+export function useMySubAgents(enabled: boolean) {
+  return useQuery({
+    queryKey: ['my-sub-agents'],
+    queryFn: async () => {
+      const [ids, rootRes] = await Promise.all([
+        fetchUnitMemberIds(),
+        supabase.rpc('get_unit_root'),
+      ]);
+      if (rootRes.error) throw rootRes.error;
+      const rootId = rootRes.data as string | null;
+      const memberIds = ids.filter((id) => id !== rootId);
+      if (memberIds.length === 0) return [] as AgentWithTier[];
+
       const { data, error } = await supabase
         .from('agents')
         .select('*, tier:tiers(*)')
-        .eq('parent_agent_id', agentId!)
+        .in('id', memberIds)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data as AgentWithTier[];
     },
-    enabled: !!agentId,
+    enabled,
   });
 }
 
 /**
- * Roster of every agent in a unit (the unit root + everyone whose
- * parent_agent_id is that root). Works for both a Unit Admin (root = own id →
- * self + sub-agents) and a Unit Manager (root = parent id → the whole unit).
- * RLS ("Unit viewers read unit agents") permits unit viewers to read these rows.
+ * Roster of every agent in the caller's unit (root + entire subtree), from the
+ * recursive unit_member_ids() RPC. Works for Unit Admins, deputies AND
+ * mid-level managers with their own teams — the previous flat
+ * `parent_agent_id = root` filter missed grandchildren.
  */
-export function useUnitRoster(unitRootId: string | undefined) {
+export function useUnitRoster(enabled: boolean) {
   return useQuery({
-    queryKey: ['unit-roster', unitRootId],
+    queryKey: ['unit-roster'],
     queryFn: async () => {
+      const ids = await fetchUnitMemberIds();
+      if (ids.length === 0) return [] as { id: string; name: string }[];
       const { data, error } = await supabase
         .from('agents')
         .select('id, name')
-        .or(`id.eq.${unitRootId},parent_agent_id.eq.${unitRootId}`)
+        .in('id', ids)
         .order('name', { ascending: true });
       if (error) throw error;
       return data as { id: string; name: string }[];
     },
-    enabled: !!unitRootId,
+    enabled,
   });
 }
 

@@ -245,9 +245,14 @@ function FormDesignCard({ merchantId, formSettings }: { merchantId: string; form
 
   const handleSave = async () => {
     // Empty strings mean "use the global setting" — strip them so the public
-    // form's per-field fallback works.
+    // form's per-field fallback works. Booleans are kept when true and dropped
+    // when false, so `false` and "unset" store identically (absent = not
+    // required). Filtering by `typeof v === 'string'` alone silently discarded
+    // the staff_id_required flag.
     const cleaned = Object.fromEntries(
-      Object.entries(draft).filter(([, v]) => typeof v === 'string' && v.trim() !== ''),
+      Object.entries(draft).filter(([, v]) =>
+        typeof v === 'boolean' ? v : typeof v === 'string' && v.trim() !== '',
+      ),
     ) as MerchantFormSettings;
     try {
       await updateMerchant.mutateAsync({
@@ -309,6 +314,21 @@ function FormDesignCard({ merchantId, formSettings }: { merchantId: string; form
         {textField('header_title', 'Header title', 'Car Insurance Enquiry — Gold Gift on Renewal')}
         {textField('header_subtitle', 'Header subtitle', 'Submit your details and our team will be in touch…')}
         {textField('footer_text', 'Footer text', '© RACC Agency. All rights reserved.')}
+        <div className="flex items-center justify-between rounded-md border p-3">
+          <div>
+            <Label>Require Staff ID</Label>
+            <p className="text-xs text-muted-foreground">
+              Customers submitting through this partner's branch links must enter the referring
+              staff ID. Enforced on the server, not just in the browser.
+            </p>
+          </div>
+          <Switch
+            checked={draft.staff_id_required === true}
+            onCheckedChange={(checked) =>
+              setDraft((prev) => ({ ...prev, staff_id_required: checked }))
+            }
+          />
+        </div>
         <div className="flex justify-end">
           <Button onClick={handleSave} disabled={updateMerchant.isPending}>
             {updateMerchant.isPending ? 'Saving…' : 'Save form design'}

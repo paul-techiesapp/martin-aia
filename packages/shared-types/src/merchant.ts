@@ -15,6 +15,8 @@ export interface MerchantFormSettings {
   footer_text?: string;
   /** Partner-level footer image override (Round 6 item 6; highest precedence: partner > unit > admin). */
   footer_image_url?: string;
+  /** Round 8 item 3: this partner's branch forms require the referring Staff ID. */
+  staff_id_required?: boolean;
 }
 
 /** Per-unit agent form settings (Round 6). */

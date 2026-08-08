@@ -110,6 +110,12 @@ assignable on that enquiry**. Without it, a unit viewer who moved a car off a no
 could never move it back — the latent defect described under Problem 1. New leads never depend on that
 clause, since `submit_enquiry` seeds the source itself as SECURITY DEFINER and bypasses the check entirely.
 
+**Admin's path is the one it already has.** Admins never call `assign_vehicle_merchant` (it requires
+`get_agent_id()`); they set a car's partner in the renewal-confirmation dialog, which passes
+`p_merchant_id` to `confirm_vehicle_renewal` and overwrites the column. That dialog pre-fills from
+`v.merchant_id ?? enquiry.merchant_id` (`EnquiryDetail.tsx:152`), so seeding the source improves it. No new
+admin control is built.
+
 **Override reach:** `is_unit_viewer()` — the unit root (Unit Manager) *and* deputies flagged
 `is_unit_manager` (Unit Admin). The client asked for "Admin + Unit Manager"; deputies are included because
 mid-level managers carry that flag and run real teams (the 2026-08-04 incident class), and excluding them

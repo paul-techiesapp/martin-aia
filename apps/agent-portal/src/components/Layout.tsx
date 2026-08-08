@@ -12,10 +12,14 @@ type NavGroup = { label?: string; items: NavItem[] };
 // MANAGEMENT (My Agents, Event Partners) and unit-wide VIEW pages (Team
 // Report) are shown to anyone who is a unit viewer (isUnitViewer): the unit
 // admin (agent_admin) plus deputies flagged is_unit_manager.
-// isRoot: the unit root (agent_admin/Unit Manager) has no personal enquiry
-// link (round 6, item 5) — the "My Link" item is dropped for them; their
-// unit's agents each have their own link instead.
-function buildAgentGroups(isUnitViewer: boolean, isRoot: boolean): NavGroup[] {
+// isDeputy: a deputy (is_unit_manager, not the unit root — displayed as "Unit
+// Admin") has no personal enquiry QR in the sidebar (round 8, item 4). The
+// unit root (displayed as "Unit Manager") and plain agents do. Round 6 had
+// this the other way round; the root's link codes were restored on 2026-08-02
+// (PR #24) after printed QRs went dead, and this puts the nav back in step.
+// NOTE: no enquiry_link_code is cleared here. A deputy who already printed a
+// QR keeps a working link — hiding the menu item does not break it.
+function buildAgentGroups(isUnitViewer: boolean, isDeputy: boolean): NavGroup[] {
   const eventsItems: NavItem[] = [
     { name: 'Events', href: '/campaigns', icon: CalendarDays },
     { name: 'My Links', href: '/my-links', icon: Link2 },
@@ -35,7 +39,7 @@ function buildAgentGroups(isUnitViewer: boolean, isRoot: boolean): NavGroup[] {
   }
 
   const partnershipItems: NavItem[] = [];
-  if (!isRoot) {
+  if (!isDeputy) {
     partnershipItems.push({ name: 'My Link', href: '/my-link', icon: QrCode });
   }
   partnershipItems.push(
@@ -103,7 +107,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     : role === 'merchant'
       ? merchantGroups
       : role === 'agent_admin' || role === 'agent'
-        ? buildAgentGroups(isUnitViewer, role === 'agent_admin')
+        ? buildAgentGroups(isUnitViewer, role !== 'agent_admin' && agent?.is_unit_manager === true)
         : buildAgentGroups(false, false);
 
   const displayName = role === 'partner' ? partner?.name : role === 'merchant' ? merchant?.name : agent?.name;

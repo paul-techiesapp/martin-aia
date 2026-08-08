@@ -120,6 +120,12 @@ export function EnquiryCard({
   const [deleteTarget, setDeleteTarget] = useState<AttachmentRow | null>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  // Round 8 item 1: a lead that arrived through a partner BRANCH link is
+  // locked to that partner. Plain agents see it as fixed text; unit viewers
+  // (Unit Manager / Unit Admin) can open an override. Admins change it in the
+  // renewal dialog, which is a different code path entirely.
+  const isSourceLocked = !!enq.merchant_branch_id;
+  const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
 
   const handleCopyMyCars = async (enquiryId: string) => {
     const { data, error } = await supabase.rpc('ensure_customer_portal_token', {
@@ -143,15 +149,19 @@ export function EnquiryCard({
     try {
       await assignVehicleMerchant.mutateAsync({ vehicleId, merchantId });
       toast({ title: 'Partner assigned' });
+      setEditingVehicleId(null);
       setVehicleMerchant((prev) => {
         const next = { ...prev };
         delete next[vehicleId];
         return next;
       });
     } catch (err: unknown) {
+      const message = (err as Error)?.message ?? '';
       toast({
         title: 'Failed to assign',
-        description: (err as Error)?.message,
+        description: message.includes('locked to the partner')
+          ? 'This lead came from a partner branch — only your unit manager or an admin can change its partner.'
+          : message,
         variant: 'error',
       });
     } finally {
@@ -335,13 +345,27 @@ export function EnquiryCard({
                         {v.product?.name ?? '-'}
                       </TableCell>
                       <TableCell>
-                        {v.merchant?.name ? (
-                          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
-                            <Store className="size-3.5 text-muted-foreground shrink-0" />
-                            {v.merchant.name}
-                          </span>
+                        {v.merchant?.name && editingVehicleId !== v.id ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
+                              <Store className="size-3.5 text-muted-foreground shrink-0" />
+                              {v.merchant.name}
+                            </span>
+                            {isUnitView && !readOnly && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-xs"
+                                onClick={() => setEditingVehicleId(v.id)}
+                              >
+                                Change
+                              </Button>
+                            )}
+                          </div>
                         ) : readOnly ? (
                           <span className="text-xs text-muted-foreground">Unassigned</span>
+                        ) : isSourceLocked && !isUnitView ? (
+                          <span className="text-xs text-muted-foreground">Locked to partner</span>
                         ) : (
                           <div className="flex items-center gap-1.5">
                             <Select
@@ -378,6 +402,16 @@ export function EnquiryCard({
                             >
                               Assign
                             </Button>
+                            {editingVehicleId === v.id && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-xs"
+                                onClick={() => setEditingVehicleId(null)}
+                              >
+                                Cancel
+                              </Button>
+                            )}
                           </div>
                         )}
                       </TableCell>

@@ -258,6 +258,14 @@ export function EnquiryCard({
     .filter((a) => a.id !== enq.agent?.id)
     .map((a) => ({ value: a.id, label: a.name }));
 
+  // Round 8 item 2: agents see which partner (and which of its branches) sent
+  // the lead, and which partner staff member referred it — the same pair admin
+  // already shows in its enquiry list. Both come from columns the query
+  // already selects.
+  const sourceLabel = enq.branch
+    ? `${enq.branch.merchant?.name ?? 'Partner'} — ${enq.branch.name}`
+    : (enq.merchant?.name ?? null);
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-2">
@@ -270,6 +278,13 @@ export function EnquiryCard({
           <p className="text-xs text-muted-foreground">
             Submitted {format(parseISO(enq.created_at), 'd MMM yyyy, HH:mm')}
           </p>
+          {(enq.staff_id || sourceLabel) && (
+            <p className="text-xs text-muted-foreground">
+              {enq.staff_id ? `Staff ID: ${enq.staff_id}` : null}
+              {enq.staff_id && sourceLabel ? ' · ' : null}
+              {sourceLabel}
+            </p>
+          )}
           {showAgent && enq.agent && (
             <p className="text-xs text-muted-foreground">Agent: {enq.agent.name} ({enq.agent.agent_code})</p>
           )}

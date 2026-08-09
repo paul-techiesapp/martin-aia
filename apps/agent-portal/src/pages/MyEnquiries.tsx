@@ -365,7 +365,9 @@ export function EnquiryCard({
                         ) : readOnly ? (
                           <span className="text-xs text-muted-foreground">Unassigned</span>
                         ) : isSourceLocked && !isUnitView ? (
-                          <span className="text-xs text-muted-foreground">Locked to partner</span>
+                          <span className="text-xs text-muted-foreground">
+                            Locked to {sourceLabel ?? 'partner'}
+                          </span>
                         ) : (
                           <div className="flex items-center gap-1.5">
                             <Select

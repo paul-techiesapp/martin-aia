@@ -177,6 +177,13 @@ export interface Campaign {
   nric_required: boolean;
 }
 
+/** Round 8 item 5: which unit heads an event is restricted to. No rows = all units. */
+export interface CampaignUnit {
+  campaign_id: string;
+  unit_agent_id: string;
+  created_at: string;
+}
+
 export interface Slot {
   id: string;
   campaign_id: string;

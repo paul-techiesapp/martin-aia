@@ -23,6 +23,7 @@ ALTER TABLE campaign_units ENABLE ROW LEVEL SECURITY;
 -- Admins manage assignments. Agents never read this table directly -- their
 -- visibility runs through campaign_visible_to_me(), which is SECURITY DEFINER
 -- and therefore not blocked by the absence of an agent SELECT policy.
+DROP POLICY IF EXISTS "Admins manage campaign_units" ON campaign_units;
 CREATE POLICY "Admins manage campaign_units"
   ON campaign_units FOR ALL TO authenticated
   USING (is_admin()) WITH CHECK (is_admin());

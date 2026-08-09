@@ -9,6 +9,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  Checkbox,
   Input,
   Select,
   SelectContent,
@@ -28,8 +29,10 @@ import {
 import { ArrowLeft } from 'lucide-react';
 import { parseISO, format } from 'date-fns';
 import { useCampaign, useCreateCampaign, useUpdateCampaign } from '../../hooks/useCampaigns';
+import { useAgents } from '../../hooks/useAgents';
+import { useCampaignUnits, useSetCampaignUnits } from '../../hooks/useCampaignUnits';
 import { InvitationType, CampaignStatus } from '@agent-system/shared-types';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const campaignSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -59,6 +62,15 @@ export function CampaignForm() {
   const { data: campaign, isLoading: isLoadingCampaign } = useCampaign(campaignId ?? '');
   const createCampaign = useCreateCampaign();
   const updateCampaign = useUpdateCampaign();
+  const { data: unitHeads } = useAgents();
+  const { data: assignedUnitIds } = useCampaignUnits(campaignId);
+  const setCampaignUnits = useSetCampaignUnits();
+  // Unit ids selected in the form. Empty = event open to every unit.
+  const [selectedUnitIds, setSelectedUnitIds] = useState<string[]>([]);
+  // Which campaignId selectedUnitIds was last seeded from. Guards against a
+  // background refetch of useCampaignUnits (staleTime 5min, refetchOnWindowFocus
+  // default true) silently clobbering unsaved ticks when the admin refocuses the tab.
+  const seededUnitsForCampaignId = useRef<string | undefined>(undefined);
 
   const form = useForm<CampaignFormData>({
     resolver: zodResolver(campaignSchema),
@@ -91,6 +103,17 @@ export function CampaignForm() {
     }
   }, [campaign, form]);
 
+  useEffect(() => {
+    // Already seeded for this campaign (or lack of one) — a refetch must not
+    // overwrite ticks the admin hasn't saved yet.
+    if (seededUnitsForCampaignId.current === campaignId) return;
+    // Editing an existing campaign but its units haven't loaded yet — wait
+    // rather than seeding with a stale/empty value.
+    if (campaignId && assignedUnitIds === undefined) return;
+    setSelectedUnitIds(assignedUnitIds ?? []);
+    seededUnitsForCampaignId.current = campaignId;
+  }, [campaignId, assignedUnitIds]);
+
   const onSubmit = async (data: CampaignFormData) => {
     try {
       const payload = {
@@ -100,8 +123,12 @@ export function CampaignForm() {
       };
       if (isEditing && campaignId) {
         await updateCampaign.mutateAsync({ id: campaignId, ...payload });
+        await setCampaignUnits.mutateAsync({ campaignId, unitAgentIds: selectedUnitIds });
       } else {
-        await createCampaign.mutateAsync({ ...payload, checkout_config: { fb_enabled: false, fb_url: '', video_enabled: false, video_url: '', rating_enabled: false } });
+        const created = await createCampaign.mutateAsync({ ...payload, checkout_config: { fb_enabled: false, fb_url: '', video_enabled: false, video_url: '', rating_enabled: false } });
+        if (selectedUnitIds.length > 0) {
+          await setCampaignUnits.mutateAsync({ campaignId: created.id, unitAgentIds: selectedUnitIds });
+        }
       }
       navigate({ to: '/campaigns' });
     } catch (error) {
@@ -332,6 +359,47 @@ export function CampaignForm() {
                   </FormItem>
                 )}
               />
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Units</CardTitle>
+                  <CardDescription>
+                    Restrict this event to specific units. Leave everything unticked to keep it open to
+                    every unit — that is how all existing events behave. Agents outside the ticked units
+                    will no longer see this event in their portal or be able to create new links for it,
+                    though links they've already shared keep working.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="max-h-64 space-y-2 overflow-auto rounded-md border p-3">
+                    {(unitHeads ?? []).length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No units found.</p>
+                    ) : (
+                      (unitHeads ?? []).map((u) => (
+                        <label key={u.id} className="flex items-center gap-2 text-sm">
+                          <Checkbox
+                            checked={selectedUnitIds.includes(u.id)}
+                            onCheckedChange={(checked) =>
+                              setSelectedUnitIds((prev) =>
+                                checked ? [...prev, u.id] : prev.filter((id) => id !== u.id),
+                              )
+                            }
+                          />
+                          <span>
+                            {u.unit_name || u.name}
+                            <span className="text-muted-foreground"> · {u.agent_code}</span>
+                          </span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {selectedUnitIds.length === 0
+                      ? 'Open to all units'
+                      : `Restricted to ${selectedUnitIds.length} unit(s)`}
+                  </p>
+                </CardContent>
+              </Card>
 
               <div className="flex gap-4">
                 <Button

@@ -187,6 +187,11 @@ export function Enquiry() {
   };
 
   const onSubmit = async (formData: EnquiryFormData) => {
+    if (staffIdRequired && !formData.staff_id?.trim()) {
+      form.setError('staff_id', { message: 'Staff ID is required' });
+      return;
+    }
+
     // Covernote / Geran is mandatory — block submit until every vehicle has a file.
     const missingFileErrors: Record<string, string | null> = {};
     let hasMissingFiles = false;
@@ -270,6 +275,8 @@ export function Enquiry() {
         setError('One of these vehicles has already been submitted at this branch.');
       } else if (rpcError.code === 'P0009') {
         setError('This IC was registered within the last month. Please try again later.');
+      } else if (rpcError.code === 'P0020') {
+        setError('Staff ID is required for this partner. Please enter the referring staff ID.');
       } else {
         setError('Failed to submit your enquiry. Please try again.');
       }
@@ -354,6 +361,10 @@ export function Enquiry() {
   // merchant-specific title — the merchant identity renders as a small
   // "Submitted via …" line instead, matching the agent form.
   const merchantForm = context?.merchant_form_settings ?? null;
+  // Round 8 item 3. The zod schema is module-level and cannot see this
+  // partner-specific flag, so the check runs in the submit handler and the
+  // server enforces it again (P0020) for direct RPC calls.
+  const staffIdRequired = context?.kind === 'branch' && merchantForm?.staff_id_required === true;
   const headerImageUrl = merchantForm?.header_image_url || formSettings?.header_image_url || null;
   const headerLogoUrl =
     merchantForm?.header_logo_url ||
@@ -500,9 +511,17 @@ export function Enquiry() {
                   name="staff_id"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-foreground">Staff ID</FormLabel>
+                      <FormLabel className="text-foreground">
+                        Staff ID{staffIdRequired ? ' *' : ''}
+                      </FormLabel>
                       <FormControl>
-                        <Input placeholder="Referring staff ID (optional)" className="h-11" {...field} />
+                        <Input
+                          placeholder={
+                            staffIdRequired ? 'Referring staff ID' : 'Referring staff ID (optional)'
+                          }
+                          className="h-11"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

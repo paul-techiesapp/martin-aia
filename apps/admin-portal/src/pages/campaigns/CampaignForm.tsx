@@ -32,7 +32,7 @@ import { useCampaign, useCreateCampaign, useUpdateCampaign } from '../../hooks/u
 import { useAgents } from '../../hooks/useAgents';
 import { useCampaignUnits, useSetCampaignUnits } from '../../hooks/useCampaignUnits';
 import { InvitationType, CampaignStatus } from '@agent-system/shared-types';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const campaignSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -67,6 +67,10 @@ export function CampaignForm() {
   const setCampaignUnits = useSetCampaignUnits();
   // Unit ids selected in the form. Empty = event open to every unit.
   const [selectedUnitIds, setSelectedUnitIds] = useState<string[]>([]);
+  // Which campaignId selectedUnitIds was last seeded from. Guards against a
+  // background refetch of useCampaignUnits (staleTime 5min, refetchOnWindowFocus
+  // default true) silently clobbering unsaved ticks when the admin refocuses the tab.
+  const seededUnitsForCampaignId = useRef<string | undefined>(undefined);
 
   const form = useForm<CampaignFormData>({
     resolver: zodResolver(campaignSchema),
@@ -100,8 +104,15 @@ export function CampaignForm() {
   }, [campaign, form]);
 
   useEffect(() => {
-    if (assignedUnitIds) setSelectedUnitIds(assignedUnitIds);
-  }, [assignedUnitIds]);
+    // Already seeded for this campaign (or lack of one) — a refetch must not
+    // overwrite ticks the admin hasn't saved yet.
+    if (seededUnitsForCampaignId.current === campaignId) return;
+    // Editing an existing campaign but its units haven't loaded yet — wait
+    // rather than seeding with a stale/empty value.
+    if (campaignId && assignedUnitIds === undefined) return;
+    setSelectedUnitIds(assignedUnitIds ?? []);
+    seededUnitsForCampaignId.current = campaignId;
+  }, [campaignId, assignedUnitIds]);
 
   const onSubmit = async (data: CampaignFormData) => {
     try {

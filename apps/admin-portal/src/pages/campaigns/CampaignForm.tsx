@@ -365,7 +365,9 @@ export function CampaignForm() {
                   <CardTitle>Units</CardTitle>
                   <CardDescription>
                     Restrict this event to specific units. Leave everything unticked to keep it open to
-                    every unit — that is how all existing events behave.
+                    every unit — that is how all existing events behave. Agents outside the ticked units
+                    will no longer see this event in their portal or be able to create new links for it,
+                    though links they've already shared keep working.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

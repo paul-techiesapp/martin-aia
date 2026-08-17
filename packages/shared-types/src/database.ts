@@ -175,6 +175,12 @@ export interface Campaign {
   commission_cap: number | null;
   /** Whether invitees must provide their NRIC when registering for this event. */
   nric_required: boolean;
+  /**
+   * When true, people who already completed a previous event (Sign In + Sign
+   * Out done) may still register for this one; when false the global
+   * completion gate blocks them.
+   */
+  allow_repeat_attendees: boolean;
 }
 
 /** Round 8 item 5: which unit heads an event is restricted to. No rows = all units. */

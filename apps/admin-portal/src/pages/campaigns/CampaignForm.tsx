@@ -50,6 +50,7 @@ const campaignSchema = z.object({
     z.number().int().positive().nullable()
   ),
   nric_required: z.boolean(),
+  allow_repeat_attendees: z.boolean(),
 });
 
 type CampaignFormData = z.infer<typeof campaignSchema>;
@@ -84,6 +85,7 @@ export function CampaignForm() {
       max_headcount: null,
       commission_cap: null,
       nric_required: true,
+      allow_repeat_attendees: false,
     },
   });
 
@@ -99,6 +101,7 @@ export function CampaignForm() {
         max_headcount: campaign.max_headcount,
         commission_cap: campaign.commission_cap,
         nric_required: campaign.nric_required ?? true,
+        allow_repeat_attendees: campaign.allow_repeat_attendees ?? false,
       });
     }
   }, [campaign, form]);
@@ -360,14 +363,34 @@ export function CampaignForm() {
                 )}
               />
 
+              <FormField
+                control={form.control}
+                name="allow_repeat_attendees"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5 pr-4">
+                      <FormLabel>Allow repeat attendees</FormLabel>
+                      <FormDescription>
+                        When on, people who already completed a previous event (finished Sign In &amp;
+                        Sign Out, e.g. at BOP or JOP) can still register for this event. When off,
+                        anyone who has completed any event is blocked from registering.
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
               <Card>
                 <CardHeader>
                   <CardTitle>Units</CardTitle>
                   <CardDescription>
-                    Restrict this event to specific units. Leave everything unticked to keep it open to
-                    every unit — that is how all existing events behave. Agents outside the ticked units
-                    will no longer see this event in their portal or be able to create new links for it,
-                    though links they've already shared keep working.
+                    Restrict this event to specific units. Leave everything unticked to keep it public —
+                    open to every unit and agent. Agents outside the ticked units will no longer see this
+                    event in their portal, create new links for it, or take new registrations through
+                    links they've already shared. Existing registrations can still check in and out.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -393,10 +416,16 @@ export function CampaignForm() {
                       ))
                     )}
                   </div>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {selectedUnitIds.length === 0
-                      ? 'Open to all units'
-                      : `Restricted to ${selectedUnitIds.length} unit(s)`}
+                  <p className="mt-2">
+                    {selectedUnitIds.length === 0 ? (
+                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
+                        Public — open to all units &amp; agents
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+                        Restricted to {selectedUnitIds.length} unit{selectedUnitIds.length === 1 ? '' : 's'}
+                      </span>
+                    )}
                   </p>
                 </CardContent>
               </Card>

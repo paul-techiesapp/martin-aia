@@ -169,6 +169,7 @@ export function useDuplicateCampaign() {
           end_date: newEndDate,
           status: CampaignStatus.DRAFT,
           nric_required: source.nric_required ?? true,
+          allow_repeat_attendees: source.allow_repeat_attendees ?? false,
         })
         .select()
         .single();

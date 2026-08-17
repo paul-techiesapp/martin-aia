@@ -97,7 +97,15 @@ export function MyLinks() {
       await navigator.clipboard.writeText(url);
       toast({ title: 'Link created & copied!', description: 'Share this link with your invitees.' });
     } catch (err: any) {
-      toast({ title: 'Failed to create link', description: err.message, variant: 'error' });
+      // 42501 = Postgres RLS violation: the event was restricted to other
+      // units (possibly after this page loaded). Explain instead of leaking
+      // the raw policy error.
+      const isRls = err?.code === '42501' || /row-level security/i.test(err?.message ?? '');
+      toast({
+        title: 'Failed to create link',
+        description: isRls ? 'This event is not open to your unit.' : err.message,
+        variant: 'error',
+      });
     } finally {
       setCreatingSlotId(null);
     }

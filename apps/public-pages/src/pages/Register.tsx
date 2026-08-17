@@ -178,6 +178,8 @@ export function Register() {
         setError('This phone number has already been registered for this event slot');
       } else if (rpcError.code === 'P0005') {
         setError('This person has already completed an event and cannot register again.');
+      } else if (rpcError.code === 'P0006') {
+        setError('This invitation link is not valid for this event. Please contact the person who invited you for an updated link.');
       } else {
         setError('Failed to complete registration. Please try again.');
       }

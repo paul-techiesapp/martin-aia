@@ -320,9 +320,17 @@ export function EnquiryList() {
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {/* Round 10 item 4: which branch the lead came through,
-                              e.g. "SS2 - POH KONG". Agent-link leads have none. */}
+                              e.g. "SS2 - POH KONG". Agent-link leads have none.
+                              Some prod branch names already end in the partner
+                              name — skip the suffix then to avoid "… - POH
+                              KONG - POH KONG". */}
                           {e.merchant_branch
-                            ? [e.merchant_branch.name, e.merchant?.name].filter(Boolean).join(' - ')
+                            ? e.merchant?.name &&
+                              !e.merchant_branch.name
+                                .toLowerCase()
+                                .includes(e.merchant.name.toLowerCase())
+                              ? `${e.merchant_branch.name} - ${e.merchant.name}`
+                              : e.merchant_branch.name
                             : '—'}
                         </TableCell>
                         <TableCell className="text-muted-foreground">

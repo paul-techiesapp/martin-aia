@@ -284,6 +284,7 @@ export function EnquiryList() {
                   <TableRow className="hover:bg-transparent">
                     <TableHead>Customer</TableHead>
                     <TableHead>Partnership</TableHead>
+                    <TableHead>Branch</TableHead>
                     <TableHead>Agent / Unit</TableHead>
                     <TableHead>Cars</TableHead>
                     <TableHead>Status</TableHead>
@@ -294,7 +295,7 @@ export function EnquiryList() {
                 <TableBody>
                   {filtered.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-6">
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-6">
                         No enquiries match the current filter.
                       </TableCell>
                     </TableRow>
@@ -316,6 +317,13 @@ export function EnquiryList() {
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {e.merchant?.name ?? 'Unassigned'}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {/* Round 10 item 4: which branch the lead came through,
+                              e.g. "SS2 - POH KONG". Agent-link leads have none. */}
+                          {e.merchant_branch
+                            ? [e.merchant_branch.name, e.merchant?.name].filter(Boolean).join(' - ')
+                            : '—'}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {e.agent ? (

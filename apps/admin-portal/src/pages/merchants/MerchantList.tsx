@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import {
   Button,
@@ -41,6 +41,7 @@ import {
   useUpdateMerchant,
   useDeleteMerchant,
   useApproveMerchant,
+  type MerchantWithCreator,
 } from '../../hooks/useMerchants';
 import { MerchantStatus, type Merchant } from '@agent-system/shared-types';
 import { useSystemSettings } from '../../hooks/useSystemSettings';
@@ -117,6 +118,112 @@ export function MerchantList() {
     }
   };
 
+  // Round 10 item 1: masters in one section, unit-proposed partnerships
+  // grouped per unit. Agent deletes are true deletes here, so a unit-proposed
+  // partnership can lose its creator — those fall back to the House bucket
+  // rather than vanishing from the page.
+  const grouped = useMemo(() => {
+    const list = merchants ?? [];
+    const masters = list.filter((m) => m.is_master);
+    const house = list.filter((m) => !m.is_master && !m.created_by);
+    const byUnit = new Map<string, MerchantWithCreator[]>();
+    for (const m of list) {
+      if (m.is_master || !m.created_by) continue;
+      const unit = m.created_by.unit_name || m.created_by.name;
+      const bucket = byUnit.get(unit);
+      if (bucket) bucket.push(m);
+      else byUnit.set(unit, [m]);
+    }
+    const units = Array.from(byUnit.entries()).sort(([a], [b]) => a.localeCompare(b));
+    return { masters, house, units };
+  }, [merchants]);
+
+  // Shared table for every section. The Unit column answers "which unit
+  // uploaded this partnership request" (Round 10 item 2) — masters proposed
+  // by an agent show their unit too.
+  const merchantSection = (title: string, description: string, rows: MerchantWithCreator[]) => {
+    if (rows.length === 0) return null;
+    return (
+      <Card key={title}>
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>
+            {rows.length} {rows.length === 1 ? 'merchant' : 'merchants'} · {description}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-auto rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Name</TableHead>
+                  <TableHead>Unit</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((merchant) => (
+                  <TableRow key={merchant.id}>
+                    <TableCell className="font-medium">
+                      <Link to="/merchants/$merchantId" params={{ merchantId: merchant.id }} className="hover:underline">
+                        {merchant.name}
+                      </Link>
+                      {merchant.is_master && <Badge className="ml-2">Master</Badge>}
+                    </TableCell>
+                    <TableCell>
+                      {merchant.created_by ? (
+                        <div>
+                          <div className="text-sm font-medium">{merchant.created_by.unit_name}</div>
+                          <div className="text-xs text-muted-foreground">{merchant.created_by.name}</div>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant(merchant.status)} className="capitalize">
+                        {merchant.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {merchant.status === MerchantStatus.PENDING && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleApprove(merchant.id)}
+                            disabled={approveMerchant.isPending}
+                            aria-label="Approve merchant"
+                          >
+                            <Check className="size-4 mr-1 text-emerald-600" />
+                            Approve
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(merchant)} aria-label="Edit merchant">
+                          <Pencil className="size-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleteId(merchant.id)}
+                          disabled={deleteMerchant.isPending}
+                          aria-label="Delete merchant"
+                        >
+                          <Trash2 className="size-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   if (error) {
     return (
       <Card>
@@ -179,76 +286,38 @@ export function MerchantList() {
         </Dialog>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>All Partnerships</CardTitle>
-          <CardDescription>{merchants?.length ?? 0} merchants</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <TableSkeleton rows={5} columns={3} />
-          ) : merchants?.length === 0 ? (
+      {isLoading ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>All Partnerships</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <TableSkeleton rows={5} columns={4} />
+          </CardContent>
+        </Card>
+      ) : merchants?.length === 0 ? (
+        <Card>
+          <CardContent className="py-6">
             <p className="text-sm text-muted-foreground">No partnerships yet. Create your first merchant.</p>
-          ) : (
-            <div className="overflow-auto rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead>Name</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {merchants?.map((merchant) => (
-                    <TableRow key={merchant.id}>
-                      <TableCell className="font-medium">
-                        <Link to="/merchants/$merchantId" params={{ merchantId: merchant.id }} className="hover:underline">
-                          {merchant.name}
-                        </Link>
-                        {merchant.is_master && <Badge className="ml-2">Master</Badge>}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={statusVariant(merchant.status)} className="capitalize">
-                          {merchant.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {merchant.status === MerchantStatus.PENDING && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleApprove(merchant.id)}
-                              disabled={approveMerchant.isPending}
-                              aria-label="Approve merchant"
-                            >
-                              <Check className="size-4 mr-1 text-emerald-600" />
-                              Approve
-                            </Button>
-                          )}
-                          <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(merchant)} aria-label="Edit merchant">
-                            <Pencil className="size-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setDeleteId(merchant.id)}
-                            disabled={deleteMerchant.isPending}
-                            aria-label="Delete merchant"
-                          >
-                            <Trash2 className="size-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {merchantSection(
+            'Master Partners',
+            "Appear in every agent's Assign-partner list.",
+            grouped.masters,
           )}
-        </CardContent>
-      </Card>
+          {grouped.units.map(([unit, rows]) =>
+            merchantSection(`Unit Partnership — ${unit}`, `Proposed by agents in ${unit}.`, rows),
+          )}
+          {merchantSection(
+            'House Partnerships',
+            'Created by admin (not tied to a unit).',
+            grouped.house,
+          )}
+        </>
+      )}
 
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>

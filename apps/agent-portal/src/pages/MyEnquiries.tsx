@@ -120,6 +120,9 @@ export function EnquiryCard({
   const [deleteTarget, setDeleteTarget] = useState<AttachmentRow | null>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  // Set when even the writeText fallback is blocked — shows the link in a
+  // dialog so the copy action always ends with something usable on screen.
+  const [manualCopyUrl, setManualCopyUrl] = useState<string | null>(null);
   // Round 8 item 1: a lead that arrived through a partner BRANCH link is
   // locked to that partner. Plain agents see it as fixed text; unit viewers
   // (Unit Manager / Unit Admin) can open an override. Admins change it in the
@@ -127,19 +130,58 @@ export function EnquiryCard({
   const isSourceLocked = !!enq.merchant_branch_id;
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
 
-  const handleCopyMyCars = async (enquiryId: string) => {
+  // Round 10 (agent feedback): 3 of 5 test iPads never showed "Copied!". The
+  // old code awaited the token RPC and only then called clipboard.writeText —
+  // Safari's transient user activation is consumed by the await, so writeText
+  // rejects, and the rejection was unhandled (no feedback at all). The
+  // ClipboardItem form below starts the clipboard write synchronously inside
+  // the tap and hands Safari a promise for the text. Every path now ends in
+  // visible feedback: "Copied!", an error toast, or a manual-copy dialog.
+  const buildMyCarsUrl = async (enquiryId: string) => {
     const { data, error } = await supabase.rpc('ensure_customer_portal_token', {
       p_enquiry_id: enquiryId,
     });
-    if (error || !data) {
-      toast({ title: 'Could not create the link', description: error?.message, variant: 'error' });
-      return;
-    }
+    if (error || !data) throw new Error(error?.message || 'Could not create the link');
     const publicPagesUrl = import.meta.env.VITE_PUBLIC_PAGES_URL || window.location.origin;
-    await navigator.clipboard.writeText(`${publicPagesUrl}/public/my-cars/${data}`);
-    setCopiedId(enquiryId);
-    toast({ title: 'Link copied!', description: "Share this with the customer to manage their cars." });
-    setTimeout(() => setCopiedId(null), 2000);
+    return `${publicPagesUrl}/public/my-cars/${data}`;
+  };
+
+  const handleCopyMyCars = (enquiryId: string) => {
+    const urlPromise = buildMyCarsUrl(enquiryId);
+    const markCopied = () => {
+      setCopiedId(enquiryId);
+      toast({ title: 'Link copied!', description: "Share this with the customer to manage their cars." });
+      setTimeout(() => setCopiedId(null), 2000);
+    };
+    const fallback = async () => {
+      let url: string;
+      try {
+        url = await urlPromise;
+      } catch (err) {
+        toast({
+          title: 'Could not create the link',
+          description: (err as Error)?.message,
+          variant: 'error',
+        });
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(url);
+        markCopied();
+      } catch {
+        // Clipboard blocked entirely — let the agent copy it by hand.
+        setManualCopyUrl(url);
+      }
+    };
+    // Must run synchronously in the tap handler — no await before this call.
+    if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
+      const item = new ClipboardItem({
+        'text/plain': urlPromise.then((url) => new Blob([url], { type: 'text/plain' })),
+      });
+      navigator.clipboard.write([item]).then(markCopied, fallback);
+    } else {
+      void fallback();
+    }
   };
 
   const handleAssignVehicle = async (vehicleId: string) => {
@@ -612,6 +654,27 @@ export function EnquiryCard({
             >
               {reassignEnquiryAgent.isPending ? 'Reassigning...' : 'Reassign'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Shown only when the browser blocked both clipboard APIs (some iPads) */}
+      <Dialog open={!!manualCopyUrl} onOpenChange={(open) => !open && setManualCopyUrl(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Copy the link manually</DialogTitle>
+            <DialogDescription>
+              This browser blocked automatic copying. Tap the link below to select it, then copy.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            readOnly
+            value={manualCopyUrl ?? ''}
+            onFocus={(e) => e.currentTarget.select()}
+            onClick={(e) => e.currentTarget.select()}
+          />
+          <DialogFooter>
+            <Button onClick={() => setManualCopyUrl(null)}>Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

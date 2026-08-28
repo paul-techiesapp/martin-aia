@@ -395,9 +395,12 @@ export function Enquiry() {
     formSettings?.footer_image_url ||
     null;
 
-  // T&C body with the DPO contact appended (when not already present in the body).
-  const tncBody = formSettings?.tnc_body ?? DEFAULT_ENQUIRY_FORM.tnc_body;
-  const dpoContact = formSettings?.dpo_contact ?? DEFAULT_ENQUIRY_FORM.dpo_contact;
+  // T&C body with the DPO contact appended (when not already present in the
+  // body). Round 10 item 3: each partnership may override both — precedence
+  // partner > global Settings > defaults, matching the header/footer fields.
+  const tncBody = merchantForm?.tnc_body || formSettings?.tnc_body || DEFAULT_ENQUIRY_FORM.tnc_body;
+  const dpoContact =
+    merchantForm?.dpo_contact || formSettings?.dpo_contact || DEFAULT_ENQUIRY_FORM.dpo_contact;
   const tncText =
     dpoContact && !tncBody.includes(dpoContact)
       ? `${tncBody}\n\nData Protection Officer (DPO): ${dpoContact}`

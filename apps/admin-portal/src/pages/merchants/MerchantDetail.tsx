@@ -209,7 +209,9 @@ function FormDesignCard({ merchantId, formSettings }: { merchantId: string; form
   const updateMerchant = useUpdateMerchant();
   const uploadFormImage = useUploadFormImage();
   const [draft, setDraft] = useState<MerchantFormSettings>(formSettings ?? {});
-  const [uploadingKey, setUploadingKey] = useState<'header_image_url' | 'header_logo_url' | null>(null);
+  const [uploadingKey, setUploadingKey] = useState<
+    'header_image_url' | 'header_logo_url' | 'footer_image_url' | null
+  >(null);
 
   // Reseed the draft only when the SAVED settings content changes (a plain
   // object identity check would wipe drafts on every unrelated refetch).
@@ -220,7 +222,7 @@ function FormDesignCard({ merchantId, formSettings }: { merchantId: string; form
   }, [settingsKey]);
 
   const handleUpload = async (
-    key: 'header_image_url' | 'header_logo_url',
+    key: 'header_image_url' | 'header_logo_url' | 'footer_image_url',
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     if (uploadingKey) return;
@@ -265,7 +267,11 @@ function FormDesignCard({ merchantId, formSettings }: { merchantId: string; form
     }
   };
 
-  const textField = (key: 'header_title' | 'header_subtitle' | 'footer_text', label: string, placeholder: string) => (
+  const textField = (
+    key: 'header_title' | 'header_subtitle' | 'footer_text' | 'dpo_contact',
+    label: string,
+    placeholder: string,
+  ) => (
     <div>
       <Label>{label}</Label>
       <Input
@@ -276,7 +282,7 @@ function FormDesignCard({ merchantId, formSettings }: { merchantId: string; form
     </div>
   );
 
-  const imageField = (key: 'header_image_url' | 'header_logo_url', label: string) => (
+  const imageField = (key: 'header_image_url' | 'header_logo_url' | 'footer_image_url', label: string) => (
     <div>
       <Label>{label}</Label>
       <div className="mt-1 flex items-center gap-3">
@@ -314,6 +320,17 @@ function FormDesignCard({ merchantId, formSettings }: { merchantId: string; form
         {textField('header_title', 'Header title', 'Car Insurance Enquiry — Gold Gift on Renewal')}
         {textField('header_subtitle', 'Header subtitle', 'Submit your details and our team will be in touch…')}
         {textField('footer_text', 'Footer text', '© RACC Agency. All rights reserved.')}
+        {imageField('footer_image_url', 'Footer image')}
+        {textField('dpo_contact', 'Data Protection Officer (DPO) Contact', 'dpo@raccagency.com')}
+        <div>
+          <Label>Terms &amp; Conditions (PDPA) Body</Label>
+          <textarea
+            className="mt-1 flex min-h-[160px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            value={draft.tnc_body ?? ''}
+            onChange={(e) => setDraft((prev) => ({ ...prev, tnc_body: e.target.value }))}
+            placeholder="Leave empty to use the global PDPA terms from Settings."
+          />
+        </div>
         <div className="flex items-center justify-between rounded-md border p-3">
           <div>
             <Label>Require Staff ID</Label>
@@ -507,6 +524,15 @@ export function MerchantDetail() {
               <span className="text-foreground">
                 {merchant?.contact_person ?? '—'}
                 {merchant?.contact_phone ? ` · ${merchant.contact_phone}` : ''}
+              </span>
+            </div>
+          )}
+          {merchant?.created_by && (
+            <div>
+              Proposed by:{' '}
+              <span className="text-foreground">
+                Unit {merchant.created_by.unit_name} · {merchant.created_by.name} (
+                {merchant.created_by.agent_code})
               </span>
             </div>
           )}

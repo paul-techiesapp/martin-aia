@@ -2,17 +2,34 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { MerchantStatus, type Merchant } from '@agent-system/shared-types';
 
+/** Agent (with unit) who proposed the partnership; null for admin-created ones. */
+export interface MerchantCreator {
+  id: string;
+  name: string;
+  agent_code: string;
+  unit_name: string;
+}
+
+export interface MerchantWithCreator extends Merchant {
+  created_by: MerchantCreator | null;
+}
+
+// Round 10 items 1+2: admins need to see which unit/agent uploaded each
+// partnership. `created_by_agent_id` is the only agents FK on merchants
+// (approved_by is a bare auth uuid), so the bare embed is unambiguous.
+const MERCHANT_SELECT = '*, created_by:agents(id, name, agent_code, unit_name)';
+
 export function useMerchants() {
   return useQuery({
     queryKey: ['merchants'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('merchants')
-        .select('*')
+        .select(MERCHANT_SELECT)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as Merchant[];
+      return data as unknown as MerchantWithCreator[];
     },
   });
 }
@@ -23,12 +40,12 @@ export function useMerchant(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('merchants')
-        .select('*')
+        .select(MERCHANT_SELECT)
         .eq('id', id)
         .single();
 
       if (error) throw error;
-      return data as Merchant;
+      return data as unknown as MerchantWithCreator;
     },
     enabled: !!id,
   });

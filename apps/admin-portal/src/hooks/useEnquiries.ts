@@ -53,6 +53,9 @@ export interface EnquiryListRow {
   created_at: string;
   agent_id: string | null;
   merchant_id: string | null;
+  /** Branch whose QR/link the lead came through (Round 10 item 4); null for agent-link leads. */
+  merchant_branch_id: string | null;
+  merchant_branch: { id: string; name: string } | null;
   merchant: { id: string; name: string } | null;
   agent: EnquiryListAgent | null;
   vehicles: EnquiryListVehicle[];
@@ -87,6 +90,7 @@ export function useEnquiries() {
             .select(`
               id, customer_name, customer_phone, customer_email, customer_nric, staff_id, status, created_at, agent_id,
               merchant_id, merchant:merchants(id, name),
+              merchant_branch_id, merchant_branch:merchant_branches(id, name),
               agent:agents(id, name, agent_code, unit_name, parent_agent_id),
               vehicles:enquiry_vehicles(id, status, car_plate, insurance_expiry_date, road_tax_renewal, removed_at, removed_by_customer, renewal_premium_amount, merchant:merchants(id, name))
             `)

@@ -17,6 +17,10 @@ export interface MerchantFormSettings {
   footer_image_url?: string;
   /** Round 8 item 3: this partner's branch forms require the referring Staff ID. */
   staff_id_required?: boolean;
+  /** Round 10 item 3: per-partner Terms & Conditions (PDPA) body override. */
+  tnc_body?: string;
+  /** Round 10 item 3: per-partner Data Protection Officer contact override. */
+  dpo_contact?: string;
 }
 
 /** Per-unit agent form settings (Round 6). */

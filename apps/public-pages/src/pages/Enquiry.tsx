@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from '@tanstack/react-router';
+import { useParams, useSearch } from '@tanstack/react-router';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -89,6 +89,14 @@ type SubmitPhase = 'uploading' | 'submitting' | null;
 
 export function Enquiry() {
   const { linkCode } = useParams({ strict: false });
+  // Optional partner-integration prefill: a partner can redirect the customer
+  // here with ?fullName=&nric=&email= and the form starts filled in (the
+  // customer can still edit every field). TanStack Router JSON-parses search
+  // values, so an all-digit MyKad arrives as a number — coerce everything
+  // back to a trimmed string.
+  const search = useSearch({ strict: false }) as Record<string, unknown>;
+  const prefill = (value: unknown): string =>
+    value === undefined || value === null ? '' : String(value).trim();
   const [context, setContext] = useState<EnquiryContext | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -105,10 +113,10 @@ export function Enquiry() {
     resolver: zodResolver(enquirySchema),
     mode: 'onChange',
     defaultValues: {
-      customer_name: '',
-      customer_nric: '',
+      customer_name: prefill(search.fullName),
+      customer_nric: prefill(search.nric),
       customer_phone: '',
-      customer_email: '',
+      customer_email: prefill(search.email),
       staff_id: '',
       acceptedTerms: false as unknown as true,
       vehicles: [blankVehicle()],

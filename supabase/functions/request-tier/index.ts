@@ -53,7 +53,7 @@ serve(async (req) => {
 
     const { data: callerAgent, error: agentError } = await supabase
       .from("agents")
-      .select("id, parent_agent_id")
+      .select("id, parent_agent_id, is_unit_manager")
       .eq("user_id", caller.id)
       .single();
 
@@ -64,27 +64,42 @@ serve(async (req) => {
       );
     }
 
-    if (callerAgent.parent_agent_id !== null) {
+    // Unit root (parent_agent_id null) or a deputy flagged is_unit_manager —
+    // the same role matrix as create-sub-agent / update-sub-agent. Deputies
+    // ("Unit Admin" in the portal) used to be rejected here outright.
+    const callerIsRoot = callerAgent.parent_agent_id === null;
+    if (!callerIsRoot && callerAgent.is_unit_manager !== true) {
       return new Response(
-        JSON.stringify({ error: "Only Agent Admins can request tiers" }),
+        JSON.stringify({ error: "Only unit managers or unit admins can request tiers" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (agent_id) {
-      if (agent_id !== callerAgent.id) {
-        const { data: targetAgent, error: targetError } = await supabase
-          .from("agents")
-          .select("id, parent_agent_id")
-          .eq("id", agent_id)
-          .single();
+    // Unit membership is the caller's WHOLE recursive tree (see
+    // 20260804000001_recursive_unit_scope.sql), not just direct children.
+    // Ask the DB with the caller's own JWT so unit_member_ids() resolves the
+    // same set RLS uses everywhere else in the portal.
+    const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: unitIds, error: unitError } = await userClient.rpc("unit_member_ids");
+    if (unitError) {
+      console.error("request-tier unit_member_ids error:", unitError);
+      return new Response(
+        JSON.stringify({ error: "Could not resolve your unit" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    // SETOF uuid comes back as a plain string array.
+    const unitMemberIds = new Set<string>(((unitIds ?? []) as string[]).map(String));
+    unitMemberIds.add(callerAgent.id);
 
-        if (targetError || !targetAgent || targetAgent.parent_agent_id !== callerAgent.id) {
-          return new Response(
-            JSON.stringify({ error: "You can only request tiers for your own sub-agents" }),
-            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
+    if (agent_id) {
+      if (!unitMemberIds.has(agent_id)) {
+        return new Response(
+          JSON.stringify({ error: "You can only request tiers for agents in your unit" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
       const { data: existing } = await supabase
@@ -114,9 +129,9 @@ serve(async (req) => {
         );
       }
 
-      if (targetPartner.agent_id !== callerAgent.id) {
+      if (!unitMemberIds.has(targetPartner.agent_id)) {
         return new Response(
-          JSON.stringify({ error: "You can only request tiers for your own partners" }),
+          JSON.stringify({ error: "You can only request tiers for partners in your unit" }),
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }

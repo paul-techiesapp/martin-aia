@@ -17,6 +17,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
   Skeleton,
   ScrollArea,
   Checkbox,
@@ -90,13 +91,20 @@ type SubmitPhase = 'uploading' | 'submitting' | null;
 export function Enquiry() {
   const { linkCode } = useParams({ strict: false });
   // Optional partner-integration prefill: a partner can redirect the customer
-  // here with ?fullName=&nric=&email= and the form starts filled in (the
-  // customer can still edit every field). TanStack Router JSON-parses search
-  // values, so an all-digit MyKad arrives as a number — coerce everything
-  // back to a trimmed string.
+  // here with ?fullName=&nric=&email=&mobileNo= and the form starts filled in.
+  // Name / NRIC / email stay editable; the phone is LOCKED when supplied (the
+  // partner already verified it, and a mistyped number breaks OTP/WhatsApp).
+  // TanStack Router JSON-parses search values, so an all-digit MyKad or phone
+  // arrives as a number — coerce everything back to a trimmed string.
   const search = useSearch({ strict: false }) as Record<string, unknown>;
   const prefill = (value: unknown): string =>
     value === undefined || value === null ? '' : String(value).trim();
+  // The field shows a fixed "+60" prefix, so keep only the local part. Accepts
+  // "+60123456789", "60123456789", "0123456789" or "123456789" alike.
+  const prefillPhone = toMalaysianE164(prefill(search.mobileNo)).replace(/^\+60/, '');
+  // Only lock a number that would actually pass validation — otherwise the
+  // customer would be stuck on an error they cannot correct.
+  const phoneLocked = prefillPhone.length >= 8;
   const [context, setContext] = useState<EnquiryContext | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -115,7 +123,7 @@ export function Enquiry() {
     defaultValues: {
       customer_name: prefill(search.fullName),
       customer_nric: prefill(search.nric),
-      customer_phone: '',
+      customer_phone: prefillPhone,
       customer_email: prefill(search.email),
       staff_id: '',
       acceptedTerms: false as unknown as true,
@@ -492,11 +500,22 @@ export function Enquiry() {
                           type="tel"
                           inputMode="numeric"
                           placeholder="12-345 6789"
-                          className="h-11 pl-12"
+                          className={
+                            phoneLocked
+                              ? 'h-11 pl-12 bg-muted text-muted-foreground cursor-not-allowed'
+                              : 'h-11 pl-12'
+                          }
+                          readOnly={phoneLocked}
+                          aria-readonly={phoneLocked}
                           {...field}
                         />
                       </div>
                     </FormControl>
+                    {phoneLocked && (
+                      <FormDescription>
+                        Provided by your partner and cannot be changed here.
+                      </FormDescription>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}

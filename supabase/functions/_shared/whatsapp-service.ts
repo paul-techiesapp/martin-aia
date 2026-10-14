@@ -74,7 +74,16 @@ class OneWaySmsService implements WhatsAppService {
       [-5]: 'Invalid template',
       [-6]: 'Template parameter mismatch',
       [-7]: 'IP not whitelisted',
+      // OneWaySMS gateway-level codes
+      [-100]: 'Invalid API credentials',
+      [-200]: 'Invalid sender ID',
+      [-300]: 'Invalid mobile number',
+      [-400]: 'Invalid language type',
+      [-500]: 'Invalid characters in message',
+      [-600]: 'Insufficient OneWaySMS credit balance',
     };
+
+    console.error(`[OneWaySMS] send failed: code=${resultCode} body=${body.trim()}`);
 
     return {
       success: false,

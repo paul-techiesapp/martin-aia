@@ -23,7 +23,6 @@ import {
 } from '@agent-system/shared-ui';
 import { Camera, CameraOff, CheckCircle, XCircle, RotateCcw, ScanBarcode } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { RegistrationStatus } from '@agent-system/shared-types';
 import { useCampaigns } from '../hooks/useCampaigns';
 
 interface AttendeeDetails {
@@ -258,14 +257,27 @@ export function CheckInScanner() {
         agentCode: registration.agent?.agent_code ?? null,
       };
 
-      // 2. Check if already checked in
-      const { data: existingAttendance } = await supabase
-        .from('attendance')
-        .select('id')
-        .eq('registration_id', registration.id)
-        .single();
+      // 2. Check in atomically: the RPC inserts the attendance row and sets the
+      // registration to 'attended' in one transaction, so a dropped connection
+      // can no longer leave the two out of sync.
+      const { data: checkInResult, error: checkInError } = await supabase.rpc('admin_check_in', {
+        p_registration_id: registration.id,
+      });
 
-      if (existingAttendance) {
+      if (checkInError) {
+        setResult({
+          success: false,
+          name: registration.invitee_name,
+          message: 'Failed to record check-in. Please scan again.',
+          details,
+        });
+        return;
+      }
+
+      // Refresh the live check-in counter for the selected event
+      void queryClient.invalidateQueries({ queryKey: ['checkin-progress'] });
+
+      if (checkInResult === 'already_checked_in') {
         setResult({
           success: false,
           name: registration.invitee_name,
@@ -274,35 +286,6 @@ export function CheckInScanner() {
         });
         return;
       }
-
-      // 3. Create attendance record
-      const { error: attendanceError } = await supabase
-        .from('attendance')
-        .insert({
-          registration_id: registration.id,
-          checkin_time: new Date().toISOString(),
-          checkout_time: null,
-          is_full_attendance: false,
-        });
-
-      if (attendanceError) {
-        setResult({
-          success: false,
-          name: registration.invitee_name,
-          message: 'Failed to record check-in.',
-          details,
-        });
-        return;
-      }
-
-      // 4. Update registration status
-      await supabase
-        .from('registrations')
-        .update({ status: RegistrationStatus.ATTENDED })
-        .eq('id', registration.id);
-
-      // Refresh the live check-in counter for the selected event
-      void queryClient.invalidateQueries({ queryKey: ['checkin-progress'] });
 
       setResult({
         success: true,

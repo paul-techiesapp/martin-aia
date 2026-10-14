@@ -274,6 +274,12 @@ export function CheckOut() {
           setIsSuccess(true);
           setIsSending(false);
           return;
+        } else if (data.error === 'whatsapp_send_failed') {
+          // Provider-side failure (e.g. out of credit) — not something the
+          // attendee can fix, so don't show them a raw provider code.
+          setError(
+            'We could not send the OTP via WhatsApp right now. Please inform our staff and try again in a few minutes.'
+          );
         } else {
           setError(data.message || 'Failed to send OTP. Please try again.');
         }
@@ -324,6 +330,10 @@ export function CheckOut() {
           }
         } else if (data.error === 'rate_limit_exceeded') {
           setError('Maximum OTP attempts reached. Please try again later.');
+        } else if (data.error === 'whatsapp_send_failed') {
+          setError(
+            'We could not send the OTP via WhatsApp right now. Please inform our staff and try again in a few minutes.'
+          );
         } else {
           setError(data.message || 'Failed to resend OTP.');
         }

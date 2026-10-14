@@ -80,15 +80,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 2. Validate status
-    if (registration.status !== 'attended') {
-      return new Response(
-        JSON.stringify({ error: 'not_checked_in' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // 3. Validate attendance (not already checked out)
+    // 2-3. The attendance row is the source of truth for "checked in". The old
+    // two-step scanner could insert it but lose the status update, leaving the
+    // registration at 'registered' — so don't gate on status here.
     const { data: attendance } = await supabase
       .from('attendance')
       .select('id, checkout_time')
@@ -100,6 +94,15 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: 'not_checked_in' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Heal a registration left at 'registered' by an interrupted check-in.
+    if (registration.status === 'registered') {
+      await supabase
+        .from('registrations')
+        .update({ status: 'attended', updated_at: new Date().toISOString() })
+        .eq('id', registration.id)
+        .eq('status', 'registered');
     }
 
     if (attendance.checkout_time) {

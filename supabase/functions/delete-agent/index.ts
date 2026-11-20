@@ -24,11 +24,12 @@ const MAX_DEPTH = 50;
 async function topRootOf(supabase: any, agentId: string): Promise<string> {
   let current = agentId;
   for (let i = 0; i < MAX_DEPTH; i++) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("agents")
       .select("parent_agent_id")
       .eq("id", current)
       .single();
+    if (error) throw new Error(`Failed to resolve unit: ${error.message}`);
     if (!data?.parent_agent_id) return current;
     current = data.parent_agent_id;
   }
@@ -36,15 +37,21 @@ async function topRootOf(supabase: any, agentId: string): Promise<string> {
 }
 
 // deno-lint-ignore no-explicit-any
-async function descendantsOf(supabase: any, agentId: string): Promise<{ id: string; user_id: string }[]> {
-  const out: { id: string; user_id: string }[] = [];
+async function descendantsOf(
+  supabase: any,
+  agentId: string
+): Promise<{ id: string; user_id: string; is_unit_manager: boolean }[]> {
+  const out: { id: string; user_id: string; is_unit_manager: boolean }[] = [];
   let frontier = [agentId];
   for (let depth = 0; depth < MAX_DEPTH && frontier.length > 0; depth++) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("agents")
-      .select("id, user_id")
+      .select("id, user_id, is_unit_manager")
       .in("parent_agent_id", frontier);
-    const children = (data ?? []) as { id: string; user_id: string }[];
+    // Never continue with a partial list: a missed level would leave orphaned
+    // logins, and the permission checks below must see the whole subtree.
+    if (error) throw new Error(`Failed to load agents under target: ${error.message}`);
+    const children = (data ?? []) as { id: string; user_id: string; is_unit_manager: boolean }[];
     out.push(...children);
     frontier = children.map((c) => c.id);
   }
@@ -165,6 +172,26 @@ serve(async (req) => {
     // removed too, otherwise the parent_agent_id cascade would delete their
     // agents rows but leave orphaned logins that keep the email reserved.
     const subAgents = await descendantsOf(supabase, target.id);
+
+    // The sweep deletes the whole subtree, so unit callers' permissions must
+    // hold for EVERY agent in it, not just the target.
+    if (unitCaller) {
+      if (subAgents.some((a) => a.id === unitCaller!.id)) {
+        return new Response(
+          JSON.stringify({ error: "You cannot delete an agent you report to" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const callerIsRoot = unitCaller.parent_agent_id === null;
+      if (!callerIsRoot && subAgents.some((a) => a.is_unit_manager)) {
+        return new Response(
+          JSON.stringify({
+            error: "This agent has Unit Admins under them. Only the Unit Manager can delete them.",
+          }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
 
     const agentIds = [target.id, ...(subAgents ?? []).map((a) => a.id)];
 

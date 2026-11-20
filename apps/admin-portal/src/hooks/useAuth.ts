@@ -7,7 +7,13 @@ interface AuthState {
   session: Session | null;
   isLoading: boolean;
   isAdmin: boolean;
+  /** Organising-team login: may only use Check-In for its assigned events. */
+  isEventStaff: boolean;
 }
+
+// Event-staff role is read from app_metadata (service-role only); the DB policies
+// and admin_check_in enforce the same thing server-side.
+const isStaffUser = (user: User | null) => user?.app_metadata?.role === 'event_staff';
 
 export function useAuth() {
   const [authState, setAuthState] = useState<AuthState>({
@@ -15,6 +21,7 @@ export function useAuth() {
     session: null,
     isLoading: true,
     isAdmin: false,
+    isEventStaff: false,
   });
 
   useEffect(() => {
@@ -27,6 +34,7 @@ export function useAuth() {
         session,
         isLoading: false,
         isAdmin,
+        isEventStaff: !isAdmin && isStaffUser(user),
       });
     });
 
@@ -40,6 +48,7 @@ export function useAuth() {
           session,
           isLoading: false,
           isAdmin,
+          isEventStaff: !isAdmin && isStaffUser(user),
         });
       }
     );

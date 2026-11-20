@@ -29,6 +29,7 @@ import { Rewards } from './pages/Rewards';
 import { PdfExport } from './pages/PdfExport';
 import { VenueDisplay } from './pages/VenueDisplay';
 import { CheckInScanner } from './pages/CheckInScanner';
+import { EventStaffList } from './pages/event-staff/EventStaffList';
 import { Settings } from './pages/Settings';
 import { CardTemplateEditor } from './pages/CardTemplateEditor';
 
@@ -209,6 +210,12 @@ const checkInScannerRoute = createRoute({
   component: CheckInScanner,
 });
 
+const eventStaffRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/event-staff',
+  component: EventStaffList,
+});
+
 const settingsRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
   path: '/settings',
@@ -258,6 +265,7 @@ const routeTree = rootRoute.addChildren([
     rewardsRoute,
     pdfExportRoute,
     checkInScannerRoute,
+    eventStaffRoute,
     settingsRoute,
     cardTemplateRoute,
   ]),

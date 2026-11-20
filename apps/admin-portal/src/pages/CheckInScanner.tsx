@@ -21,9 +21,13 @@ import {
   TabsTrigger,
   TabsContent,
 } from '@agent-system/shared-ui';
-import { Camera, CameraOff, CheckCircle, XCircle, RotateCcw, ScanBarcode } from 'lucide-react';
+import { Camera, CameraOff, CheckCircle, XCircle, RotateCcw, ScanBarcode, Monitor } from 'lucide-react';
+import { formatSlotTime } from '@agent-system/shared-ui';
+import { format, parseISO } from 'date-fns';
 import { supabase } from '../lib/supabase';
 import { useCampaigns } from '../hooks/useCampaigns';
+import { useAuth } from '../hooks/useAuth';
+import { useMyStaffCampaigns, useEventSlots } from '../hooks/useEventStaff';
 
 interface AttendeeDetails {
   inviteeName: string;
@@ -121,11 +125,20 @@ export function CheckInScanner() {
 
   // Live check-in counter, scoped to a chosen event (multiple events may run at
   // once, so the operator picks which one this station is checking in).
-  const [counterCampaignId, setCounterCampaignId] = useState<string>(() => {
+  const [storedCampaignId, setCounterCampaignId] = useState<string>(() => {
     if (typeof window === 'undefined') return '';
     return window.localStorage.getItem(EVENT_STORAGE_KEY) ?? '';
   });
-  const { data: campaigns } = useCampaigns();
+  // Organising-team (event staff) logins only see the events assigned to them.
+  const { isEventStaff } = useAuth();
+  const { data: allCampaigns } = useCampaigns();
+  const { data: staffCampaigns } = useMyStaffCampaigns(isEventStaff);
+  const campaigns = isEventStaff ? staffCampaigns : allCampaigns;
+  // Ignore a remembered event that is not in this login's list (e.g. a staff
+  // login on a shared device, or an assignment that was removed).
+  const counterCampaignId =
+    storedCampaignId && campaigns?.some((c) => c.id === storedCampaignId) ? storedCampaignId : '';
+  const { data: eventSlots } = useEventSlots(counterCampaignId);
   const queryClient = useQueryClient();
   const { data: progress } = useQuery({
     queryKey: ['checkin-progress', counterCampaignId],
@@ -222,7 +235,7 @@ export function CheckInScanner() {
       const { data: registration, error: regError } = await supabase
         .from('registrations')
         .select(
-          'id, invitee_name, status, slot_id, capacity_type, ' +
+          'id, invitee_name, status, slot_id, capacity_type, former_agent_name, former_agent_code, ' +
             'slot:slots(start_at, end_at, campaign:campaigns(name, venue)), ' +
             'agent:agents(name, agent_code)',
         )
@@ -233,6 +246,8 @@ export function CheckInScanner() {
           status: string;
           slot_id: string;
           capacity_type: 'agent' | 'business_partner' | null;
+          former_agent_name: string | null;
+          former_agent_code: string | null;
           slot: {
             start_at: string;
             end_at: string;
@@ -242,7 +257,13 @@ export function CheckInScanner() {
         }>();
 
       if (regError || !registration) {
-        setResult({ success: false, name: '', message: 'Registration not found.' });
+        setResult({
+          success: false,
+          name: '',
+          message: isEventStaff
+            ? 'Registration not found, or it is not for an event assigned to you.'
+            : 'Registration not found.',
+        });
         return;
       }
 
@@ -253,8 +274,10 @@ export function CheckInScanner() {
         venue: registration.slot?.campaign?.venue ?? null,
         slotStartAt: registration.slot?.start_at ?? null,
         slotEndAt: registration.slot?.end_at ?? null,
-        agentName: registration.agent?.name ?? null,
-        agentCode: registration.agent?.agent_code ?? null,
+        agentName:
+          registration.agent?.name ??
+          (registration.former_agent_name ? `${registration.former_agent_name} (deleted)` : null),
+        agentCode: registration.agent?.agent_code ?? registration.former_agent_code ?? null,
       };
 
       // 2. Check in atomically: the RPC inserts the attendance row and sets the
@@ -401,10 +424,36 @@ export function CheckInScanner() {
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Select an event to see live check-in progress.
+                {isEventStaff && campaigns && campaigns.length === 0
+                  ? 'No events are assigned to your login yet. Please contact the admin.'
+                  : 'Select an event to see live check-in progress.'}
               </p>
             )}
           </div>
+
+          {/* Checkout display: attendees check out by scanning the rotating QR on this screen */}
+          {counterCampaignId && eventSlots && eventSlots.length > 0 && (
+            <div className="rounded-lg border p-4 space-y-2">
+              <p className="text-sm font-medium">Check-out display</p>
+              <p className="text-xs text-muted-foreground">
+                Open on a screen at the venue — attendees scan it to check out.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {eventSlots.map((slot) => (
+                  <Button
+                    key={slot.id}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => window.open(`/venue-display/${slot.id}`, '_blank')}
+                  >
+                    <Monitor className="size-4" />
+                    {format(parseISO(slot.start_at), 'd MMM')}, {formatSlotTime(slot.start_at)} - {formatSlotTime(slot.end_at)}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <Tabs value={mode} onValueChange={handleModeChange}>
             <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">

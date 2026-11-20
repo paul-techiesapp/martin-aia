@@ -18,6 +18,7 @@ import {
   Inbox,
   Gift,
   Landmark,
+  UserCog,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { usePendingTierRequestCount } from '../hooks/useTierRequests';
@@ -37,6 +38,7 @@ const navGroups: NavGroup[] = [
       { name: 'Rewards', href: '/rewards', icon: Award },
       { name: 'PDF Export', href: '/pdf-export', icon: FileText },
       { name: 'Check-In', href: '/check-in', icon: ScanLine },
+      { name: 'Event Staff', href: '/event-staff', icon: UserCog },
     ],
   },
   {
@@ -51,10 +53,17 @@ const navGroups: NavGroup[] = [
   { items: [{ name: 'Settings', href: '/settings', icon: SettingsIcon }] },
 ];
 
+// Organising-team logins only see the Check-In page.
+const staffNavGroups: NavGroup[] = [
+  { label: 'Events', items: [{ name: 'Check-In', href: '/check-in', icon: ScanLine }] },
+];
+
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, signOut, isEventStaff } = useAuth();
+  const groups = isEventStaff ? staffNavGroups : navGroups;
+  const portalTitle = isEventStaff ? 'RACC Check-In' : 'RACC Admin';
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { data: pendingTierCount } = usePendingTierRequestCount();
 
@@ -64,7 +73,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   };
 
   const renderNav = (onNavigate?: () => void) =>
-    navGroups.map((group, gi) => (
+    groups.map((group, gi) => (
       <div key={group.label ?? `group-${gi}`} className={group.label ? 'pt-3' : ''}>
         {group.label && (
           <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-400/80">
@@ -114,7 +123,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:z-30 bg-gradient-to-b from-indigo-950 via-[#1a1942] to-slate-900 text-white">
         <div className="flex h-16 items-center gap-3 px-6 border-b border-white/10">
           <Logo size="md" showText={false} />
-          <span className="font-semibold text-lg tracking-tight">RACC Admin</span>
+          <span className="font-semibold text-lg tracking-tight">{portalTitle}</span>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto scrollbar-thin">
           {renderNav()}
@@ -144,7 +153,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="flex h-16 items-center justify-between px-6 border-b border-white/10">
           <div className="flex items-center gap-3">
             <Logo size="md" showText={false} />
-            <span className="font-semibold text-lg tracking-tight">RACC Admin</span>
+            <span className="font-semibold text-lg tracking-tight">{portalTitle}</span>
           </div>
           <button
             onClick={() => setIsMobileMenuOpen(false)}
@@ -196,7 +205,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
           {/* Mobile header content */}
           <div className="flex lg:hidden flex-1 items-center justify-center">
-            <span className="font-semibold text-foreground">RACC Admin</span>
+            <span className="font-semibold text-foreground">{portalTitle}</span>
           </div>
         </header>
 

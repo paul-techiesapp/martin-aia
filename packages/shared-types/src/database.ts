@@ -245,7 +245,8 @@ export interface AgentLink {
 export interface Registration {
   id: string;
   agent_link_id: string | null;
-  agent_id: string;
+  /** Null once the inviting agent has been deleted — see former_agent_*. */
+  agent_id: string | null;
   slot_id: string;
   capacity_type: CapacityType;
   status: RegistrationStatus;
@@ -255,6 +256,10 @@ export interface Registration {
   invitee_email: string | null;
   invitee_occupation: string | null;
   registered_at: string | null;
+  /** Snapshot of the inviting agent, stamped when that agent is deleted (agent_id then becomes null). */
+  former_agent_name: string | null;
+  former_agent_code: string | null;
+  former_agent_unit: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -319,7 +324,8 @@ export interface Attendance {
 
 export interface Reward {
   id: string;
-  agent_id: string;
+  /** Null once the agent has been deleted — see former_agent_*. */
+  agent_id: string | null;
   attendance_id: string;
   amount: number;
   capacity_type: CapacityType;
@@ -328,6 +334,10 @@ export interface Reward {
   issued_at: string | null;
   /** Reason captured when a reward is marked Failed; null otherwise. */
   failure_reason: string | null;
+  /** Snapshot of the inviting agent, stamped when that agent is deleted (agent_id then becomes null). */
+  former_agent_name: string | null;
+  former_agent_code: string | null;
+  former_agent_unit: string | null;
   created_at: string;
   updated_at: string;
 }

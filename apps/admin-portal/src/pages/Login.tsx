@@ -20,6 +20,7 @@ import {
   Logo,
 } from '@agent-system/shared-ui';
 import { useAuth } from '../hooks/useAuth';
+import { supabase } from '../lib/supabase';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -49,14 +50,21 @@ export function Login() {
     try {
       const { user } = await signIn(data.email, data.password);
 
-      // Check if user is admin
-      if (user?.user_metadata?.role !== 'admin') {
-        setError('Access denied. Admin privileges required.');
-        setIsLoading(false);
+      // Admins get the full portal; event staff (organising teams) only get
+      // the Check-In page for their assigned events.
+      if (user?.user_metadata?.role === 'admin') {
+        navigate({ to: '/' });
+        return;
+      }
+      if (user?.app_metadata?.role === 'event_staff') {
+        navigate({ to: '/check-in' });
         return;
       }
 
-      navigate({ to: '/' });
+      await supabase.auth.signOut();
+      setError('Access denied. Admin privileges required.');
+      setIsLoading(false);
+      return;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {

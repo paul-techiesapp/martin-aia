@@ -43,7 +43,8 @@ import {
   formatSlotTime,
 } from '@agent-system/shared-ui';
 import { format, parseISO, eachDayOfInterval, getDay } from 'date-fns';
-import { ArrowLeft, Plus, Trash2, Power, PowerOff, Mail, CalendarPlus, Monitor } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Power, PowerOff, Mail, CalendarPlus, Monitor, Pencil } from 'lucide-react';
+import { EditSlotDialog } from './EditSlotDialog';
 import { useCampaign, useUpdateCampaignStatus, useUpdateCampaign } from '../../hooks/useCampaigns';
 import { useEmailReminders } from '../../hooks/useEmailReminders';
 import { useSlots, useCreateSlot, useDeleteSlot, useToggleSlotActive } from '../../hooks/useSlots';
@@ -70,6 +71,7 @@ function SlotRow({
   onToggleExpand,
   onOpenReminder,
   onToggleActive,
+  onEdit,
   onDelete,
 }: {
   slot: Slot;
@@ -77,6 +79,7 @@ function SlotRow({
   onToggleExpand: () => void;
   onOpenReminder: () => void;
   onToggleActive: () => void;
+  onEdit: (registrationCount: number) => void;
   onDelete: () => void;
 }) {
   const { data: registrations, isLoading: isLoadingRegistrations } = useRegistrationsBySlot(slot.id);
@@ -146,6 +149,15 @@ function SlotRow({
               title="Send email reminders"
             >
               <Mail className="size-4 text-indigo-500" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="size-8 p-0" aria-label="Edit slot"
+              onClick={() => onEdit(count)}
+              title="Edit date / time (keeps registrations)"
+            >
+              <Pencil className="size-4" />
             </Button>
             <Button
               variant="ghost"
@@ -274,6 +286,7 @@ export function CampaignDetail() {
   const [expandedSlotId, setExpandedSlotId] = useState<string | null>(null);
 
   const [isAddSlotOpen, setIsAddSlotOpen] = useState(false);
+  const [editingSlot, setEditingSlot] = useState<{ slot: Slot; count: number } | null>(null);
   const [newSlot, setNewSlot] = useState({
     date: undefined as Date | undefined,
     start_time: '10:00',
@@ -838,12 +851,20 @@ export function CampaignDetail() {
                     onToggleExpand={() => setExpandedSlotId(expandedSlotId === slot.id ? null : slot.id)}
                     onOpenReminder={() => handleOpenReminderDialog(slot)}
                     onToggleActive={() => toggleSlotActive.mutate({ id: slot.id, is_active: !slot.is_active })}
+                    onEdit={(count) => setEditingSlot({ slot, count })}
                     onDelete={() => handleDeleteSlot(slot.id)}
                   />
                 ))}
               </TableBody>
             </Table>
           )}
+          <EditSlotDialog
+            slot={editingSlot?.slot ?? null}
+            registrationCount={editingSlot?.count ?? 0}
+            minDate={campaign?.start_date}
+            maxDate={campaign?.end_date}
+            onClose={() => setEditingSlot(null)}
+          />
         </CardContent>
       </Card>
 

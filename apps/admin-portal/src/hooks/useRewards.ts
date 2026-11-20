@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchAllRows } from '@agent-system/shared-ui';
 import { supabase } from '../lib/supabase';
+import { withFormerAgent, FORMER_AGENT_COLUMNS } from '../lib/formerAgent';
 import { RewardStatus } from '@agent-system/shared-types';
 import type { CapacityType } from '@agent-system/shared-types';
 
@@ -36,12 +37,13 @@ export function useRewards() {
     queryFn: async () => {
       // Paged: rewards is a table that grows per transaction and this read is
       // fully unfiltered. `id` is a tiebreaker for deterministic page boundaries.
-      return fetchAllRows<AdminRewardRow>(
+      const rows = await fetchAllRows<AdminRewardRow>(
         (from, to) =>
           supabase
             .from('rewards')
             .select(`
               id, amount, status, issued_at, failure_reason, capacity_type, created_at,
+              ${FORMER_AGENT_COLUMNS},
               agent:agents(name, unit_name, agent_code),
               attendance:attendance(
                 checkin_time, checkout_time,
@@ -61,6 +63,7 @@ export function useRewards() {
           }>,
         { label: 'admin rewards' },
       );
+      return rows.map(withFormerAgent);
     },
   });
 }

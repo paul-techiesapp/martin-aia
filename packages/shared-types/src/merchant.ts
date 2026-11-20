@@ -201,13 +201,18 @@ export interface Gift {
 export interface MerchantCommission {
   id: string;
   enquiry_vehicle_id: string;
-  agent_id: string;
+  /** Null once the agent has been deleted — see former_agent_*. */
+  agent_id: string | null;
   tier_id: string | null;
   amount: number;
   status: RewardStatus;
   paid_at: string | null;
   failure_reason: string | null;
   set_by: string | null;
+  /** Snapshot of the agent, stamped when that agent is deleted (agent_id then becomes null). */
+  former_agent_name: string | null;
+  former_agent_code: string | null;
+  former_agent_unit: string | null;
   created_at: string;
   updated_at: string;
 }

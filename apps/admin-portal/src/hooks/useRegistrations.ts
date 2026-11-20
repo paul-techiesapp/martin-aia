@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { withFormerAgent } from '../lib/formerAgent';
 import type { Registration } from '@agent-system/shared-types';
 
 export function useRegistrationsBySlot(slotId?: string) {
@@ -13,7 +14,7 @@ export function useRegistrationsBySlot(slotId?: string) {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as (Registration & { agent: { name: string; agent_code: string } })[];
+      return (data as (Registration & { agent: { name: string; agent_code: string } | null })[]).map(withFormerAgent);
     },
     enabled: !!slotId,
   });

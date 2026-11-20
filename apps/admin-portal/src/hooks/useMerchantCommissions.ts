@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchAllRows } from '@agent-system/shared-ui';
 import { supabase } from '../lib/supabase';
+import { withFormerAgent, FORMER_AGENT_COLUMNS } from '../lib/formerAgent';
 import { RewardStatus } from '@agent-system/shared-types';
 
 export interface AdminCommissionRow {
@@ -25,12 +26,13 @@ export function useMerchantCommissions() {
       // Paged: merchant_commissions is a table that grows per transaction and
       // this read is fully unfiltered. `id` is a tiebreaker for deterministic
       // page boundaries.
-      return fetchAllRows<AdminCommissionRow>(
+      const rows = await fetchAllRows<AdminCommissionRow>(
         (from, to) =>
           supabase
             .from('merchant_commissions')
             .select(`
               id, amount, status, paid_at, failure_reason, created_at,
+              ${FORMER_AGENT_COLUMNS},
               agent:agents(id, name, agent_code, unit_name),
               vehicle:enquiry_vehicles(
                 id, car_plate,
@@ -45,6 +47,7 @@ export function useMerchantCommissions() {
           }>,
         { label: 'admin merchant-commissions' },
       );
+      return rows.map(withFormerAgent);
     },
   });
 }

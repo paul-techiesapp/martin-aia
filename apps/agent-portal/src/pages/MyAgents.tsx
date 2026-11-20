@@ -484,7 +484,7 @@ export function MyAgents() {
                             Edit
                           </Button>
                         )}
-                        {canManage(a) && a.status === 'active' && (
+                        {canManage(a) && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -830,9 +830,10 @@ export function MyAgents() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Agent?</AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently deletes the agent, any partners they created, and their
-              links. Their login is removed so the same email and phone can be reused.
-              This action cannot be undone.
+              This permanently deletes the agent (active or inactive), any agents under
+              them, any partners they created, and their links. Their login is removed so
+              the same email and phone can be reused. Past event registrations, attendance
+              and rewards are kept in reports under their name. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

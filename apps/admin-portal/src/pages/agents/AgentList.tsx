@@ -49,7 +49,8 @@ import {
 } from '../../hooks/useTierRequests';
 
 export function AgentList() {
-  const { data: agents, isLoading, error } = useAgents();
+  const [showAllAgents, setShowAllAgents] = useState(false);
+  const { data: agents, isLoading, error } = useAgents(showAllAgents);
   const deleteAgent = useDeleteAgent();
   const { data: pendingRequests, isLoading: isLoadingRequests } = usePendingTierRequests();
   const approveTierRequest = useApproveTierRequest();
@@ -68,7 +69,7 @@ export function AgentList() {
     if (!deleteId) return;
     try {
       await deleteAgent.mutateAsync(deleteId);
-      toast({ title: 'Agent deleted', description: 'The account and its data were permanently removed. The email and phone can now be reused.' });
+      toast({ title: 'Agent deleted', description: 'The login was removed and the email and phone can now be reused. Past registrations, attendance and rewards are kept.' });
       setDeleteId(null);
     } catch (err: any) {
       toast({ title: 'Failed to delete agent', description: err.message, variant: 'error' });
@@ -203,10 +204,36 @@ export function AgentList() {
       {/* All Units Table */}
       <Card>
         <CardHeader>
-          <CardTitle>All Units</CardTitle>
-          <CardDescription>
-            {agents?.length ?? 0} registered units
-          </CardDescription>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <CardTitle>{showAllAgents ? 'All Agents' : 'All Units'}</CardTitle>
+              <CardDescription>
+                {showAllAgents
+                  ? `${agents?.length ?? 0} agents across all units (active and inactive)`
+                  : `${agents?.length ?? 0} registered units`}
+              </CardDescription>
+            </div>
+            <div className="inline-flex rounded-lg border p-0.5 text-sm" role="tablist" aria-label="Roster view">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={!showAllAgents}
+                onClick={() => setShowAllAgents(false)}
+                className={`px-3 py-1.5 rounded-md ${!showAllAgents ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                Units
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={showAllAgents}
+                onClick={() => setShowAllAgents(true)}
+                className={`px-3 py-1.5 rounded-md ${showAllAgents ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                All agents
+              </button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -256,7 +283,7 @@ export function AgentList() {
                           <DropdownMenuItem asChild>
                             <Link to="/agents/$agentId/edit" params={{ agentId: agent.id }}>
                               <Pencil className="mr-2 size-4" />
-                              Edit Unit
+                              {agent.parent_agent_id ? 'Edit Agent' : 'Edit Unit'}
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
@@ -272,7 +299,7 @@ export function AgentList() {
                             disabled={deleteAgent.isPending}
                           >
                             <Trash2 className="mr-2 size-4" />
-                            Delete Unit
+                            {agent.parent_agent_id ? 'Delete Agent' : 'Delete Unit'}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -290,11 +317,15 @@ export function AgentList() {
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Unit</AlertDialogTitle>
+            <AlertDialogTitle>
+              {agents?.find((a) => a.id === deleteId)?.parent_agent_id ? 'Delete Agent' : 'Delete Unit'}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently deletes the agent, all of their sub-agents and partners,
-              and the related invitations and rewards. Their logins are removed so the
-              same email and phone can be reused. This action cannot be undone.
+              This permanently deletes {agents?.find((a) => a.id === deleteId)?.name ?? 'the agent'} (active
+              or inactive), every agent under them, and their partners and links. Their logins are
+              removed so the same email and phone can be reused. Past event registrations,
+              attendance, rewards and commissions are kept in reports under their name. This
+              action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

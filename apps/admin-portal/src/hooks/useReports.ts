@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchAllRows } from '@agent-system/shared-ui';
 import { supabase } from '../lib/supabase';
+import { formerAgent } from '../lib/formerAgent';
 import { VehicleStatus, type RegistrationStatus } from '@agent-system/shared-types';
 import { useEnquiries } from './useEnquiries';
 import { useSystemSettings } from './useSystemSettings';
@@ -67,7 +68,11 @@ interface RawRegistration {
   status: RegistrationStatus;
   created_at: string;
   registered_at: string | null;
-  agent_id: string;
+  /** Null once the inviting agent was deleted; former_agent_* then hold a snapshot. */
+  agent_id: string | null;
+  former_agent_name: string | null;
+  former_agent_code: string | null;
+  former_agent_unit: string | null;
   agent: { name: string; unit_name: string; parent_agent_id: string | null } | null;
   attendance: {
     checkin_time: string | null;
@@ -103,6 +108,7 @@ async function fetchRegistrations(
         .from('registrations')
         .select(`
           id, invitee_name, invitee_nric, invitee_phone, status, created_at, registered_at, agent_id,
+          former_agent_name, former_agent_code, former_agent_unit,
           agent:agents(name, unit_name, parent_agent_id),
           attendance:attendance(checkin_time, checkout_time, is_full_attendance, reward:rewards(amount, status)),
           slot:slots(start_at, campaign:campaigns(id, name))
@@ -136,7 +142,8 @@ async function fetchRegistrations(
       ...r,
       attendance: attendance ? { ...attendance, reward } : null,
       slot: Array.isArray(r.slot) ? r.slot[0] ?? null : r.slot ?? null,
-      agent: Array.isArray(r.agent) ? r.agent[0] ?? null : r.agent ?? null,
+      agent:
+        (Array.isArray(r.agent) ? r.agent[0] ?? null : r.agent ?? null) ?? formerAgent(r),
     };
   }) as RawRegistration[];
 }
@@ -231,7 +238,8 @@ export function useTeamPerformance(campaignId: string) {
 
       const teams = new Map<string, TeamPerformance>();
       for (const r of rows) {
-        const teamId = rootOf(r.agent_id);
+        // Deleted agents have no agent_id; group their history by former unit.
+        const teamId = r.agent_id ? rootOf(r.agent_id) : `former:${r.former_agent_unit ?? ''}`;
         const root = agentById.get(teamId);
         const teamName = root?.unit_name || r.agent?.unit_name || 'Unassigned';
         let team = teams.get(teamId);
@@ -416,10 +424,11 @@ export function useTopUnits(campaignId: string, dateRange: string) {
       const rows = await fetchRegistrations(campaignId, dateRangeStart(dateRange));
       const byAgent = new Map<string, { name: string; invitations: number; attendance: number }>();
       for (const r of rows) {
-        let entry = byAgent.get(r.agent_id);
+        const agentKey = r.agent_id ?? `former:${r.former_agent_code ?? r.former_agent_name ?? ''}`;
+        let entry = byAgent.get(agentKey);
         if (!entry) {
           entry = { name: r.agent?.name ?? 'Unknown', invitations: 0, attendance: 0 };
-          byAgent.set(r.agent_id, entry);
+          byAgent.set(agentKey, entry);
         }
         entry.invitations += 1;
         if (ATTENDED_STATUSES.includes(r.status)) entry.attendance += 1;

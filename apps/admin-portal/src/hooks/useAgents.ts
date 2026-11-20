@@ -3,28 +3,34 @@ import { readEdgeFunctionError, fetchAllRows } from '@agent-system/shared-ui';
 import { supabase } from '../lib/supabase';
 import type { Agent, AgentWithTier } from '@agent-system/shared-types';
 
-export function useAgents() {
+/**
+ * Admin agent roster. By default only top-level units + unit managers (the
+ * "Units" view); pass `allAgents` to include every agent at every level, e.g.
+ * to find and delete a resigned agent inside a unit.
+ */
+export function useAgents(allAgents = false) {
   return useQuery({
-    queryKey: ['agents'],
+    queryKey: ['agents', allAgents ? 'all' : 'units'],
     queryFn: async () => {
-      // Paged: agents is a table that grows per transaction, and this list only
-      // narrows to top-level units + unit managers — not a bound that keeps it
-      // under PostgREST's 1000-row page cap as the roster scales.
+      // Paged: agents is a table that grows per transaction; even the narrowed
+      // units view is not bounded under PostgREST's 1000-row page cap.
       return fetchAllRows<AgentWithTier>(
-        (from, to) =>
-          supabase
+        (from, to) => {
+          let query = supabase
             .from('agents')
             .select(`
               *,
               tier:tiers(*)
-            `)
-            .or('parent_agent_id.is.null,is_unit_manager.eq.true')
+            `);
+          if (!allAgents) query = query.or('parent_agent_id.is.null,is_unit_manager.eq.true');
+          return query
             .order('name', { ascending: true })
             .order('id', { ascending: true })
             .range(from, to) as unknown as PromiseLike<{
             data: AgentWithTier[] | null;
             error: { message: string } | null;
-          }>,
+          }>;
+        },
         { label: 'admin agents' },
       );
     },

@@ -15,6 +15,42 @@ const corsHeaders = {
 // email/phone could never be re-used. We therefore collect every auth user under
 // this unit (the agent, its sub-agents, and all of their partners) and delete each
 // one, freeing email/phone/nric/agent_code for re-creation.
+// Units are RECURSIVE trees (a unit = the whole tree under its top-most root),
+// so both the unit-scope check and the descendant sweep walk the hierarchy
+// instead of assuming a single parent level.
+const MAX_DEPTH = 50;
+
+// deno-lint-ignore no-explicit-any
+async function topRootOf(supabase: any, agentId: string): Promise<string> {
+  let current = agentId;
+  for (let i = 0; i < MAX_DEPTH; i++) {
+    const { data } = await supabase
+      .from("agents")
+      .select("parent_agent_id")
+      .eq("id", current)
+      .single();
+    if (!data?.parent_agent_id) return current;
+    current = data.parent_agent_id;
+  }
+  return current;
+}
+
+// deno-lint-ignore no-explicit-any
+async function descendantsOf(supabase: any, agentId: string): Promise<{ id: string; user_id: string }[]> {
+  const out: { id: string; user_id: string }[] = [];
+  let frontier = [agentId];
+  for (let depth = 0; depth < MAX_DEPTH && frontier.length > 0; depth++) {
+    const { data } = await supabase
+      .from("agents")
+      .select("id, user_id")
+      .in("parent_agent_id", frontier);
+    const children = (data ?? []) as { id: string; user_id: string }[];
+    out.push(...children);
+    frontier = children.map((c) => c.id);
+  }
+  return out;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -103,14 +139,14 @@ serve(async (req) => {
     // within their own unit, never the unit root itself, and deputies may only
     // delete plain Unit Agents (not other Unit Admins/deputies).
     if (unitCaller) {
-      const unitRootId = unitCaller.parent_agent_id ?? unitCaller.id;
+      const unitRootId = await topRootOf(supabase, unitCaller.id);
       if (target.parent_agent_id === null) {
         return new Response(
           JSON.stringify({ error: "The Unit Manager can only be deleted by the master admin" }),
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      if (target.parent_agent_id !== unitRootId) {
+      if (target.id === unitCaller.id || (await topRootOf(supabase, target.id)) !== unitRootId) {
         return new Response(
           JSON.stringify({ error: "Agent is not in your unit" }),
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -125,11 +161,10 @@ serve(async (req) => {
       }
     }
 
-    // Sub-agents under this unit (agent hierarchy is a single level deep)
-    const { data: subAgents } = await supabase
-      .from("agents")
-      .select("id, user_id")
-      .eq("parent_agent_id", target.id);
+    // Every agent below the target (recursive). Their auth users must be
+    // removed too, otherwise the parent_agent_id cascade would delete their
+    // agents rows but leave orphaned logins that keep the email reserved.
+    const subAgents = await descendantsOf(supabase, target.id);
 
     const agentIds = [target.id, ...(subAgents ?? []).map((a) => a.id)];
 

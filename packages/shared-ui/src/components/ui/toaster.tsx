@@ -22,7 +22,7 @@ export function Toaster({ position = "top-right", className }: ToasterProps) {
   return (
     <div
       className={cn(
-        "fixed z-50 flex flex-col gap-2 w-full max-w-sm pointer-events-none",
+        "fixed z-[100] flex flex-col gap-2 w-full max-w-sm pointer-events-none",
         positionStyles[position],
         className
       )}
